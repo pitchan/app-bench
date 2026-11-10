@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101f27">
+<title>GPT-6</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#e9eee9;background:#101f27;font-synthesis:none;--muted:#91a3a7;--line:#ffffff18;--accent:#eac58c;--green:#98d4ba}
+*{box-sizing:border-box}body{margin:0;overflow:hidden}canvas.scene{display:block;width:100vw;height:100vh;position:fixed;inset:0}button,input,select{font:inherit}button,select{color:inherit;background:#21343d;border:1px solid #ffffff24;border-radius:7px;cursor:pointer}button{padding:9px 13px}button:hover,select:hover{background:#304650}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button.primary{background:var(--accent);color:#233039;border-color:var(--accent);font-weight:650}header{position:fixed;left:30px;top:25px;pointer-events:none}h1{font-size:27px;font-weight:550;letter-spacing:-1.2px;margin:0 0 6px}header p{font-size:10px;letter-spacing:2.2px;color:#a7b8ba;margin:0;text-transform:uppercase}.panel{background:linear-gradient(135deg,#142831ed,#14232bed);border:1px solid var(--line);box-shadow:0 12px 50px #0002;backdrop-filter:blur(16px);border-radius:12px}.sequence{position:fixed;left:26px;top:110px;width:227px;padding:19px 17px 16px}.eyebrow{font-size:10px;letter-spacing:1.7px;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}.eyebrow strong{font-weight:500;color:var(--accent);letter-spacing:.5px}ol{list-style:none;padding:0;margin:18px 0 15px}li{position:relative;display:grid;grid-template-columns:24px 1fr auto;gap:7px;align-items:center;min-height:35px;font-size:11px;color:#93a4a8}li:not(:last-child):after{content:"";position:absolute;left:9px;top:28px;width:1px;height:13px;background:#ffffff12}.stage-dot{display:grid;place-items:center;width:20px;height:20px;border:1px solid #ffffff25;border-radius:50%;font-size:9px;color:#82989c}li.triggered{color:#edf5ef}li.triggered .stage-dot{background:#98d4ba1c;border-color:#98d4ba80;color:var(--green)}li.failed{color:#f0ac98}li.failed .stage-dot{border-color:#e28d79;color:#eaa48f}li time{font-variant-numeric:tabular-nums;color:#9bb0b4;font-size:10px}.measurement{border-top:1px solid var(--line);padding-top:13px;display:grid;gap:10px}.measurement div{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#91a6aa}.measurement strong{color:#dce9e6;font-weight:500;font-variant-numeric:tabular-nums}#status{font-size:11px;line-height:1.55;color:#c5d3d1;margin:14px 0 0;min-height:34px}.settings{position:fixed;right:26px;top:26px;width:255px;padding:15px 17px}.settings summary{cursor:pointer;list-style:none;font-size:11px;letter-spacing:.4px;display:flex;justify-content:space-between;align-items:center}.settings summary::-webkit-details-marker{display:none}.settings summary:after{content:"+";color:var(--accent);font-size:18px}.settings[open] summary:after{content:"−"}.settings .inside{margin-top:19px}.field{display:block;margin:0 0 14px}.field .caption{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#b9c8c9;margin-bottom:7px}.field output{color:var(--accent);font-variant-numeric:tabular-nums}input[type=range]{display:block;width:100%;height:3px;accent-color:var(--accent);cursor:pointer}.settings .note{font-size:9px;color:#8da2a8;line-height:1.6;margin:5px 0 13px}.settings button{width:100%;font-size:11px}.toolbar{position:fixed;bottom:23px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;padding:9px 11px;white-space:nowrap}.toolbar button{font-size:11px}.toolbar select{font-size:11px;padding:9px 25px 9px 9px;min-height:35px}.divider{height:22px;width:1px;background:var(--line);margin:0 3px}.clock{min-width:82px;display:flex;flex-direction:column;padding:0 8px}.clock span{font-size:8px;letter-spacing:1.2px;color:var(--muted);margin-bottom:2px}.clock strong{font-size:17px;font-weight:400;font-variant-numeric:tabular-nums;color:#f1d5ac}.keyhint{position:fixed;right:28px;bottom:31px;color:#91a6ab;font-size:9px;line-height:1.8;text-align:right;pointer-events:none}.legend{position:fixed;left:29px;bottom:32px;font-size:9px;color:#91a6ab;line-height:1.9;letter-spacing:.4px}.legend i{display:inline-block;width:5px;height:5px;background:#98d4ba;border-radius:50%;margin-right:7px}#loading{position:fixed;inset:0;display:grid;place-items:center;background:#101f27;z-index:10;transition:opacity .4s}#loading p{font-size:12px;letter-spacing:2px;color:var(--accent)}#audioNote{display:none;color:#eac58c;margin-top:6px}#error{position:fixed;inset:30% 20%;z-index:11;padding:30px;display:none;line-height:1.7} @media(max-width:850px){header{left:18px;top:18px}.sequence{left:14px;top:91px;width:195px;padding:13px}.settings{right:14px;top:17px;width:218px}.toolbar{bottom:14px;gap:5px;padding:7px}.toolbar button{padding:8px 10px}.toolbar select{padding-right:13px}.keyhint,.legend{display:none}}@media(max-width:550px){h1{font-size:23px}.sequence{width:167px;top:83px;padding:11px}li{font-size:9px;min-height:30px;gap:4px;grid-template-columns:22px 1fr auto}li time{font-size:8px}ol{margin-top:10px}.eyebrow{font-size:8px}.measurement div{font-size:8px}.settings{width:179px;padding:11px}.settings .caption{font-size:9px}.settings .inside{max-height:62vh;overflow:auto;padding:3px}header p{font-size:8px;letter-spacing:1px}.toolbar{width:calc(100% - 20px);justify-content:center}.toolbar button,.toolbar select{font-size:9px;padding:7px}.clock{min-width:58px;padding:0 2px}.clock strong{font-size:14px}.divider{margin:0}.toolbar select{max-width:85px}#status{font-size:9px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
+</head>
+<body>
+<div id="loading"><p>ASSEMBLING THE MACHINE</p></div>
+<div id="error" class="panel" role="alert"></div>
+<header><h1>GPT-6</h1><p>Rigid-body laboratory · 09 stages</p></header>
+<aside class="sequence panel" aria-label="Chain progress">
+<div class="eyebrow">The sequence <strong id="count">00 / 09</strong></div>
+<ol id="stages"></ol>
+<div class="measurement"><div><span>Basket acceleration</span><strong id="accel">— m/s²</strong></div><div><span>Pendulum swing</span><strong id="swing">— s</strong></div></div>
+<p id="status" role="status" aria-live="polite">Gate opens at 1.00 s.</p><div id="audioNote">Interact with the page to enable bell audio.</div>
+</aside>
+<details class="settings panel"><summary>Experiment settings</summary><div class="inside">
+<label class="field"><span class="caption">Gravity <output id="gravityOut"></output></span><input id="gravity" type="range" min="1" max="18" step="0.01" value="9.81"></label>
+<label class="field"><span class="caption">Domino spacing <output id="dominoSpacingOut"></output></span><input id="dominoSpacing" type="range" min="0.07" max="0.27" step="0.005" value="0.12"></label>
+<label class="field"><span class="caption">Domino mass <output id="dominoMassOut"></output></span><input id="dominoMass" type="range" min="0.03" max="0.5" step="0.01" value="0.15"></label>
+<label class="field"><span class="caption">Counterweight <output id="counterweightMassOut"></output></span><input id="counterweightMass" type="range" min="0.10" max="0.40" step="0.005" value="0.22"></label>
+<label class="field"><span class="caption">Pendulum length <output id="pendulumLengthOut"></output></span><input id="pendulumLength" type="range" min="0.60" max="1.40" step="0.01" value="1"></label>
+<label class="field"><span class="caption">Release angle <output id="pendulumAngleOut"></output></span><input id="pendulumAngle" type="range" min="20" max="75" step="1" value="60"></label>
+<label class="field"><span class="caption">Lever pivot from short end <output id="leverPivotOut"></output></span><input id="leverPivot" type="range" min="0.12" max="0.45" step="0.01" value="0.25"></label>
+<label class="field"><span class="caption">Cradle restitution <output id="cradleRestitutionOut"></output></span><input id="cradleRestitution" type="range" min="0.10" max="1" step="0.01" value="0.95"></label>
+<p class="note">Applied on a fresh run. Larger gaps, heavier counterweights, and softer cradle collisions can break the chain.</p><button id="apply" class="primary">Apply &amp; replay</button>
+</div></details>
+<div class="toolbar panel" aria-label="Playback controls"><button id="pause" aria-label="Pause simulation">Ⅱ Pause</button><button id="replay" class="primary">↻ Replay</button><div class="divider"></div><select id="speed" aria-label="Simulation speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select><select id="camera" aria-label="Camera"><option value="follow" selected>Follow</option><option value="overview">Overview</option><option value="orbit">Orbit</option></select><div class="divider"></div><div class="clock"><span>SIM TIME</span><strong id="clock">0.00 s</strong></div></div>
+<div class="legend"><i></i>CONTACT-DRIVEN · FIXED 240 Hz<br>4.6 m workbench · brass &amp; walnut</div><div class="keyhint">SPACE &nbsp; pause / play<br>ORBIT &nbsp; drag to explore</div>
+<script>
+window.addEventListener('error',event=>{const box=document.getElementById('error');box.style.display='block';box.textContent='The machine could not load. '+event.message;document.getElementById('loading').style.display='none'});
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as CANNON from 'cannon-es';
+
+// All distances are metres, masses kilograms, and times simulation seconds.
+// Stage observation never changes a body's transform, velocity, or constraints.
+const $=id=>document.getElementById(id);
+const fields={gravity:['m/s²',2],dominoSpacing:['m',3],dominoMass:['kg',2],counterweightMass:['kg',3],pendulumLength:['m',2],pendulumAngle:['°',0],leverPivot:['m',2],cradleRestitution:['',2]};
+function readSettings(){return Object.fromEntries(Object.keys(fields).map(key=>[key,Number($(key).value)]))}
+for(const [key,[unit,places]] of Object.entries(fields)){
+  const update=()=>{$(key+'Out').textContent=Number($(key).value).toFixed(places)+(unit?' '+unit:'')};
+  $(key).addEventListener('input',update);update();
+}
+const stageNames=['Release gate','Switchback ramps','24 dominoes','Drop & lever','Basket & pulley','Pendulum release','Newton’s cradle','Rolling spool','Bell'];
+const stageElements=stageNames.map((name,i)=>{const li=document.createElement('li');li.innerHTML=`<span class="stage-dot">${String(i+1).padStart(2,'0')}</span><span>${name}</span><time>—</time>`;$('stages').append(li);return li});
+let stages=[],world,runSettings,simTime=0,paused=false,ended=false,failed=false,accumulator=0,gateOpened=false;
+let basketAcceleration=null,pendulumSwingTime=null,releaseTime=null,descentSamples=0,accelerationSum=0;
+let basketPreviousVelocity=0,dominoReached=0,pendingReleaseContact=false,runNumber=0;
+let gateHinge,basket,counterweight,pendulum,latch,steelBall,lightBall,spool,hammer,bell,lever;
+let latchSpring,pendulumInitialAngle=0,pendulumPivot,ropeGeometry,ropeLine,gate,dominoes=[];
+const STEP=1/240,MAX_STEPS=32;
+const stageTargets=[[-1.75,2.2,.8],[-1.4,1.3,.8],[.05,.45,.6],[1.04,.3,-.75],[1.15,1.0,-1.12],[1.05,1.1,-1.48],[.26,.6,-1.48],[-.1,.5,-1.48],[-.57,.7,-1.48]];
+window.machineState=()=>({stages:stages.map(s=>({...s})),basketAcceleration,pendulumSwingTime,settings:{...readSettings(),speed:Number($('speed').value),camera:$('camera').value,paused},appliedSettings:runSettings?{...runSettings}:null,simulationTime:simTime});
+
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.domElement.className='scene';document.body.prepend(renderer.domElement);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#14242c');scene.fog=new THREE.Fog('#14242c',9,21);
+const camera=new THREE.PerspectiveCamera(39,innerWidth/innerHeight,.025,45);
+const overviewPosition=new THREE.Vector3(5.5,5.0,6.7),overviewTarget=new THREE.Vector3(0,.8,-.2);
+camera.position.copy(overviewPosition);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.copy(overviewTarget);controls.enableDamping=true;controls.minDistance=1.1;controls.maxDistance=12;controls.maxPolarAngle=Math.PI*.48;controls.enabled=false;
+const pmrem=new THREE.PMREMGenerator(renderer),roomEnvironment=new RoomEnvironment();
+const environment=pmrem.fromScene(roomEnvironment,.04);scene.environment=environment.texture;roomEnvironment.dispose();pmrem.dispose();
+scene.add(new THREE.HemisphereLight(0xc5e5e6,0x5a3d28,2.1));
+const keyLight=new THREE.DirectionalLight(0xffe3b1,4.0);keyLight.position.set(-2,7,3);keyLight.castShadow=true;
+keyLight.shadow.mapSize.set(2048,2048);Object.assign(keyLight.shadow.camera,{left:-4,right:4,top:4,bottom:-4,near:.1,far:15});keyLight.shadow.normalBias=.012;keyLight.shadow.bias=-.00015;scene.add(keyLight);
+const rimLight=new THREE.DirectionalLight(0x83bdcf,1.9);rimLight.position.set(1,3,-5);scene.add(rimLight);
+const materials={
+  steel:new THREE.MeshStandardMaterial({color:0xcbd7dc,metalness:1,roughness:.16}),
+  brass:new THREE.MeshStandardMaterial({color:0xcba262,metalness:.85,roughness:.25}),
+  darkMetal:new THREE.MeshStandardMaterial({color:0x243d46,metalness:.7,roughness:.32}),
+  wood:new THREE.MeshStandardMaterial({color:0xb36e43,roughness:.59,metalness:.03}),
+  woodAlt:new THREE.MeshStandardMaterial({color:0xdea979,roughness:.56}),
+  ramp:new THREE.MeshStandardMaterial({color:0x536e75,metalness:.7,roughness:.35}),
+  deck:new THREE.MeshStandardMaterial({color:0x213b43,metalness:.38,roughness:.6}),
+  bench:new THREE.MeshStandardMaterial({color:0x574438,roughness:.77}),
+  floor:new THREE.MeshStandardMaterial({color:0x24333a,roughness:.9}),
+  ball:new THREE.MeshStandardMaterial({color:0xf2c681,metalness:.28,roughness:.3}),
+  rope:new THREE.MeshStandardMaterial({color:0xc6b898,roughness:1}),
+  ink:new THREE.MeshStandardMaterial({color:0x101e23,roughness:.7})
+};
+const permanent=new THREE.Group();scene.add(permanent);
+let assembly=new THREE.Group();scene.add(assembly);
+let renderBodies=[];
+function mesh(geometry,material,parent=assembly){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function visualBox(size,pos,material=materials.darkMetal,parent=assembly){const m=mesh(new THREE.BoxGeometry(...size),material,parent);m.position.set(...pos);return m}
+function visualCylinder(radius,length,pos,material=materials.brass,parent=assembly){const m=mesh(new THREE.CylinderGeometry(radius,radius,length,24),material,parent);m.position.set(...pos);return m}
+function lineBetween(a,b,radius=.007,material=materials.brass,parent=assembly){const start=new THREE.Vector3(...a),end=new THREE.Vector3(...b),delta=end.clone().sub(start);const m=mesh(new THREE.CylinderGeometry(radius,radius,delta.length(),10),material,parent);m.position.copy(start.add(end).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());return m}
+function plaque(text,pos,color='#ddc8a1',scale=.19,parent=assembly){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#152a31';ctx.fillRect(0,0,512,128);ctx.strokeStyle='#526365';ctx.strokeRect(3,3,506,122);ctx.font='500 41px system-ui';ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,64);const texture=new THREE.CanvasTexture(canvas);const p=new THREE.Mesh(new THREE.PlaneGeometry(scale*4,scale),new THREE.MeshBasicMaterial({map:texture,transparent:true}));p.position.set(...pos);p.rotation.x=-Math.PI/2;parent.add(p);return p}
+visualBox([4.65,.15,3.55],[0,-.085,-.24],materials.bench,permanent);
+visualBox([4.72,.06,3.62],[0,-.18,-.24],materials.darkMetal,permanent);
+for(const x of [-2.08,2.08])for(const z of [-1.65,1.15])visualBox([.13,.8,.13],[x,-.6,z],materials.darkMetal,permanent);
+visualBox([30,.12,30],[0,-1.06,0],materials.floor,permanent);
+visualBox([13,7,.15],[0,2.4,-5.2],materials.deck,permanent);
+for(let i=-5;i<=5;i++){visualBox([.025,3.6,.03],[i*.75,1.1,-5.1],materials.darkMetal,permanent)}
+for(let i=0;i<7;i++){const light=visualBox([.8,.025,.025],[-3.5+i*1.1,3.4,-5.08],materials.brass,permanent);light.material=materials.brass}
+for(let i=0;i<23;i++){visualBox([.005,.001,i%5===0?.065:.03],[-2.2+i*.2,.001,1.4],materials.brass,permanent)}
+plaque('01 — 09   /   CONTACT LAB',[0,.002,1.19],'#d0b58e',.12,permanent);
+
+let audioContext=null,audioAllowed=false,pendingBell=false;
+function unlockAudio(){try{audioContext??=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume().then(()=>{audioAllowed=audioContext.state==='running';$('audioNote').style.display=audioAllowed?'none':'block';if(pendingBell&&audioAllowed){pendingBell=false;ringBell()}})}catch{$('audioNote').style.display='block'}}
+window.addEventListener('pointerdown',unlockAudio);window.addEventListener('keydown',unlockAudio);
+function ringBell(){if(!audioContext||audioContext.state!=='running'){pendingBell=true;$('audioNote').style.display='block';return}const now=audioContext.currentTime;for(const [frequency,gain,decay] of [[880,.19,2.7],[1762,.10,1.8],[2363,.06,1.2],[3541,.035,.6]]){const oscillator=audioContext.createOscillator(),envelope=audioContext.createGain();oscillator.type='sine';oscillator.frequency.setValueAtTime(frequency,now);envelope.gain.setValueAtTime(.0001,now);envelope.gain.exponentialRampToValueAtTime(gain,now+.004);envelope.gain.exponentialRampToValueAtTime(.0001,now+decay);oscillator.connect(envelope).connect(audioContext.destination);oscillator.start(now);oscillator.stop(now+decay+.05)}}
+
+let physicsMaterials;
+function bodyBox(size,pos,mass=0,material=materials.darkMetal,tag='',physicsMaterial=null,rotation=null){
+  const body=new CANNON.Body({mass,material:physicsMaterial||physicsMaterials.structure,position:new CANNON.Vec3(...pos),linearDamping:.005,angularDamping:.006,allowSleep:false});
+  body.addShape(new CANNON.Box(new CANNON.Vec3(...size.map(n=>n/2))));if(rotation)body.quaternion.setFromEuler(...rotation);body.tag=tag;world.addBody(body);
+  const model=mesh(new THREE.BoxGeometry(...size),material);renderBodies.push({body,model});return body;
+}
+function bodySphere(radius,pos,mass,material,tag,physicsMaterial){const body=new CANNON.Body({mass,material:physicsMaterial||physicsMaterials.structure,position:new CANNON.Vec3(...pos),linearDamping:.001,angularDamping:.001,allowSleep:false});body.addShape(new CANNON.Sphere(radius));body.tag=tag;world.addBody(body);const model=mesh(new THREE.SphereGeometry(radius,28,20),material);renderBodies.push({body,model});return body}
+function anchor(pos){const body=new CANNON.Body({mass:0,position:new CANNON.Vec3(...pos)});world.addBody(body);return body}
+function hinge(body,pivotLocal,pivotWorld,axis){const fixed=anchor(pivotWorld),constraint=new CANNON.HingeConstraint(body,fixed,{pivotA:new CANNON.Vec3(...pivotLocal),pivotB:new CANNON.Vec3(),axisA:new CANNON.Vec3(...axis),axisB:new CANNON.Vec3(...axis),collideConnected:false,maxForce:1e5});world.addConstraint(constraint);return constraint}
+function compoundPart(body,group,size,offset,material,rotation=null){const shape=new CANNON.Box(new CANNON.Vec3(...size.map(v=>v/2))),q=new CANNON.Quaternion();if(rotation)q.setFromEuler(...rotation);body.addShape(shape,new CANNON.Vec3(...offset),q);const part=visualBox(size,offset,material,group);part.quaternion.copy(q);return part}
+// The rope is a bilateral, constant-length 1:1 pulley equation. The two
+// vertical branches have equal tension and opposite changes in length.
+class PulleyConstraint extends CANNON.Constraint{
+  constructor(a,b){super(a,b,{collideConnected:false});this.sum=a.position.y+b.position.y;const equation=new CANNON.Equation(a,b,-1e5,1e5);equation.jacobianElementA.spatial.set(0,1,0);equation.jacobianElementB.spatial.set(0,1,0);equation.setSpookParams(1e9,4,STEP);equation.computeB=function(h){const error=a.position.y+b.position.y-this.ropeSum;return -error*this.a-this.computeGW()*this.b-h*this.computeGiMf()};equation.ropeSum=this.sum;this.equations.push(equation)}
+  update(){}
+}
+function build(){
+  runNumber++;pendingBell=false;runSettings=readSettings();scene.remove(assembly);assembly.traverse(obj=>{if(obj.geometry)obj.geometry.dispose();if(obj.material?.map){obj.material.map.dispose();obj.material.dispose()}});assembly=new THREE.Group();scene.add(assembly);renderBodies=[];
+  world=new CANNON.World({gravity:new CANNON.Vec3(0,-runSettings.gravity,0),allowSleep:false});world.broadphase=new CANNON.NaiveBroadphase();world.solver.iterations=70;world.solver.tolerance=1e-8;world.quatNormalizeSkip=0;
+  world.defaultContactMaterial.friction=.3;world.defaultContactMaterial.restitution=.02;world.defaultContactMaterial.contactEquationStiffness=1e8;world.defaultContactMaterial.contactEquationRelaxation=3;
+  physicsMaterials=Object.fromEntries(['structure','steel','ramp','domino','block','shelf','light','basket','cradle','pendulum','spool'].map(key=>[key,new CANNON.Material(key)]));
+  function contact(a,b,friction,restitution){world.addContactMaterial(new CANNON.ContactMaterial(physicsMaterials[a],physicsMaterials[b],{friction,restitution,contactEquationStiffness:1e8,contactEquationRelaxation:3}))}
+  contact('steel','ramp',.3,.04);contact('domino','domino',.35,.01);contact('domino','structure',.45,0);contact('block','shelf',.055,0);contact('light','structure',.25,.18);contact('light','basket',.65,.02);contact('cradle','cradle',.001,runSettings.cradleRestitution);contact('pendulum','cradle',.001,runSettings.cradleRestitution);contact('cradle','spool',.08,.35);contact('spool','ramp',.06,.02);
+  simTime=0;accumulator=0;gateOpened=false;ended=false;failed=false;paused=false;basketAcceleration=null;pendulumSwingTime=null;releaseTime=null;descentSamples=0;accelerationSum=0;basketPreviousVelocity=0;dominoReached=0;pendingReleaseContact=false;
+  stages=stageNames.map((name,i)=>({id:i+1,name,status:'waiting',triggeredAt:null}));
+  bodyBox([4.65,.045,3.55],[0,-.033,-.24],0,materials.bench,'table');
+  // Four separate, alternating 20-degree channels. Their end stops dissipate
+  // forward motion while gravity drops the ball onto the opposite incline.
+  const xLeft=-1.95,xRight=-.85,zRamp=.8,drop=(xRight-xLeft)*Math.tan(20*Math.PI/180),gap=.105;
+  const firstHeight=.46+4*drop+3*gap;
+  for(let i=0;i<4;i++){
+    const direction=i%2===0?-1:1,startX=direction===1?xLeft:xRight,endX=direction===1?xRight:xLeft;
+    const startY=firstHeight-i*(drop+gap),endY=startY-drop,centerX=(startX+endX)/2,centerY=(startY+endY)/2;
+    const tilt=-direction*20*Math.PI/180,length=(xRight-xLeft)/Math.cos(20*Math.PI/180);
+    bodyBox([length,.025,.17],[centerX,centerY-.0125,zRamp],0,materials.ramp,'ramp'+i,physicsMaterials.ramp,[0,0,tilt]);
+    for(const side of [-1,1])bodyBox([length,.075,.012],[centerX,centerY+.025,zRamp+side*.091],0,materials.brass,'rail',physicsMaterials.ramp,[0,0,tilt]);
+    const stopX=endX+direction*.075;
+    bodyBox([.025,.19,.20],[stopX,endY-.055,zRamp],0,materials.darkMetal,'end-stop',physicsMaterials.ramp);
+    if(i===3){ // The final exit remains open to the first domino.
+      const stop=world.bodies[world.bodies.length-1];world.removeBody(stop);const record=renderBodies.pop();assembly.remove(record.model);record.model.geometry.dispose();
+    }
+    for(const x of [xLeft+.08,xRight-.08]){const supportTop=centerY+(x-centerX)*Math.tan(tilt);visualBox([.018,supportTop,.018],[x,supportTop/2,zRamp+.135],materials.darkMetal)}
+    plaque(String(i+1).padStart(2,'0')+'  /  20°',[centerX,centerY+.008,zRamp+.24],'#b9c9c5',.045);
+  }
+  const ballX=xRight-.12,ballY=firstHeight-.12*Math.tan(20*Math.PI/180)+.035;
+  steelBall=bodySphere(.03,[ballX,ballY,zRamp],.11,materials.steel,'steel',physicsMaterials.steel);
+  const gateX=ballX-.052,gateY=ballY+.09;
+  gate=bodyBox([.018,.19,.18],[gateX,gateY-.085,zRamp],.08,materials.brass,'gate',physicsMaterials.structure);
+  gateHinge=hinge(gate,[0,.085,0],[gateX,gateY,zRamp],[0,0,1]);gateHinge.enableMotor();gateHinge.setMotorSpeed(0);gateHinge.setMotorMaxForce(50);
+  lineBetween([gateX,gateY,zRamp-.13],[gateX,gateY,zRamp+.13],.012);
+  plaque('01  RELEASE',[-1.15,.004,1.14],'#ddc8a1',.075);
+  // Dominoes rest on an elevated deck. The diagonal corner is itself one
+  // of the 24 dominoes and physically overlaps both incoming fall corridors.
+  bodyBox([2.1,.035,.32],[.18,.3025,.8],0,materials.deck,'domino-deck');
+  bodyBox([.32,.035,1.18],[1.04,.3025,.28],0,materials.deck,'domino-deck');
+  dominoes=[];const spacing=runSettings.dominoSpacing;
+  for(let i=0;i<24;i++){
+    let x,z,angle;
+    if(i<14){x=-.64+i*spacing;z=.8;angle=0}
+    else if(i===14){x=-.64+13.5*spacing;z=.8-.5*spacing;angle=Math.PI/4}
+    else{x=-.64+14*spacing;z=.8-(i-14)*spacing;angle=Math.PI/2}
+    const domino=bodyBox([.03,.20,.10],[x,.421,z],runSettings.dominoMass,i%3===0?materials.woodAlt:materials.wood,'domino'+i,physicsMaterials.domino,[0,angle,0]);domino.dominoIndex=i;dominoes.push(domino);
+    const model=renderBodies[renderBodies.length-1].model;const inset=visualBox([.031,.012,.055],[0,.055,0],materials.brass,model);inset.castShadow=false;
+  }
+  plaque('03  /  24 DOMINOES',[.06,.004,1.05],'#ddc8a1',.07);
+  // The terminal shelf is low-friction. The last domino must push the block
+  // over its actual edge before gravity can deliver energy to the lever.
+  bodyBox([.23,.035,.19],[1.04,.3025,-.395],0,materials.deck,'shelf',physicsMaterials.shelf);
+  const block=bodyBox([.105,.12,.10],[1.04,.381,-.43],1,materials.darkMetal,'block',physicsMaterials.block);
+  const shortEnd=-.58,pivotZ=shortEnd-runSettings.leverPivot,leverCenterZ=shortEnd-.5;
+  lever=bodyBox([.16,.026,1],[1.04,.115,leverCenterZ],.12,materials.wood,'lever',physicsMaterials.structure);
+  hinge(lever,[0,0,.5-runSettings.leverPivot],[1.04,.115,pivotZ],[1,0,0]);
+  visualBox([.20,.09,.10],[1.04,.045,pivotZ],materials.brass);
+  const axle=visualCylinder(.018,.24,[1.04,.115,pivotZ],materials.brass);axle.rotation.z=Math.PI/2;
+  // A small rest supports the long arm initially, leaving the full launch arc free.
+  bodyBox([.12,.085,.06],[1.04,.0425,-1.50],0,materials.darkMetal,'lever-rest');
+  lightBall=bodySphere(.027,[1.04,.156,-1.525],.05,materials.ball,'light',physicsMaterials.light);
+  plaque('04  LEVER',[1.50,.004,-.58],'#ddc8a1',.065);
+  // A compound, open-topped basket. The flared lip catches a ballistic ball.
+  basket=new CANNON.Body({mass:.20,material:physicsMaterials.basket,position:new CANNON.Vec3(1.04,.79,-1.06),linearDamping:0,angularDamping:0,allowSleep:false});basket.tag='basket';basket.linearFactor.set(0,1,0);basket.angularFactor.set(0,0,0);
+  const basketModel=new THREE.Group();assembly.add(basketModel);
+  compoundPart(basket,basketModel,[.28,.018,.28],[0,0,0],materials.darkMetal);
+  for(const side of [-1,1]){
+    compoundPart(basket,basketModel,[.014,.16,.28],[side*.147,.08,0],materials.brass);
+    compoundPart(basket,basketModel,[.28,.16,.014],[0,.08,side*.147],materials.brass);
+    compoundPart(basket,basketModel,[.014,.15,.42],[side*.184,.213,0],materials.ramp,[0,0,-side*.50]);
+    compoundPart(basket,basketModel,[.42,.15,.014],[0,.213,side*.184],materials.ramp,[side*.50,0,0]);
+  }
+  world.addBody(basket);renderBodies.push({body:basket,model:basketModel});
+  counterweight=bodyBox([.10,.12,.10],[1.67,.061,-1.06],runSettings.counterweightMass,materials.steel,'counterweight');counterweight.linearFactor.set(0,1,0);counterweight.angularFactor.set(0,0,0);counterweight.linearDamping=0;
+  world.addConstraint(new PulleyConstraint(basket,counterweight));
+  const pulleyHeight=2.12;
+  lineBetween([1.04,.001,-1.80],[1.04,pulleyHeight,-1.80],.017,materials.darkMetal);
+  lineBetween([1.67,.001,-1.80],[1.67,pulleyHeight,-1.80],.017,materials.darkMetal);
+  lineBetween([1.04,pulleyHeight,-1.80],[1.67,pulleyHeight,-1.80],.016,materials.brass);
+  for(const x of [1.04,1.67]){lineBetween([x,pulleyHeight,-1.80],[x,pulleyHeight,-1.06],.012,materials.darkMetal);const wheel=mesh(new THREE.TorusGeometry(.055,.009,10,32),materials.brass);wheel.position.set(x,pulleyHeight,-1.06)}
+  ropeGeometry=new THREE.BufferGeometry();ropeGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));ropeLine=new THREE.Line(ropeGeometry,new THREE.LineBasicMaterial({color:0xd7c9a7}));assembly.add(ropeLine);
+  lineBetween([-.03,.17,0],[-.03,.38,0],.004,materials.rope,basketModel);lineBetween([.03,.17,0],[.03,.38,0],.004,materials.rope,basketModel);
+  // The pendulum pivot moves vertically with length. Its bottom contact
+  // position is invariant, so length changes the period without losing aim.
+  const L=runSettings.pendulumLength,angle=THREE.MathUtils.degToRad(runSettings.pendulumAngle),bottomX=.45,bottomY=.45,pendulumZ=-1.48;
+  pendulumPivot=new CANNON.Vec3(bottomX,bottomY+L,pendulumZ);pendulumInitialAngle=angle;
+  const bobStart=[bottomX+L*Math.sin(angle),bottomY+L-L*Math.cos(angle),pendulumZ];
+  pendulum=bodySphere(.06,bobStart,.5,materials.brass,'pendulum',physicsMaterials.pendulum);pendulum.quaternion.setFromEuler(0,0,angle);pendulum.angularDamping=.0005;
+  hinge(pendulum,[0,L,0],[pendulumPivot.x,pendulumPivot.y,pendulumPivot.z],[0,0,1]);
+  const pendulumModel=renderBodies[renderBodies.length-1].model;
+  lineBetween([0,0,0],[0,L,0],.006,materials.darkMetal,pendulumModel);
+  lineBetween([bottomX,0,-1.82],[bottomX,bottomY+L+.08,-1.82],.017,materials.darkMetal);
+  lineBetween([bottomX,bottomY+L,-1.82],[bottomX,bottomY+L,pendulumZ],.015,materials.brass);
+  // A near-toggle latch supports the bob along its tangent. Its load passes
+  // through the bearing. Basket contact tips it off centre against a passive
+  // torsion spring. No joint is deleted and no release impulse is applied.
+  const tangent=new THREE.Vector3(-Math.cos(angle),-Math.sin(angle),0);
+  const pegCenter=new THREE.Vector3(...bobStart).addScaledVector(tangent,.078);
+  const latchPivot=pegCenter.clone().addScaledVector(tangent,.13);
+  latch=new CANNON.Body({mass:.008,position:new CANNON.Vec3(latchPivot.x,latchPivot.y,pendulumZ),linearDamping:0,angularDamping:.03,material:physicsMaterials.structure,allowSleep:false});latch.tag='latch';
+  const latchModel=new THREE.Group();assembly.add(latchModel);
+  const pegOffset=pegCenter.clone().sub(latchPivot);
+  latch.addShape(new CANNON.Sphere(.018),new CANNON.Vec3(pegOffset.x,pegOffset.y,0));const latchPeg=mesh(new THREE.SphereGeometry(.018,16,12),materials.brass,latchModel);latchPeg.position.copy(pegOffset);
+  const armLength=pegOffset.length(),armAngle=-Math.atan2(pegOffset.x,pegOffset.y);
+  compoundPart(latch,latchModel,[.012,armLength,.018],[pegOffset.x/2,pegOffset.y/2,0],materials.brass,[0,0,armAngle]);
+  const paddleX=1.04-latchPivot.x,paddleY=.57-latchPivot.y,paddleZ=-1.06-pendulumZ;
+  compoundPart(latch,latchModel,[Math.abs(paddleX)+.02,.012,.022],[paddleX/2,0,0],materials.brass);
+  compoundPart(latch,latchModel,[.016,Math.abs(paddleY)+.012,.022],[paddleX,paddleY/2,0],materials.brass);
+  compoundPart(latch,latchModel,[.13,.018,paddleZ+.09],[paddleX,paddleY,paddleZ/2],materials.brass);
+  world.addBody(latch);renderBodies.push({body:latch,model:latchModel});hinge(latch,[0,0,0],[latchPivot.x,latchPivot.y,pendulumZ],[0,0,1]);
+  latchSpring=()=>{const z=2*Math.atan2(latch.quaternion.z,latch.quaternion.w);latch.torque.z+=-.06*z-.006*latch.angularVelocity.z-.003};
+  // A physical seat prevents rotation toward the held side of the toggle.
+  bodyBox([.025,.025,.04],[latchPivot.x-.065,latchPivot.y+.019,pendulumZ],0,materials.darkMetal,'latch-seat');
+  visualCylinder(.024,.10,[latchPivot.x,latchPivot.y,pendulumZ],materials.darkMetal).rotation.x=Math.PI/2;
+  // Five identical spheres suspended by individual 3D hinge constraints.
+  const cradleLength=.31,cradleY=.45,firstCradleX=.365,ballStep=.05015;
+  for(let i=0;i<5;i++){
+    const x=firstCradleX-i*ballStep,ball=bodySphere(.025,[x,cradleY,pendulumZ],.064,materials.steel,'cradle'+i,physicsMaterials.cradle);
+    hinge(ball,[0,cradleLength,0],[x,cradleY+cradleLength,pendulumZ],[0,0,1]);ball.angularDamping=.0001;
+    const model=renderBodies[renderBodies.length-1].model;
+    lineBetween([0,0,0],[0,cradleLength,-.065],.0015,materials.rope,model);lineBetween([0,0,0],[0,cradleLength,.065],.0015,materials.rope,model);
+  }
+  for(const z of [pendulumZ-.075,pendulumZ+.075]){lineBetween([.08,.02,z],[.08,.80,z],.007,materials.brass);lineBetween([.43,.02,z],[.43,.80,z],.007,materials.brass);lineBetween([.08,.77,z],[.43,.77,z],.009,materials.brass)}
+  plaque('07  CRADLE',[.22,.004,-1.84],'#ddc8a1',.06);
+  // Invented stage. A freestanding spool rolls down a three-degree track.
+  // The cradle must first dislodge it from its shallow physical parking cup.
+  const spoolX=.055,spoolY=.444;
+  spool=new CANNON.Body({mass:.022,material:physicsMaterials.spool,position:new CANNON.Vec3(spoolX,spoolY,pendulumZ),linearDamping:.002,angularDamping:.002,allowSleep:false});spool.tag='spool';
+  const spoolGroup=new THREE.Group();assembly.add(spoolGroup);
+  const cylinderQ=new CANNON.Quaternion();cylinderQ.setFromEuler(Math.PI/2,0,0);
+  spool.addShape(new CANNON.Cylinder(.042,.042,.085,24),new CANNON.Vec3(),cylinderQ);
+  const barrel=mesh(new THREE.CylinderGeometry(.035,.035,.085,24),materials.woodAlt,spoolGroup);barrel.rotation.x=Math.PI/2;
+  for(const z of [-.045,.045]){const flange=visualCylinder(.042,.008,[0,0,z],materials.brass,spoolGroup);flange.rotation.x=Math.PI/2}
+  world.addBody(spool);renderBodies.push({body:spool,model:spoolGroup});
+  bodyBox([.54,.02,.15],[-.17,.380,pendulumZ],0,materials.ramp,'spool-track',physicsMaterials.ramp,[0,0,3*Math.PI/180]);
+  for(const z of [pendulumZ-.083,pendulumZ+.083])bodyBox([.54,.045,.012],[-.17,.405,z],0,materials.brass,'spool-rail',physicsMaterials.ramp,[0,0,3*Math.PI/180]);
+  bodyBox([.009,.008,.11],[.018,.401,pendulumZ],0,materials.ramp,'spool-detent',physicsMaterials.ramp);
+  bodyBox([.015,.045,.12],[.106,.425,pendulumZ],0,materials.darkMetal,'spool-backstop');
+  // The hammer is independently hinged. Only hammer/bell collision rings it.
+  hammer=new CANNON.Body({mass:.025,position:new CANNON.Vec3(-.46,.61,pendulumZ),material:physicsMaterials.structure,linearDamping:.005,angularDamping:.01,allowSleep:false});hammer.tag='hammer';
+  const hammerModel=new THREE.Group();assembly.add(hammerModel);
+  compoundPart(hammer,hammerModel,[.015,.195,.02],[0,-.0975,0],materials.woodAlt);
+  hammer.addShape(new CANNON.Sphere(.035),new CANNON.Vec3(0,-.19,0));const hammerHead=mesh(new THREE.SphereGeometry(.035,20,16),materials.brass,hammerModel);hammerHead.position.y=-.19;
+  world.addBody(hammer);renderBodies.push({body:hammer,model:hammerModel});hinge(hammer,[0,0,0],[-.46,.61,pendulumZ],[0,0,1]);
+  lineBetween([-.46,0,pendulumZ+.15],[-.46,.66,pendulumZ+.15],.013,materials.darkMetal);lineBetween([-.46,.61,pendulumZ+.15],[-.46,.61,pendulumZ],.01,materials.brass);
+  bell=bodyBox([.065,.16,.15],[-.595,.45,pendulumZ],0,materials.brass,'bell');
+  // The collision proxy lies inside a lathed brass bell silhouette.
+  const proxy=renderBodies[renderBodies.length-1].model;proxy.visible=false;
+  const bellProfile=[new THREE.Vector2(.096,0),new THREE.Vector2(.093,.012),new THREE.Vector2(.066,.033),new THREE.Vector2(.048,.09),new THREE.Vector2(.044,.14),new THREE.Vector2(.027,.16),new THREE.Vector2(0,.17)];
+  const bellMesh=mesh(new THREE.LatheGeometry(bellProfile,48),materials.brass);bellMesh.position.set(-.595,.365,pendulumZ);
+  lineBetween([-.595,.53,pendulumZ],[-.595,.73,pendulumZ],.009,materials.brass);lineBetween([-.77,0,pendulumZ],[-.77,.73,pendulumZ],.014,materials.darkMetal);lineBetween([-.77,.73,pendulumZ],[-.595,.73,pendulumZ],.014,materials.brass);
+  plaque('08  ROLL  →  09  BELL',[-.41,.004,-1.12],'#ddc8a1',.065);
+  // Contact events only update telemetry. They never actuate the machine.
+  world.addEventListener('beginContact',observeContact);
+  syncModels();refreshUI();$('pause').textContent='Ⅱ Pause';$('pause').setAttribute('aria-label','Pause simulation');$('status').textContent='Gate opens at 1.00 s.';
+}
+function hasPair(a,b,x,y){return(a===x&&b===y)||(a===y&&b===x)}
+function trigger(index,time=simTime){if(ended||failed||stages[index].status!=='waiting'||(index>0&&stages[index-1].status!=='triggered'))return;stages[index].status='triggered';stages[index].triggeredAt=time;refreshUI();$('status').textContent=index===8?'Chain complete. '+time.toFixed(2)+' simulation seconds.':stageNames[index]+' in motion.';if(index===8){ended=true;ringBell()}}
+function observeContact(event){
+  const a=event.bodyA,b=event.bodyB,ta=a.tag||'',tb=b.tag||'';
+  if(hasPair(a,b,steelBall,gate))return;
+  if(gateOpened&&((a===steelBall&&tb.startsWith('ramp'))||(b===steelBall&&ta.startsWith('ramp'))))trigger(1);
+  if(hasPair(a,b,steelBall,dominoes[0])){dominoReached=Math.max(dominoReached,1);trigger(2)}
+  if(ta.startsWith('domino')&&tb.startsWith('domino')&&Math.abs(a.dominoIndex-b.dominoIndex)===1)dominoReached=Math.max(dominoReached,a.dominoIndex+1,b.dominoIndex+1);
+  if((ta==='domino23'&&tb==='block')||(tb==='domino23'&&ta==='block'))trigger(3);
+  if(hasPair(a,b,lightBall,basket))trigger(4);
+  if(hasPair(a,b,basket,latch))pendingReleaseContact=true;
+  if((a===pendulum&&tb==='cradle0')||(b===pendulum&&ta==='cradle0')){
+    if(releaseTime!==null){pendulumSwingTime=simTime-releaseTime;trigger(6)}
+  }
+  if((a===spool&&tb==='cradle4')||(b===spool&&ta==='cradle4'))trigger(7);
+  if(hasPair(a,b,hammer,bell))trigger(8);
+}
+function refreshUI(){let count=0;stages.forEach((stage,i)=>{const el=stageElements[i];el.className=stage.status;el.querySelector('time').textContent=stage.triggeredAt===null?(stage.status==='failed'?'failed':'—'):stage.triggeredAt.toFixed(2)+' s';if(stage.status==='triggered')count++});$('count').textContent=String(count).padStart(2,'0')+' / 09'}
+function failureReason(index){
+  if(index===1)return'The steel ball did not enter the ramps.';
+  if(index===2)return'The steel ball did not reach the domino line.';
+  if(index===3)return'The domino line stopped ('+dominoReached+'/24 contacted), or the block stayed on its shelf.';
+  if(index===4)return'The launched ball did not enter the basket.';
+  if(index===5)return'The basket did not release the latch. Check its load and the counterweight.';
+  if(index===6)return'The pendulum did not strike the cradle.';
+  if(index===7)return'The cradle did not reach the spool.';
+  if(index===8)return'The spool did not drive the hammer into the bell.';
+  return'The release gate stayed closed.';
+}
+function fixedStep(){
+  if(ended||failed)return;
+  // This gate motor is the sole time-actuated component in the machine.
+  if(!gateOpened&&simTime+STEP>=1){gateOpened=true;gateHinge.setMotorSpeed(-3);trigger(0,1)}
+  latchSpring();world.step(STEP);simTime=world.time;
+  // Observe sustained contacts too. A ball is already resting on ramp 1
+  // when the gate opens, so its first beginContact predates stage 1.
+  if(gateOpened&&stages[1].status==='waiting')for(const contact of world.contacts){if((contact.bi===steelBall&&contact.bj.tag?.startsWith('ramp'))||(contact.bj===steelBall&&contact.bi.tag?.startsWith('ramp'))){trigger(1);break}}
+  const pendulumAngle=2*Math.atan2(pendulum.quaternion.z,pendulum.quaternion.w);
+  if(pendingReleaseContact&&releaseTime===null&&pendulumInitialAngle-pendulumAngle>.025){releaseTime=simTime;trigger(5)}
+  const acceleration=-(basket.velocity.y-basketPreviousVelocity)/STEP;basketPreviousVelocity=basket.velocity.y;
+  if(stages[4].status==='triggered'&&basket.velocity.y<-.025&&basket.position.y>.14&&Math.abs(acceleration)<runSettings.gravity*1.2){accelerationSum+=acceleration;descentSamples++;basketAcceleration=accelerationSum/descentSamples}
+  if(!ended){const waiting=stages.findIndex(s=>s.status==='waiting');if(waiting>=0){const previous=waiting===0?0:stages[waiting-1].triggeredAt;if(previous!==null&&simTime-previous>=8){stages[waiting].status='failed';failed=true;refreshUI();$('status').textContent=stageNames[waiting]+' failed. '+failureReason(waiting)}}}
+}
+function syncModels(){for(const {body,model} of renderBodies){model.position.copy(body.position);model.quaternion.copy(body.quaternion)}if(ropeGeometry){const points=[1.04,basket.position.y+.38,-1.06,1.04,2.175,-1.06,1.095,2.175,-1.06,1.615,2.175,-1.06,1.67,2.175,-1.06,1.67,counterweight.position.y+.06,-1.06];ropeGeometry.attributes.position.array.set(points);ropeGeometry.attributes.position.needsUpdate=true;ropeGeometry.computeBoundingSphere()}}
+function pauseToggle(){paused=!paused;$('pause').textContent=paused?'▶ Play':'Ⅱ Pause';$('pause').setAttribute('aria-label',paused?'Play simulation':'Pause simulation');accumulator=0}
+$('pause').addEventListener('click',pauseToggle);
+$('replay').addEventListener('click',build);$('apply').addEventListener('click',()=>{build();document.querySelector('.settings').open=false});
+$('speed').addEventListener('change',()=>{accumulator=0});
+$('camera').addEventListener('change',()=>{controls.enabled=$('camera').value==='orbit';if(controls.enabled){controls.target.copy(currentTarget);controls.update()}});
+window.addEventListener('keydown',event=>{if(event.code==='Space'&&!['INPUT','SELECT','TEXTAREA','BUTTON','SUMMARY'].includes(document.activeElement.tagName)){event.preventDefault();pauseToggle()}});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+const currentTarget=overviewTarget.clone(),desiredTarget=new THREE.Vector3(),desiredPosition=new THREE.Vector3();
+let previousRealTime=performance.now(),uiAccumulator=0;
+function frame(now){
+  requestAnimationFrame(frame);const realDelta=Math.min((now-previousRealTime)/1000,.1);previousRealTime=now;
+  if(!paused&&!ended&&!failed){accumulator+=realDelta*Number($('speed').value);let steps=0;while(accumulator>=STEP&&steps<MAX_STEPS&&!ended&&!failed){fixedStep();accumulator-=STEP;steps++}if(steps===MAX_STEPS)accumulator=Math.min(accumulator,STEP)}
+  syncModels();
+  const mode=$('camera').value;
+  if(mode==='orbit')controls.update();else{
+    if(mode==='overview'){desiredTarget.copy(overviewTarget);desiredPosition.copy(overviewPosition)}else{
+      let active=stages.reduce((last,s,i)=>s.status==='triggered'?i:last,-1);
+      if(active<0){desiredTarget.copy(overviewTarget);desiredPosition.copy(overviewPosition)}else{
+        desiredTarget.fromArray(stageTargets[active]);
+        if(active===1)desiredTarget.set(steelBall.position.x,steelBall.position.y,steelBall.position.z);
+        if(active===2)desiredTarget.set(.25,.43,.53);
+        const distance=active===2?4.5:3.6;desiredPosition.copy(desiredTarget).add(new THREE.Vector3(distance*.82,distance*.72,distance));
+      }
+    }
+    const smoothing=1-Math.exp(-realDelta*2);currentTarget.lerp(desiredTarget,smoothing);camera.position.lerp(desiredPosition,smoothing);camera.lookAt(currentTarget);
+  }
+  uiAccumulator+=realDelta;if(uiAccumulator>.05){uiAccumulator=0;$('clock').textContent=simTime.toFixed(2)+' s';$('accel').textContent=basketAcceleration===null?'— m/s²':basketAcceleration.toFixed(3)+' m/s²';$('swing').textContent=pendulumSwingTime===null?'— s':pendulumSwingTime.toFixed(3)+' s'}
+  renderer.render(scene,camera);
+}
+build();$('loading').style.opacity='0';$('loading').style.pointerEvents='none';setTimeout(()=>{$('loading').style.display='none'},450);requestAnimationFrame(frame);
+</script>
+</body>
+</html>
