@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+:root{--bg:#120d09;--panel:rgba(24,18,13,.84);--ink:#f3e7d3;--mute:#b9a78c;--acc:#e0a84a;--ok:#7fd18b;--bad:#ff6b5b;--line:rgba(224,168,74,.28)}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:13px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+canvas{display:block}
+#title{position:fixed;top:12px;left:16px;font-size:18px;font-weight:650;letter-spacing:.02em;text-shadow:0 1px 4px #000;pointer-events:none}
+#bar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;backdrop-filter:blur(6px);flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);box-sizing:border-box}
+button,select{background:#2a2017;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font:inherit;cursor:pointer}
+button:hover,select:hover{border-color:var(--acc)}
+button.on{background:var(--acc);color:#1b130b;border-color:var(--acc)}
+#clock{font-variant-numeric:tabular-nums;min-width:92px;text-align:center;color:var(--acc)}
+#list{position:fixed;top:12px;right:12px;width:250px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-sizing:border-box}
+#list ol{margin:0;padding:0;list-style:none}
+#list li{display:flex;justify-content:space-between;gap:6px;padding:3px 0;color:var(--mute);border-bottom:1px solid rgba(255,255,255,.05)}
+#list li.triggered{color:var(--ok)}
+#list li.failed{color:var(--bad);font-weight:600}
+#list li .t{font-variant-numeric:tabular-nums;white-space:nowrap}
+#meas{margin-top:7px;font-size:12px}
+#meas b{color:var(--acc);font-variant-numeric:tabular-nums}
+#msg{position:fixed;top:48px;left:16px;max-width:min(420px,calc(100vw - 300px));padding:8px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);display:none}
+#msg.bad{border-color:var(--bad);color:#ffd2cc}
+#msg.good{border-color:var(--ok);color:#d9ffe0}
+#settings{position:fixed;left:12px;bottom:72px;width:280px;max-height:calc(100vh - 150px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:none;box-sizing:border-box}
+#settings.open{display:block}
+#settings label{display:grid;grid-template-columns:1fr 58px;gap:2px 6px;margin:5px 0;font-size:12px}
+#settings label span:last-child{text-align:right;color:var(--acc);font-variant-numeric:tabular-nums}
+#settings input{grid-column:1/3;width:100%;accent-color:var(--acc)}
+#settings .row{display:flex;gap:6px;margin-top:6px}
+@media (max-width:720px){#list{width:190px;font-size:11px;padding:6px 8px}#msg{top:auto;bottom:120px;left:16px;max-width:calc(100vw - 32px)}#settings{bottom:120px;left:16px;width:calc(100vw - 32px)}#title{font-size:15px}}
+</style>
+</head>
+<body>
+<div id="title">Claude Opus 5.5</div>
+<div id="msg"></div>
+<div id="list"><ol id="stages"></ol><div id="meas">Basket acceleration: <b id="mAcc">—</b><br>Pendulum swing time: <b id="mSwing">—</b><br>Chain time: <b id="mChain">—</b></div></div>
+<div id="settings"><div id="sliders"></div><div class="row"><button id="apply">Apply</button><button id="defaults">Defaults</button></div></div>
+<div id="bar">
+<button id="pause">Pause</button><span id="clock">t = 0.00 s</span>
+<select id="speed" title="Simulation speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+<button data-cam="overview">Overview</button><button data-cam="follow" class="on">Follow</button><button data-cam="orbit">Orbit</button>
+<button id="replay">Replay</button><button id="setBtn">Settings</button>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as CANNON from 'cannon-es';
+
+// ---------- constants & settings ----------
+const D2R = Math.PI / 180;
+const DT = 1 / 480;            // fixed physics step
+const MAX_STEPS = 24;          // cap of physics steps per rendered frame
+const FAIL_WAIT = 8;           // seconds without a trigger before failure
+const DEFAULTS = { gravity: 9.81, dominoSpacing: 0.12, dominoMass: 0.15, counterweightMass: 0.22,
+  pendulumLength: 1.0, releaseAngle: 60, leverPivot: 0.25, cradleRestitution: 0.95 };
+const SLIDERS = [
+  ['gravity', 'Gravity (m/s²)', 1, 20, 0.01],
+  ['dominoSpacing', 'Domino spacing (m)', 0.05, 0.30, 0.005],
+  ['dominoMass', 'Domino mass (kg)', 0.05, 0.50, 0.01],
+  ['counterweightMass', 'Counterweight mass (kg)', 0.05, 0.50, 0.005],
+  ['pendulumLength', 'Pendulum length (m)', 0.6, 1.5, 0.01],
+  ['releaseAngle', 'Pendulum release angle (°)', 20, 70, 1],
+  ['leverPivot', 'Lever pivot from short end (m)', 0.10, 0.50, 0.01],
+  ['cradleRestitution', 'Cradle restitution', 0.30, 1.00, 0.01]
+];
+const STAGE_NAMES = ['Release gate', 'Switchback ramps', 'Dominoes', 'Lever', 'Pulley',
+  'Pendulum', "Newton's cradle", 'Curling sled', 'Bell'];
+// fixed experiment values
+const BALL_R = 0.03, BALL_M = 0.11, RAMP_SLOPE = 20 * D2R;
+const DOM_H = 0.20, DOM_W = 0.10, DOM_T = 0.03;
+const BLOCK_M = 1.0, LIGHT_M = 0.05, LIGHT_R = 0.03, BASKET_M = 0.20;
+const BOB_M = 0.5, BOB_R = 0.04, CR_R = 0.025, CR_M = 7850 * 4 / 3 * Math.PI * CR_R ** 3;
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1b130d);
+scene.fog = new THREE.Fog(0x1b130d, 12, 26);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.03, 80);
+camera.position.set(1.5, 3, 4);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.enabled = false;
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// lights
+scene.add(new THREE.HemisphereLight(0xffe2c0, 0x2a1a10, 0.35));
+const sun = new THREE.DirectionalLight(0xffe0b8, 2.3);
+sun.position.set(3.5, 7, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.camera.left = -6; sun.shadow.camera.right = 6;
+sun.shadow.camera.top = 6; sun.shadow.camera.bottom = -6;
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 20;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+scene.add(sun); scene.add(sun.target);
+const lamp = new THREE.PointLight(0xffb066, 6, 9, 1.6);
+lamp.position.set(-3.2, 2.6, -2.5);
+scene.add(lamp);
+
+// ---------- procedural textures ----------
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (repeat) t.repeat.set(repeat[0], repeat[1]);
+  t.anisotropy = 8;
+  return t;
+}
+// deterministic pseudo-random for textures only (never used by physics)
+let texSeed = 1234567;
+const trand = () => ((texSeed = (texSeed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+function grain(ctx, w, h, base, dark, lines) {
+  ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < lines; i++) {
+    const y = trand() * h; ctx.strokeStyle = dark; ctx.globalAlpha = 0.08 + trand() * 0.18;
+    ctx.lineWidth = 0.5 + trand() * 2; ctx.beginPath(); ctx.moveTo(0, y);
+    for (let x = 0; x <= w; x += 16) ctx.lineTo(x, y + Math.sin(x * 0.02 + i) * 3 + (trand() - 0.5) * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+const floorTex = canvasTex(1024, 1024, (ctx, w, h) => {
+  const ph = h / 8;
+  for (let i = 0; i < 8; i++) {
+    const shade = 0.8 + trand() * 0.2;
+    ctx.save(); ctx.translate(0, i * ph);
+    const g = ctx.createLinearGradient(0, 0, 0, ph);
+    g.addColorStop(0, `rgb(${120 * shade | 0},${78 * shade | 0},${46 * shade | 0})`);
+    g.addColorStop(1, `rgb(${98 * shade | 0},${62 * shade | 0},${36 * shade | 0})`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, ph);
+    for (let k = 0; k < 14; k++) {
+      ctx.strokeStyle = 'rgba(50,28,14,0.25)'; ctx.lineWidth = 1;
+      const y = trand() * ph; ctx.beginPath(); ctx.moveTo(0, y);
+      for (let x = 0; x <= w; x += 32) ctx.lineTo(x, y + Math.sin(x * 0.01 + k) * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(20,10,4,0.7)'; ctx.fillRect(0, 0, w, 2);
+    const off = trand() * w; ctx.fillRect(off, 0, 2, ph);
+    ctx.restore();
+  }
+}, [7, 7]);
+const woodTex = canvasTex(512, 128, (c, w, h) => grain(c, w, h, '#c8945a', '#5a3517', 40));
+const darkTex = canvasTex(512, 128, (c, w, h) => grain(c, w, h, '#6b4226', '#24120a', 40));
+const wallTex = canvasTex(512, 512, (ctx, w, h) => {
+  ctx.fillStyle = '#5b3a2a'; ctx.fillRect(0, 0, w, h);
+  const bh = 32, bw = 96;
+  for (let r = 0; r < h / bh; r++) for (let c = -1; c < w / bw + 1; c++) {
+    const x = c * bw + (r % 2) * bw / 2, s = 0.75 + trand() * 0.3;
+    ctx.fillStyle = `rgb(${128 * s | 0},${66 * s | 0},${48 * s | 0})`;
+    ctx.fillRect(x + 2, r * bh + 2, bw - 4, bh - 4);
+  }
+}, [6, 2]);
+
+// ---------- materials ----------
+const M = {
+  steel: new THREE.MeshStandardMaterial({ color: 0xe4e8ee, metalness: 1, roughness: 0.1 }),
+  chrome: new THREE.MeshStandardMaterial({ color: 0xcfd6de, metalness: 1, roughness: 0.18 }),
+  iron: new THREE.MeshStandardMaterial({ color: 0x3c3f44, metalness: 0.85, roughness: 0.45 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xd9ad55, metalness: 1, roughness: 0.22 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xc9774a, metalness: 1, roughness: 0.28 }),
+  wood: new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.55 }),
+  dark: new THREE.MeshStandardMaterial({ map: darkTex, roughness: 0.6 }),
+  dominoA: new THREE.MeshStandardMaterial({ map: woodTex, color: 0xffe2c4, roughness: 0.42 }),
+  dominoB: new THREE.MeshStandardMaterial({ map: darkTex, color: 0xffd0a8, roughness: 0.42 }),
+  lacquer: new THREE.MeshPhysicalMaterial({ color: 0xb3261e, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1 }),
+  wicker: new THREE.MeshStandardMaterial({ map: woodTex, color: 0xf0d6a0, roughness: 0.8 }),
+  rope: new THREE.MeshStandardMaterial({ color: 0xb89a6a, roughness: 1 }),
+  acrylic: new THREE.MeshPhysicalMaterial({ color: 0xcfe8ff, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.28, depthWrite: false }),
+  floor: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.7 }),
+  wall: new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.9 }),
+  plaster: new THREE.MeshStandardMaterial({ color: 0x3a2a20, roughness: 0.95 }),
+  felt: new THREE.MeshStandardMaterial({ color: 0x2e4a3a, roughness: 1 })
+};
+
+// ---------- room (decor only, no physics, never touches the chain) ----------
+function vis(geo, mat, pos, q, parent, shadow = true) {
+  const m = new THREE.Mesh(geo, mat);
+  if (pos) m.position.set(pos[0], pos[1], pos[2]);
+  if (q) m.quaternion.copy(q);
+  m.castShadow = shadow; m.receiveShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+function cylBetween(a, b, r, mat, parent, seg = 10) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
+  const len = A.distanceTo(B);
+  const m = vis(new THREE.CylinderGeometry(r, r, len, seg), mat, null, null, parent);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
+  return m;
+}
+const room = new THREE.Group(); scene.add(room);
+{
+  const floor = vis(new THREE.PlaneGeometry(16, 16), M.floor, [0.3, 0, -2.2], null, room, false);
+  floor.rotation.x = -Math.PI / 2;
+  const back = vis(new THREE.PlaneGeometry(16, 7), M.wall, [0.3, 3.5, -10.2], null, room, false);
+  const left = vis(new THREE.PlaneGeometry(16, 7), M.wall, [-7.7, 3.5, -2.2], null, room, false);
+  left.rotation.y = Math.PI / 2;
+  const right = vis(new THREE.PlaneGeometry(16, 7), M.wall, [8.3, 3.5, -2.2], null, room, false);
+  right.rotation.y = -Math.PI / 2;
+  // skirting boards
+  vis(new THREE.BoxGeometry(16, 0.18, 0.04), M.dark, [0.3, 0.09, -10.18], null, room);
+  // big workshop clock on the back wall
+  const clock = new THREE.Group(); clock.position.set(0.3, 3.6, -10.1); room.add(clock);
+  vis(new THREE.CylinderGeometry(1.3, 1.3, 0.08, 64), M.plaster, [0, 0, 0], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2), clock);
+  vis(new THREE.TorusGeometry(1.3, 0.07, 16, 96), M.brass, [0, 0, 0.05], null, clock);
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2;
+    vis(new THREE.BoxGeometry(0.05, 0.22, 0.02), M.brass, [Math.sin(a) * 1.08, Math.cos(a) * 1.08, 0.06], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -a), clock);
+  }
+  const hand = (len, w, a) => { const h = vis(new THREE.BoxGeometry(w, len, 0.02), M.iron, [Math.sin(a) * len / 2, Math.cos(a) * len / 2, 0.09], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -a), clock); return h; };
+  hand(0.7, 0.06, 0.6); hand(1.0, 0.035, 4.4);
+  // gears on the left wall
+  [[-7.65, 2.4, -4, 0.6], [-7.6, 3.3, -5.1, 0.42], [-7.62, 1.7, -5.3, 0.3], [-7.65, 2.9, -2.8, 0.25]].forEach(([x, y, z, r], i) => {
+    const g = vis(new THREE.TorusGeometry(r, r * 0.12, 8, 12 + i * 4), i % 2 ? M.copper : M.brass, [x, y, z], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2), room);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; vis(new THREE.BoxGeometry(0.03, 0.06, r * 2), M.iron, [x, y, z], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), a), room); }
+  });
+  // workbench with tools far right corner
+  vis(new THREE.BoxGeometry(2.4, 0.08, 0.9), M.dark, [6.2, 0.9, -8.6], null, room);
+  for (const [x, z] of [[5.1, -8.2], [7.3, -8.2], [5.1, -9.0], [7.3, -9.0]]) vis(new THREE.BoxGeometry(0.08, 0.9, 0.08), M.dark, [x, 0.45, z], null, room);
+  vis(new THREE.CylinderGeometry(0.12, 0.15, 0.3, 24), M.copper, [5.6, 1.09, -8.6], null, room);
+  vis(new THREE.BoxGeometry(0.5, 0.12, 0.25), M.iron, [6.6, 1.0, -8.5], null, room);
+  // hanging lamp
+  vis(new THREE.SphereGeometry(0.09, 20, 14), new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0xffb060, emissiveIntensity: 3 }), [-3.2, 2.6, -2.5], null, room, false);
+  vis(new THREE.ConeGeometry(0.28, 0.22, 24, 1, true), M.brass, [-3.2, 2.72, -2.5], null, room, false);
+  cylBetween([-3.2, 2.83, -2.5], [-3.2, 7, -2.5], 0.008, M.iron, room);
+}
+
+// ---------- physics helpers ----------
+let world, anchor, machine = null, sync = [], R = {}, S = null;
+const PM = {};
+const V = (x, y, z) => new CANNON.Vec3(x, y, z);
+const qAxis = (x, y, z, a) => new CANNON.Quaternion().setFromAxisAngle(V(x, y, z), a);
+const qx = a => qAxis(1, 0, 0, a), qy = a => qAxis(0, 1, 0, a), qz = a => qAxis(0, 0, 1, a);
+const T3 = q => new THREE.Quaternion(q.x, q.y, q.z, q.w);
+
+function body(o) {
+  const type = o.type !== undefined ? o.type : (o.mass ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC);
+  const b = new CANNON.Body({ mass: o.mass || 0, material: PM[o.mat], type });
+  b.position.set(o.pos[0], o.pos[1], o.pos[2]);
+  if (o.q) b.quaternion.copy(o.q);
+  b.linearDamping = o.ld !== undefined ? o.ld : 0;
+  b.angularDamping = o.ad !== undefined ? o.ad : 0.01;
+  world.addBody(b);
+  const g = new THREE.Group();
+  g.position.set(b.position.x, b.position.y, b.position.z);
+  g.quaternion.copy(T3(b.quaternion));
+  machine.add(g);
+  b.g = g;
+  if (type !== CANNON.Body.STATIC) sync.push(b);
+  return b;
+}
+function addBox(b, hx, hy, hz, off = [0, 0, 0], q = null, mat = M.wood, noResp = false) {
+  const s = new CANNON.Box(V(hx, hy, hz));
+  if (noResp) s.collisionResponse = false;
+  b.addShape(s, V(off[0], off[1], off[2]), q || undefined);
+  if (mat) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(2 * hx, 2 * hy, 2 * hz), mat);
+    m.position.set(off[0], off[1], off[2]);
+    if (q) m.quaternion.copy(T3(q));
+    m.castShadow = m.receiveShadow = true;
+    b.g.add(m);
+  }
+  return s;
+}
+function addSphere(b, r, off = [0, 0, 0], mat = M.steel, noResp = false) {
+  const s = new CANNON.Sphere(r);
+  if (noResp) s.collisionResponse = false;
+  b.addShape(s, V(off[0], off[1], off[2]));
+  if (mat) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 20), mat);
+    m.position.set(off[0], off[1], off[2]);
+    m.castShadow = m.receiveShadow = true;
+    b.g.add(m);
+  }
+  return s;
+}
+// local point of a body -> world (used for initial placement only)
+function toWorld(pos, q, local) {
+  const v = q.vmult(V(local[0], local[1], local[2]));
+  return [pos[0] + v.x, pos[1] + v.y, pos[2] + v.z];
+}
+
+// ---------- rope over a fixed pulley: y_basket + y_counterweight >= K (taut rope of constant length) ----------
+class RopeEquation extends CANNON.Equation {
+  constructor(a, b, K) {
+    super(a, b, 0, 1e6);           // rope can only pull
+    this.K = K;
+    this.jacobianElementA.spatial.set(0, 1, 0);
+    this.jacobianElementB.spatial.set(0, 1, 0);
+    this.setSpookParams(1e8, 3, DT);
+  }
+  computeB(h) {
+    const Gq = this.bi.position.y + this.bj.position.y - this.K;
+    const GW = this.computeGW();
+    const GiMf = this.computeGiMf();
+    return -Gq * this.a - GW * this.b - GiMf * h;
+  }
+}
+class RopeConstraint extends CANNON.Constraint {
+  constructor(a, b, K) { super(a, b); this.eq = new RopeEquation(a, b, K); this.equations.push(this.eq); }
+  update() {}
+}
+
+function newWorld(set) {
+  world = new CANNON.World({ gravity: V(0, -set.gravity, 0) });
+  world.broadphase = new CANNON.NaiveBroadphase();
+  world.solver.iterations = 30;
+  world.solver.tolerance = 1e-8;
+  world.allowSleep = false;
+  world.defaultContactMaterial.friction = 0.4;
+  world.defaultContactMaterial.restitution = 0.1;
+  for (const n of ['steel', 'ramp', 'rail', 'wall', 'domino', 'floor', 'block', 'ice', 'lever', 'light', 'board',
+    'basket', 'cw', 'bolt', 'bob', 'cradle', 'sled', 'track', 'striker', 'bell']) PM[n] = new CANNON.Material(n);
+  const cm = (a, b, f, r, stiff) => {
+    const c = new CANNON.ContactMaterial(PM[a], PM[b], { friction: f, restitution: r });
+    if (stiff) { c.contactEquationStiffness = stiff; c.contactEquationRelaxation = 3; }
+    world.addContactMaterial(c);
+  };
+  cm('steel', 'ramp', 0.3, 0.1); cm('steel', 'rail', 0.05, 0.1); cm('steel', 'wall', 0.1, 0.1);
+  cm('steel', 'domino', 0.2, 0.2); cm('steel', 'floor', 0.4, 0.2);
+  cm('domino', 'domino', 0.3, 0.05); cm('domino', 'floor', 0.6, 0.0); cm('domino', 'block', 0.3, 0.1); cm('domino', 'ice', 0.3, 0.0);
+  cm('block', 'ice', 0.0, 0.0); cm('block', 'lever', 0.5, 0.0); cm('block', 'floor', 0.6, 0.0);
+  cm('lever', 'floor', 0.5, 0.0); cm('light', 'lever', 0.4, 0.0); cm('light', 'board', 0.1, 0.35);
+  cm('light', 'basket', 0.5, 0.05); cm('light', 'floor', 0.5, 0.3);
+  cm('basket', 'bolt', 0.0, 0.0); cm('cw', 'floor', 0.5, 0.0);
+  cm('bob', 'bolt', 0.0, 0.0);
+  cm('bob', 'cradle', 0.0, set.cradleRestitution, 1e8); cm('cradle', 'cradle', 0.0, set.cradleRestitution, 1e8);
+  cm('cradle', 'sled', 0.0, 0.5, 1e8); cm('sled', 'track', 0.2, 0.0); cm('sled', 'striker', 0.0, 0.3);
+  cm('striker', 'bell', 0.0, 0.6); cm('striker', 'track', 0.0, 0.0);
+  // floor and a static anchor used by every hinge
+  const fl = new CANNON.Body({ mass: 0, material: PM.floor });
+  fl.addShape(new CANNON.Plane());
+  fl.quaternion.setFromAxisAngle(V(1, 0, 0), -Math.PI / 2);
+  world.addBody(fl);
+  anchor = new CANNON.Body({ mass: 0 });
+  world.addBody(anchor);
+}
+const hinge = (b, pivotWorld, pivotLocal) => {
+  const c = new CANNON.HingeConstraint(anchor, b, {
+    pivotA: V(...pivotWorld), axisA: V(0, 0, 1), pivotB: V(...pivotLocal), axisB: V(0, 0, 1), collideConnected: false
+  });
+  world.addConstraint(c);
+  return c;
+};
+
+// ---------- stage 1 + 2: release gate and switchback ramps ----------
+function buildRamps() {
+  const T = Math.tan(RAMP_SLOPE), SL = 0.9, RL = SL / Math.cos(RAMP_SLOPE), DROP = 0.14;
+  const Y4L = 0.14, Y4H = Y4L + SL * T;
+  const Y3L = Y4H - 0.1 * T + DROP, Y3H = Y3L + SL * T;
+  const Y2L = Y3H - 0.1 * T + DROP, Y2H = Y2L + SL * T;
+  const Y1L = Y2H - 0.1 * T + DROP, Y1H = Y1L + SL * T;
+  const defs = [{ s: -1, xH: -1.1, YH: Y1H }, { s: 1, xH: -2.1, YH: Y2H }, { s: -1, xH: -1.1, YH: Y3H }, { s: 1, xH: -2.1, YH: Y4H }];
+  R.ramps = [];
+  defs.forEach((d, k) => {
+    const q = qz(-d.s * RAMP_SLOPE);
+    const pos = [d.xH + d.s * SL / 2, d.YH - SL * T / 2, 0];
+    const plate = body({ pos, q, mat: 'ramp' });
+    addBox(plate, RL / 2, 0.01, 0.065, [0, -0.01, 0], null, M.wood);
+    const rails = body({ pos, q, mat: 'rail' });
+    addBox(rails, RL / 2, 0.02, 0.005, [0, 0.02, 0.055], null, M.brass);
+    addBox(rails, RL / 2, 0.02, 0.005, [0, 0.02, -0.055], null, M.brass);
+    const top = k === 0 ? 0.12 : 0.30;
+    const wall = body({ pos: [d.xH - d.s * 0.006, d.YH + (top - 0.03) / 2, 0], mat: 'wall' });
+    addBox(wall, 0.005, (top + 0.03) / 2, 0.07, [0, 0, 0], null, M.dark);
+    R.ramps.push(plate);
+    // support bars (decor) at z = ±0.085, outside the track
+    const xL = d.xH + d.s * SL, YL = d.YH - SL * T;
+    for (const z of [-0.085, 0.085]) {
+      cylBetween([d.xH < -1.5 ? -2.16 : -1.04, d.YH - 0.03, z], [d.xH, d.YH - 0.03, z], 0.007, M.iron, machine);
+      cylBetween([xL < -1.5 ? -2.16 : -1.04, YL - 0.03, z], [xL, YL - 0.03, z], 0.007, M.iron, machine);
+    }
+  });
+  for (const x of [-2.16, -1.04]) for (const z of [-0.1, 0.1]) cylBetween([x, 0, z], [x, Y1H + 0.16, z], 0.012, M.dark, machine);
+  // the gate: kinematic plate hinged at its top edge, the only timed event
+  const xg = -1.19, ysg = Y1H - 0.09 * T;
+  R.gate = body({ pos: [xg, ysg + 0.108, 0], mat: 'wall', type: CANNON.Body.KINEMATIC });
+  addBox(R.gate, 0.005, 0.05, 0.048, [0, -0.05, 0], null, M.copper);
+  const pin = vis(new THREE.CylinderGeometry(0.007, 0.007, 0.15, 12), M.brass, [0, 0, 0], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2), R.gate.g);
+  R.gateAngle = 0; R.gateOpen = false;
+  // steel ball resting against the gate
+  const cx0 = -1.144, ys = Y1H - (-1.1 - cx0) * T;
+  R.ball = body({ mass: BALL_M, pos: [cx0 - BALL_R * Math.sin(RAMP_SLOPE), ys + BALL_R * Math.cos(RAMP_SLOPE) + 0.0005, 0], mat: 'steel', ad: 0.005 });
+  addSphere(R.ball, BALL_R, [0, 0, 0], M.steel);
+  R.Y1H = Y1H;
+}
+
+// ---------- stage 3: dominoes with one 90° turn ----------
+function dominoPose(i, s) {
+  const R0 = s / (Math.PI / 8), x5 = -1.10 + 5 * s;
+  if (i <= 5) return { x: -1.10 + i * s, z: 0, a: 0 };
+  if (i <= 9) { const f = (i - 5) * Math.PI / 8; return { x: x5 + R0 * Math.sin(f), z: -R0 + R0 * Math.cos(f), a: f }; }
+  return { x: x5 + R0, z: -R0 - (i - 9) * s, a: Math.PI / 2 };
+}
+function buildDominoes(set) {
+  R.dominoes = [];
+  for (let i = 0; i < 24; i++) {
+    const p = dominoPose(i, set.dominoSpacing);
+    const b = body({ mass: set.dominoMass, pos: [p.x, DOM_H / 2 + 0.0005, p.z], q: qy(p.a), mat: 'domino' });
+    addBox(b, DOM_T / 2, DOM_H / 2, DOM_W / 2, [0, 0, 0], null, i % 2 ? M.dominoA : M.dominoB);
+    vis(new THREE.CylinderGeometry(0.008, 0.008, 0.002, 12), M.brass, [0.0151, 0.05, 0], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2), b.g, false);
+    R.dominoes.push(b);
+  }
+  const e = dominoPose(23, set.dominoSpacing);
+  R.E = [e.x, 0, e.z];
+}
+
+// ---------- stage 4 + 5: shelf, block, lever, deflector, basket, pulley ----------
+function buildLeverAndPulley(set) {
+  const E = R.E;
+  // frictionless shelf with the heavy block; the last domino falls onto the block
+  const shelf = body({ pos: [E[0], 0.065, E[2] - 0.1725], mat: 'ice' });
+  addBox(shelf, 0.06, 0.065, 0.0225, [0, 0, 0], null, M.dark);
+  R.block = body({ mass: BLOCK_M, pos: [E[0], 0.13 + 0.03 + 0.0005, E[2] - 0.17], mat: 'block' });
+  addBox(R.block, 0.03, 0.03, 0.03, [0, 0, 0], null, M.iron);
+  // seesaw lever along +x, short end under the shelf edge
+  const p = set.leverPivot, hp = 0.06, Sx = E[0] - 0.05, zL = E[2] - 0.265;
+  const gam = Math.asin((hp - 0.01) / (1 - p)) * 0.995;
+  const LP = [Sx + p, hp, zL], lq = qz(-gam);
+  R.lever = body({ mass: 0.15, pos: LP, q: lq, mat: 'lever' });
+  addBox(R.lever, 0.5, 0.01, 0.06, [0.5 - p, 0, 0], null, M.wood);
+  const cx = 1 - p - 0.04;
+  addBox(R.lever, 0.003, 0.0075, 0.035, [cx - 0.035, 0.0175, 0], null, M.brass);
+  addBox(R.lever, 0.003, 0.0075, 0.035, [cx + 0.035, 0.0175, 0], null, M.brass);
+  addBox(R.lever, 0.035, 0.0075, 0.003, [cx, 0.0175, 0.035], null, M.brass);
+  addBox(R.lever, 0.035, 0.0075, 0.003, [cx, 0.0175, -0.035], null, M.brass);
+  hinge(R.lever, LP, [0, 0, 0]);
+  for (const dz of [-0.075, 0.075]) vis(new THREE.BoxGeometry(0.05, hp + 0.02, 0.012), M.iron, [LP[0], (hp + 0.02) / 2, zL + dz], null, machine);
+  cylBetween([LP[0], hp, zL - 0.085], [LP[0], hp, zL + 0.085], 0.006, M.steel, machine);
+  // light ball in the cup at the long end
+  R.light = body({ mass: LIGHT_M, pos: toWorld(LP, lq, [cx, 0.01 + LIGHT_R + 0.0005, 0]), mat: 'light' });
+  addSphere(R.light, LIGHT_R, [0, 0, 0], M.lacquer);
+  // 45° acrylic deflector above the launch point sends the ball back toward the basket
+  const xD = Sx + 0.92;
+  const defl = body({ pos: [xD, 0.47, zL], q: qx(Math.PI / 4), mat: 'board' });
+  addBox(defl, 0.16, 0.008, 0.15, [0, 0, 0], null, M.acrylic);
+  for (const dx of [-0.17, 0.17]) {
+    cylBetween([xD + dx, 0, zL + 0.16], [xD + dx, 0.37, zL + 0.16], 0.008, M.iron, machine);
+    cylBetween([xD + dx, 0.37, zL + 0.16], [xD + dx * 0.95, 0.37, zL + 0.1], 0.006, M.iron, machine);
+  }
+  // basket (rides a vertical rope, empty mass 0.20 kg)
+  const xB = Sx + 0.90, zB = zL - 0.30, yB0 = 0.20;
+  R.basket = body({ mass: BASKET_M, pos: [xB, yB0, zB], mat: 'basket' });
+  addBox(R.basket, 0.15, 0.005, 0.15, [0, 0.005, 0], null, M.wicker);
+  addBox(R.basket, 0.005, 0.075, 0.15, [0.145, 0.075, 0], null, M.wicker);
+  addBox(R.basket, 0.005, 0.075, 0.15, [-0.145, 0.075, 0], null, M.wicker);
+  addBox(R.basket, 0.14, 0.075, 0.005, [0, 0.075, 0.145], null, M.wicker);
+  addBox(R.basket, 0.14, 0.075, 0.005, [0, 0.075, -0.145], null, M.wicker);
+  addBox(R.basket, 0.06, 0.005, 0.01, [-0.21, 0.055, 0], null, M.iron);   // foot arm
+  addBox(R.basket, 0.02, 0.03, 0.02, [-0.25, 0.03, 0], null, M.iron);    // foot that presses the latch
+  vis(new THREE.TorusGeometry(0.15, 0.005, 8, 32, Math.PI), M.brass, [0, 0.15, 0], null, R.basket.g);
+  R.basket.linearFactor.set(0, 1, 0); R.basket.angularFactor.set(0, 0, 0);
+  R.basket.collisionFilterGroup = 2;
+  R.basketX = xB; R.basketZ = zB;
+  // counterweight on the floor
+  R.cw = body({ mass: set.counterweightMass, pos: [xB + 0.4, 0.05, zB], mat: 'cw' });
+  addBox(R.cw, 0.05, 0.05, 0.05, [0, 0, 0], null, M.iron);
+  vis(new THREE.TorusGeometry(0.015, 0.004, 8, 16), M.brass, [0, 0.062, 0], null, R.cw.g);
+  R.cw.linearFactor.set(0, 1, 0); R.cw.angularFactor.set(0, 0, 0);
+  R.cwX = xB + 0.4;
+  world.addConstraint(new RopeConstraint(R.basket, R.cw, yB0 + 0.05));
+  // pulley (decor wheel; the rope law is the constraint above)
+  R.pulley = { x: xB + 0.2, y: 1.05, z: zB, r: 0.2 };
+  const wheel = new THREE.Group(); wheel.position.set(xB + 0.2, 1.05, zB); machine.add(wheel); R.wheel = wheel;
+  vis(new THREE.TorusGeometry(0.2, 0.018, 12, 48), M.brass, [0, 0, 0], null, wheel);
+  for (let k = 0; k < 6; k++) vis(new THREE.BoxGeometry(0.4, 0.012, 0.012), M.brass, [0, 0, 0], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), k * Math.PI / 6), wheel);
+  cylBetween([xB + 0.2, 0, zB + 0.22], [xB + 0.2, 1.12, zB + 0.22], 0.015, M.dark, machine);
+  cylBetween([xB + 0.2, 1.05, zB + 0.22], [xB + 0.2, 1.05, zB - 0.03], 0.012, M.steel, machine);
+  const ropeGeo = new THREE.CylinderGeometry(0.004, 0.004, 1, 8);
+  R.rope1 = vis(ropeGeo, M.rope, [0, 0, 0], null, machine);
+  R.rope2 = vis(ropeGeo, M.rope, [0, 0, 0], null, machine);
+  // acrylic backboard behind the basket
+  const bb = body({ pos: [xB, 0.55, zB - 0.17], mat: 'board' });
+  addBox(bb, 0.25, 0.35, 0.008, [0, 0, 0], null, M.acrylic);
+  for (const dx of [-0.26, 0.26]) cylBetween([xB + dx, 0, zB - 0.17], [xB + dx, 0.9, zB - 0.17], 0.01, M.iron, machine);
+  R.zL = zL; R.Sx = Sx;
+}
+
+// ---------- stage 6 + 7 + 8 + 9: wedge latch, pendulum, cradle, curling sled, bell ----------
+function buildBackRow(set) {
+  const xB = R.basketX, zB = R.basketZ;
+  const yC = 0.25, Bx = xB + 0.716, zP = zB - 0.41, zF = zP + 0.10;
+  const L = set.pendulumLength, th = set.releaseAngle * D2R;
+  const P = [Bx, yC + L, zP];
+  const H = [Bx - L * Math.sin(th), yC + L * (1 - Math.cos(th)), zP];
+  const t = [Math.cos(th), -Math.sin(th)];
+  const pr = BOB_R + 0.01 + 0.0015;
+  const pin = [H[0] + pr * t[0], H[1] + pr * t[1]];
+  // sliding bolt: a 30° wedge under the basket foot, a frame, and a pin that holds the bob
+  const W0 = [xB - 0.25, 0.10, zB + 0.02];
+  R.bolt = body({ mass: 0.08, pos: W0, mat: 'bolt' });
+  const rel = (x, y, z) => [x - W0[0], y - W0[1], z - W0[2]];
+  addBox(R.bolt, 0.03, 0.01, 0.08, [0, -0.0387, -0.047], qx(-Math.PI / 6), M.brass);
+  const zw = W0[2] - 0.12, xv = xB - 0.30;
+  addBox(R.bolt, 0.008, 0.008, (zw - zF) / 2, rel(xv, 0.03, (zw + zF) / 2), null, M.brass, true);
+  addBox(R.bolt, 0.025, 0.006, 0.006, rel(xv + 0.025, 0.03, zw), null, M.brass, true);
+  addBox(R.bolt, 0.008, (pin[1] - 0.03) / 2 + 0.008, 0.008, rel(xv, (pin[1] + 0.03) / 2, zF), null, M.brass, true);
+  const hx0 = Math.min(xv, pin[0]), hx1 = Math.max(xv, pin[0]);
+  addBox(R.bolt, (hx1 - hx0) / 2 + 0.008, 0.008, 0.008, rel((hx0 + hx1) / 2, pin[1], zF), null, M.brass, true);
+  const pinZ0 = zP - 0.03;
+  addBox(R.bolt, 0.01, 0.01, (zF - pinZ0) / 2, rel(pin[0], pin[1], (zF + pinZ0) / 2), qz(Math.atan2(t[1], t[0])), M.steel);
+  R.bolt.linearFactor.set(0, 0, 1); R.bolt.angularFactor.set(0, 0, 0);
+  R.bolt.collisionFilterGroup = 16; R.bolt.collisionFilterMask = 2 | 8;
+  R.boltX = W0[0]; R.boltY = W0[1];
+  // pendulum: brass bob on a hinge, pivot placed so the bob meets the cradle at the bottom of its arc
+  R.bob = body({ mass: BOB_M, pos: H, mat: 'bob' });
+  addSphere(R.bob, BOB_R, [0, 0, 0], M.brass);
+  R.bob.collisionFilterGroup = 8;
+  hinge(R.bob, P, [P[0] - H[0], P[1] - H[1], 0]);
+  R.P = P;
+  cylBetween([Bx, 0, zP - 0.15], [Bx, P[1] + 0.06, zP - 0.15], 0.018, M.dark, machine);
+  cylBetween([Bx, P[1], zP - 0.15], [Bx, P[1], zP + 0.02], 0.009, M.steel, machine);
+  R.rod = vis(new THREE.CylinderGeometry(0.005, 0.005, 1, 8), M.steel, [0, 0, 0], null, machine);
+  // Newton's cradle
+  const x1 = Bx + BOB_R + CR_R + 0.003, gap = 2 * CR_R + 0.004;
+  R.cradle = [];
+  for (let i = 0; i < 5; i++) {
+    const xi = x1 + i * gap;
+    const b = body({ mass: CR_M, pos: [xi, yC, zP], mat: 'cradle', ad: 0 });
+    addSphere(b, CR_R, [0, 0, 0], M.chrome);
+    hinge(b, [xi, yC + 0.3, zP], [0, 0.3, 0]);
+    b.top = [xi, yC + 0.3];
+    R.cradle.push(b);
+  }
+  const x5 = x1 + 4 * gap;
+  for (const dz of [-0.1, 0.1]) {
+    cylBetween([x1 - 0.06, yC + 0.3, zP + dz], [x5 + 0.06, yC + 0.3, zP + dz], 0.006, M.brass, machine);
+    for (const x of [x1 - 0.06, x5 + 0.06]) cylBetween([x, 0.12, zP + dz], [x, yC + 0.3, zP + dz], 0.006, M.brass, machine);
+  }
+  vis(new THREE.BoxGeometry(x5 - x1 + 0.2, 0.1, 0.28), M.dark, [(x1 + x5) / 2, 0.07, zP], null, machine);
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(5 * 4 * 3), 3));
+  R.strings = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0xd8d0c0 }));
+  R.strings.frustumCulled = false;
+  machine.add(R.strings);
+  R.zP = zP;
+  // stage 8: curling sled on a polished track
+  const sx = x5 + CR_R + 0.004 + 0.05, xs = sx + 0.05 + 0.30 + 0.03;
+  const tx0 = x5 + 0.03, tx1 = xs + 0.07;
+  const track = body({ pos: [(tx0 + tx1) / 2, yC - 0.035, zP], mat: 'track' });
+  addBox(track, (tx1 - tx0) / 2, 0.01, 0.06, [0, 0, 0], null, M.dark);
+  for (const x of [tx0 + 0.03, tx1 - 0.03]) for (const dz of [-0.045, 0.045]) cylBetween([x, 0, zP + dz], [x, yC - 0.045, zP + dz], 0.008, M.iron, machine);
+  const bumper = body({ pos: [xs + 0.06, yC - 0.0125, zP], mat: 'track' });
+  addBox(bumper, 0.01, 0.0125, 0.05, [0, 0, 0], null, M.iron);
+  R.sled = body({ mass: 0.3, pos: [sx, yC + 0.0005, zP], mat: 'sled' });
+  addBox(R.sled, 0.05, 0.025, 0.04, [0, 0, 0], null, M.copper);
+  vis(new THREE.TorusGeometry(0.018, 0.005, 8, 16, Math.PI), M.brass, [0, 0.025, 0], null, R.sled.g);
+  // stage 9: hinged striker and brass bell
+  R.striker = body({ mass: 0.12, pos: [xs, yC + 0.035, zP], mat: 'striker', ad: 0.02 });
+  addSphere(R.striker, 0.03, [0, 0, 0], M.iron);
+  addBox(R.striker, 0.004, 0.125, 0.004, [0, 0.125, 0], null, M.brass, true);
+  hinge(R.striker, [xs, yC + 0.285, zP], [0, 0.25, 0]);
+  cylBetween([xs, 0, zP - 0.09], [xs, yC + 0.31, zP - 0.09], 0.01, M.dark, machine);
+  cylBetween([xs, yC + 0.285, zP - 0.09], [xs, yC + 0.285, zP + 0.01], 0.006, M.steel, machine);
+  const xbell = xs + 0.234, yb0 = yC + 0.05;
+  R.bell = body({ pos: [xbell, yb0 + 0.09, zP], mat: 'bell' });
+  R.bell.addShape(new CANNON.Cylinder(0.05, 0.10, 0.18, 20));
+  const prof = [[0.104, -0.09], [0.1, -0.084], [0.09, -0.06], [0.078, -0.02], [0.066, 0.03], [0.058, 0.07], [0.045, 0.088], [0.02, 0.096], [0.0, 0.098]]
+    .map(([r, y]) => new THREE.Vector2(r, y));
+  const bellMat = M.brass.clone(); bellMat.side = THREE.DoubleSide; bellMat.color.set(0xe2b65c);
+  vis(new THREE.LatheGeometry(prof, 48), bellMat, [0, 0, 0], null, R.bell.g);
+  cylBetween([xbell + 0.17, 0, zP], [xbell + 0.17, yb0 + 0.26, zP], 0.012, M.dark, machine);
+  cylBetween([xbell + 0.17, yb0 + 0.25, zP], [xbell, yb0 + 0.25, zP], 0.008, M.iron, machine);
+  cylBetween([xbell, yb0 + 0.25, zP], [xbell, yb0 + 0.18, zP], 0.008, M.iron, machine);
+  // camera focus points per stage
+  R.foci = [
+    [-1.2, 1.7, 0], [-1.6, 1.0, 0], [dominoPose(12, set.dominoSpacing).x, 0.1, dominoPose(12, set.dominoSpacing).z],
+    [R.Sx + 0.5, 0.2, R.zL], [xB + 0.2, 0.4, zB], [(H[0] + Bx) / 2, yC + 0.3, zP],
+    [(x1 + x5) / 2, yC, zP], [(sx + xs) / 2, yC, zP], [xbell, yb0 + 0.1, zP]
+  ];
+}
+
+// ---------- run state ----------
+let stages = [], simTime = 0, acc = 0, started = false, paused = false, holdAt = null, chainTime = null;
+let speed = 1, camMode = 'follow', meas = null, dirty = true;
+const $ = id => document.getElementById(id);
+
+function build(set) {
+  if (machine) { scene.remove(machine); machine.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  machine = new THREE.Group(); scene.add(machine);
+  sync = []; R = {}; S = { ...set };
+  newWorld(S);
+  buildRamps(); buildDominoes(S); buildLeverAndPulley(S); buildBackRow(S);
+  stages = STAGE_NAMES.map((name, i) => ({ id: i + 1, name, status: 'waiting', triggeredAt: null }));
+  simTime = 0; acc = 0; holdAt = null; chainTime = null;
+  meas = { samples: [], basketAcc: null, swing: null, release: null, moveStart: null };
+  world.addEventListener('beginContact', e => onContact(e.bodyA, e.bodyB, true));
+  world.addEventListener('endContact', e => onContact(e.bodyA, e.bodyB, false));
+  syncMeshes(); updateDecor(); computeOverview();
+  setMsg('', ''); dirty = true;
+}
+
+const pairIs = (a, b, x, y) => (a === x && b === y) || (a === y && b === x);
+function onContact(a, b, begin) {
+  if (!begin) {
+    if (pairIs(a, b, R.bob, R.bolt) && stages[5].status === 'triggered' && meas.release === null) meas.release = simTime;
+    return;
+  }
+  const rules = [null,
+    [R.ball, R.ramps[1]], [R.ball, R.dominoes[0]], [R.dominoes[23], R.block], [R.light, R.basket],
+    [R.basket, R.bolt], [R.bob, R.cradle[0]], [R.cradle[4], R.sled], [R.striker, R.bell]];
+  for (let k = 1; k < 9; k++) {
+    if (stages[k].status === 'waiting' && stages[k - 1].status === 'triggered' && pairIs(a, b, rules[k][0], rules[k][1])) trigger(k);
+  }
+}
+function trigger(k) {
+  const st = stages[k];
+  st.status = 'triggered'; st.triggeredAt = Number(simTime.toFixed(4));
+  if (k === 5) meas.basketAcc = basketAcceleration();
+  if (k === 6) {
+    const rel = meas.release !== null ? meas.release : meas.moveStart;
+    if (rel !== null) meas.swing = Number((simTime - rel).toFixed(4));
+  }
+  if (k === 8) {
+    chainTime = st.triggeredAt;
+    holdAt = simTime + 2.5;
+    ringBell();
+    setMsg(`Chain complete — the bell rang at t = ${chainTime.toFixed(2)} s (simulation time).`, 'good');
+  }
+  dirty = true;
+}
+function basketAcceleration() {
+  const t4 = stages[4].triggeredAt;
+  let s = meas.samples.filter(([t]) => t >= t4 + 0.08);
+  if (s.length < 20) s = meas.samples;
+  if (s.length < 5) return null;
+  let mt = 0, mv = 0;
+  for (const [t, v] of s) { mt += t; mv += v; }
+  mt /= s.length; mv /= s.length;
+  let num = 0, den = 0;
+  for (const [t, v] of s) { num += (t - mt) * (v - mv); den += (t - mt) ** 2; }
+  return den > 0 ? Number((-num / den).toFixed(4)) : null;
+}
+
+function stepPhysics() {
+  // stage 1: the only timed event, the gate swings open at t = 1 s
+  if (!R.gateOpen && simTime >= 1 - 1e-9) {
+    R.gateOpen = true;
+    R.gate.angularVelocity.set(0, 0, -6);
+    stages[0].status = 'triggered'; stages[0].triggeredAt = Number(simTime.toFixed(4)); dirty = true;
+  }
+  if (R.gateOpen && R.gate.angularVelocity.z !== 0) {
+    R.gateAngle += 6 * DT;
+    if (R.gateAngle >= 1.65) R.gate.angularVelocity.set(0, 0, 0);
+  }
+  simTime += DT;
+  world.step(DT);
+  // vertical rope bodies and sliding bolt keep their guides
+  for (const [b, x, z] of [[R.basket, R.basketX, R.basketZ], [R.cw, R.cwX, R.basketZ]]) {
+    b.position.x = x; b.position.z = z; b.velocity.x = 0; b.velocity.z = 0;
+    b.quaternion.set(0, 0, 0, 1); b.angularVelocity.set(0, 0, 0);
+  }
+  R.bolt.position.x = R.boltX; R.bolt.position.y = R.boltY; R.bolt.velocity.x = 0; R.bolt.velocity.y = 0;
+  R.bolt.quaternion.set(0, 0, 0, 1); R.bolt.angularVelocity.set(0, 0, 0);
+  // measurements read from the bodies
+  if (stages[4].status === 'triggered' && stages[5].status === 'waiting') meas.samples.push([simTime, R.basket.velocity.y]);
+  if (stages[5].status === 'triggered' && meas.moveStart === null && R.bob.velocity.length() > 0.02) meas.moveStart = simTime;
+  // failure watchdog
+  const k = stages.findIndex(s => s.status !== 'triggered');
+  if (k > 0 && stages[k].status === 'waiting' && simTime - stages[k - 1].triggeredAt > FAIL_WAIT) {
+    stages[k].status = 'failed';
+    if (k === 5 && meas.basketAcc === null) meas.basketAcc = basketAcceleration();
+    holdAt = simTime + 0.5;
+    setMsg(`Stage ${k + 1} — ${stages[k].name} — failed: nothing triggered it within ${FAIL_WAIT} s after stage ${k} (${stages[k - 1].name}). The chain stops here.`, 'bad');
+    dirty = true;
+  }
+}
+const finished = () => holdAt !== null && simTime >= holdAt;
+
+// ---------- visuals sync ----------
+const UP = new THREE.Vector3(0, 1, 0), vA = new THREE.Vector3(), vB = new THREE.Vector3();
+function syncMeshes() {
+  for (const b of sync) { b.g.position.copy(b.position); b.g.quaternion.copy(b.quaternion); }
+}
+function setCyl(m, a, b) {
+  vA.set(a[0], a[1], a[2]); vB.set(b[0], b[1], b[2]);
+  const len = Math.max(1e-4, vA.distanceTo(vB));
+  m.position.copy(vA).add(vB).multiplyScalar(0.5);
+  m.scale.set(1, len, 1);
+  m.quaternion.setFromUnitVectors(UP, vB.sub(vA).normalize());
+}
+function updateDecor() {
+  const p = R.pulley, by = R.basket.position.y, cy = R.cw.position.y;
+  setCyl(R.rope1, [p.x - p.r, p.y, p.z], [R.basketX, by + 0.30, p.z]);
+  setCyl(R.rope2, [p.x + p.r, p.y, p.z], [R.cwX, cy + 0.065, p.z]);
+  R.wheel.rotation.z = (by - 0.20) / p.r;
+  const bp = R.bob.position;
+  setCyl(R.rod, R.P, [bp.x, bp.y, bp.z]);
+  const arr = R.strings.geometry.attributes.position.array;
+  R.cradle.forEach((b, i) => {
+    for (let s = 0; s < 2; s++) {
+      const o = (i * 4 + s * 2) * 3;
+      arr[o] = b.position.x; arr[o + 1] = b.position.y + CR_R; arr[o + 2] = b.position.z;
+      arr[o + 3] = b.top[0]; arr[o + 4] = b.top[1]; arr[o + 5] = R.zP + (s ? 0.1 : -0.1);
+    }
+  });
+  R.strings.geometry.attributes.position.needsUpdate = true;
+}
+
+// ---------- cameras ----------
+const camTarget = new THREE.Vector3(-0.5, 0.6, -1.2), camPos = new THREE.Vector3(1.5, 3.5, 4.5);
+const ov = { t: new THREE.Vector3(), p: new THREE.Vector3() };
+const FOLLOW_DIR = new THREE.Vector3(0.35, 0.5, 0.8).normalize();
+function computeOverview() {
+  const box = new THREE.Box3().setFromObject(machine);
+  const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const radius = Math.min(size.length() / 2, 9);
+  const dist = radius / Math.sin(camera.fov * D2R / 2) * 0.82;
+  ov.t.copy(c).setY(Math.min(c.y, 0.5));
+  ov.p.copy(ov.t).addScaledVector(new THREE.Vector3(0.18, 0.62, 0.77).normalize(), dist);
+}
+function followFocus() {
+  const f = stages.findIndex(s => s.status === 'failed');
+  if (f >= 0) return [new THREE.Vector3(...R.foci[f]), 1.9];
+  const n = stages.filter(s => s.status === 'triggered').length;
+  const P = b => new THREE.Vector3(b.position.x, b.position.y, b.position.z);
+  switch (n) {
+    case 0: case 1: return [P(R.ball), 1.3];
+    case 2: return [P(R.ball), 1.7];
+    case 3: {
+      const i = R.dominoes.findIndex(d => 1 - 2 * (d.quaternion.x ** 2 + d.quaternion.z ** 2) > 0.85);
+      return [i >= 0 ? P(R.dominoes[i]) : P(R.block), 1.6];
+    }
+    case 4: return [P(R.light).lerp(new THREE.Vector3(R.Sx + 0.7, 0.3, R.zL), 0.5), 1.7];
+    case 5: return [new THREE.Vector3(R.basketX + 0.1, R.basket.position.y + 0.25, R.basketZ - 0.15), 1.8];
+    case 6: return [P(R.bob).lerp(new THREE.Vector3(...R.foci[6]), 0.4), 1.4 + S.pendulumLength * 0.7];
+    case 7: return [new THREE.Vector3(...R.foci[6]).lerp(new THREE.Vector3(...R.foci[7]), 0.5), 1.4];
+    default: return [new THREE.Vector3(...R.foci[8]), 1.4];
+  }
+}
+function updateCamera(rdt) {
+  controls.enabled = camMode === 'orbit';
+  if (camMode === 'orbit') { controls.update(); camTarget.copy(controls.target); camPos.copy(camera.position); return; }
+  let tt, tp;
+  if (camMode === 'overview') { tt = ov.t; tp = ov.p; }
+  else { const [f, d] = followFocus(); tt = f; tp = f.clone().addScaledVector(FOLLOW_DIR, d); }
+  const kt = 1 - Math.exp(-rdt * 3), kp = 1 - Math.exp(-rdt * 2.2);
+  camTarget.lerp(tt, kt); camPos.lerp(tp, kp);
+  camera.position.copy(camPos); camera.lookAt(camTarget); controls.target.copy(camTarget);
+}
+
+// ---------- audio: bell synthesized with Web Audio ----------
+let actx = null;
+function audio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+  if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  return actx;
+}
+addEventListener('pointerdown', audio);
+addEventListener('keydown', audio);
+function ringBell() {
+  const a = audio(); if (!a) return;
+  const t0 = a.currentTime + 0.01, f0 = 587;
+  const master = a.createGain(); master.gain.value = 0.32; master.connect(a.destination);
+  [[0.5, 0.35, 4.5], [1, 1, 3.6], [1.19, 0.4, 2.6], [1.5, 0.35, 2.2], [2.0, 0.5, 2.0], [2.51, 0.28, 1.4], [3.01, 0.2, 1.0], [4.17, 0.14, 0.7], [5.43, 0.1, 0.5]]
+    .forEach(([m, g, d]) => {
+      const o = a.createOscillator(); o.type = 'sine'; o.frequency.value = f0 * m;
+      const gg = a.createGain();
+      gg.gain.setValueAtTime(0, t0); gg.gain.linearRampToValueAtTime(g, t0 + 0.003);
+      gg.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      o.connect(gg).connect(master); o.start(t0); o.stop(t0 + d + 0.05);
+    });
+  const len = Math.floor(a.sampleRate * 0.04), buf = a.createBuffer(1, len, a.sampleRate), ch = buf.getChannelData(0);
+  let seed = 99;
+  for (let i = 0; i < len; i++) { seed = (seed * 16807) % 2147483647; ch[i] = (seed / 1073741823 - 1) * (1 - i / len) ** 2; }
+  const src = a.createBufferSource(); src.buffer = buf;
+  const ng = a.createGain(); ng.gain.value = 0.25; src.connect(ng).connect(master); src.start(t0);
+}
+
+// ---------- UI ----------
+function setMsg(text, cls) { const m = $('msg'); m.textContent = text; m.className = cls; m.style.display = text ? 'block' : 'none'; }
+const fmtDigits = step => (String(step).split('.')[1] || '').length;
+$('sliders').innerHTML = SLIDERS.map(([k, label, min, max, step]) =>
+  `<label><span>${label}</span><span id="v_${k}"></span><input id="in_${k}" type="range" min="${min}" max="${max}" step="${step}" value="${DEFAULTS[k]}"></label>`).join('');
+function showValues() { for (const [k, , , , step] of SLIDERS) $('v_' + k).textContent = parseFloat($('in_' + k).value).toFixed(fmtDigits(step)); }
+for (const [k] of SLIDERS) $('in_' + k).addEventListener('input', showValues);
+showValues();
+function readSettings() { const s = {}; for (const [k] of SLIDERS) s[k] = parseFloat($('in_' + k).value); return s; }
+function replay() { build(readSettings()); started = true; paused = false; $('pause').textContent = 'Pause'; }
+$('replay').onclick = e => { e.currentTarget.blur(); replay(); };
+$('apply').onclick = e => { e.currentTarget.blur(); replay(); };
+$('defaults').onclick = e => { e.currentTarget.blur(); for (const [k] of SLIDERS) $('in_' + k).value = DEFAULTS[k]; showValues(); };
+$('setBtn').onclick = e => { e.currentTarget.blur(); $('settings').classList.toggle('open'); $('setBtn').classList.toggle('on'); };
+function togglePause() { paused = !paused; $('pause').textContent = paused ? 'Play' : 'Pause'; }
+$('pause').onclick = e => { e.currentTarget.blur(); togglePause(); };
+$('speed').onchange = e => { speed = parseFloat(e.target.value); e.target.blur(); };
+document.querySelectorAll('[data-cam]').forEach(btn => btn.onclick = e => {
+  camMode = btn.dataset.cam; btn.blur();
+  document.querySelectorAll('[data-cam]').forEach(b => b.classList.toggle('on', b === btn));
+  if (camMode === 'orbit') { controls.target.copy(camTarget); controls.update(); }
+});
+addEventListener('keydown', e => {
+  if (e.code !== 'Space') return;
+  const el = document.activeElement, tag = el && el.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+  e.preventDefault(); togglePause();
+});
+function renderList() {
+  $('stages').innerHTML = stages.map(s => `<li class="${s.status}"><span>${s.id}. ${s.name}</span><span class="t">${s.status === 'triggered' ? s.triggeredAt.toFixed(2) + ' s' : s.status === 'failed' ? 'failed' : '—'}</span></li>`).join('');
+}
+function updateHud() {
+  $('clock').textContent = `t = ${simTime.toFixed(2)} s${paused ? ' ⏸' : ''}`;
+  if (dirty) {
+    renderList();
+    $('mAcc').textContent = meas.basketAcc !== null ? meas.basketAcc.toFixed(3) + ' m/s²' : '—';
+    $('mSwing').textContent = meas.swing !== null ? meas.swing.toFixed(3) + ' s' : '—';
+    $('mChain').textContent = chainTime !== null ? chainTime.toFixed(2) + ' s' : '—';
+    dirty = false;
+  }
+}
+
+// ---------- inspection ----------
+window.machineState = () => ({
+  stages: stages.map(s => ({ id: s.id, name: s.name, status: s.status, triggeredAt: s.triggeredAt })),
+  basketAcceleration: meas ? meas.basketAcc : null,
+  pendulumSwingTime: meas ? meas.swing : null,
+  settings: { ...readSettings(), simulationSpeed: speed, camera: camMode, paused },
+  simTime: Number(simTime.toFixed(4)),
+  chainTime
+});
+
+// ---------- main loop ----------
+build({ ...DEFAULTS });
+camera.position.copy(camPos); camera.lookAt(camTarget);
+setTimeout(() => { started = true; }, 1000);
+let lastT = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const rdt = Math.min(0.1, Math.max(0, (now - lastT) / 1000)); lastT = now;
+  if (started && !paused && !finished()) {
+    acc += rdt * speed;
+    let n = 0;
+    while (acc >= DT && n < MAX_STEPS && !finished()) { stepPhysics(); acc -= DT; n++; }
+    if (n >= MAX_STEPS) acc = 0;   // slow machine: the clock slows down, the physics stays identical
+  }
+  syncMeshes(); updateDecor(); updateCamera(rdt); updateHud();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPT-6</title>
+<style>
+:root{--paper:#f2efe4;--ink:#283e34;--muted:#7a8277;--line:#d9dbce;--gold:#b69557}*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#233b33;color:var(--ink);font:12px 'Segoe UI',sans-serif}canvas{display:block;width:100%;height:100%}button,input,select{font:inherit}button,select{cursor:pointer}button{border:1px solid var(--line);color:var(--ink);background:transparent;border-radius:5px;padding:9px 12px;transition:background .2s}button:hover{background:#e0e4d6}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #b88c42;outline-offset:3px}button:disabled{opacity:.45;cursor:default}.eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}#status{position:fixed;top:27px;left:32px;z-index:2;color:var(--paper)}h1{font:400 29px Georgia,serif;letter-spacing:2px;margin:0 0 8px}#status .eyebrow{color:#bdc7b9}#phase{display:block;margin-top:13px;font-size:11px;color:#d4d7c4}#phase:before{content:'';display:inline-block;width:6px;height:6px;background:#d4bb75;border-radius:50%;margin-right:8px}.panel{position:fixed;right:25px;width:278px;background:rgba(242,239,228,.96);border:1px solid #fff5;box-shadow:0 12px 45px #0d201e22;border-radius:9px;backdrop-filter:blur(16px);z-index:3}.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.panel-head span:first-child{font:20px Georgia,serif}.panel-head .number{font:10px monospace;color:#969c8c}#settings-panel{top:25px;padding:20px 21px;max-height:calc(100vh - 125px);overflow:auto}label.control{display:block;margin:15px 0}.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.label-row output{font:12px 'Segoe UI',sans-serif;color:#62734d}.presets{display:flex;gap:4px;margin-top:8px}.presets button{font-size:9px;padding:5px 7px;flex:1}input[type=range]{width:100%;height:3px;accent-color:#6c7c51;cursor:pointer;display:block;margin:13px 0}select{border:1px solid var(--line);background:#e8e9df;border-radius:4px;color:var(--ink);padding:7px;width:100%}.separator{height:1px;background:var(--line);margin:17px 0}.switch-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px}.switch-row input{accent-color:#647954;width:16px;height:16px}.hint{font-size:10px;color:var(--muted);line-height:1.6}#readout{left:26px;right:auto;bottom:104px;padding:20px 22px;width:270px}#clock{font:30px Georgia,serif;letter-spacing:2px;margin:12px 0 17px;font-variant-numeric:tabular-nums}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:17px 10px}.metric span{display:block;font-size:9px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}.metric strong{font-weight:400;font-size:17px;font-variant-numeric:tabular-nums}.metric small{font-size:10px;color:var(--muted)}#turn-time{margin:13px 0;color:#6c7864;font-size:10px}.energy-row{display:grid;grid-template-columns:54px 1fr 47px;gap:7px;align-items:center;font-size:9px;margin-top:8px;color:#6d7967}.bar{height:4px;background:#dddfd2;border-radius:3px;overflow:hidden}.bar i{height:100%;display:block;background:#687e5c;width:0}.energy-row:nth-of-type(2) .bar i{background:#b99a61}.energy-row:nth-of-type(3) .bar i{background:#afb3a7}.energy-total{display:flex;justify-content:space-between;font-size:10px;margin-top:13px}#toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:17px;background:var(--paper);padding:10px 14px;border:1px solid #fff7;box-shadow:0 10px 45px #0a251d44;border-radius:8px;z-index:4;white-space:nowrap}#toolbar .group{display:flex;align-items:center;gap:5px}#toolbar .divider{height:25px;width:1px;background:var(--line)}#toolbar button{border-color:transparent;padding:8px 11px}#toolbar button.active{background:#dce2d1}#toolbar #release{background:#334f3f;color:#f1efdd;padding:9px 17px}#toolbar select{width:82px;border:0;background:#e6e8dc}kbd{font:9px monospace;opacity:.5;margin-left:4px}#scene-note{position:fixed;left:50%;transform:translateX(-50%);top:29px;text-align:center;color:#c3cbbb;font-size:10px;line-height:1.9;letter-spacing:1.5px;text-transform:uppercase;pointer-events:none}#scene-note b{display:block;color:#eeeadd;font-weight:400;letter-spacing:3px}#orientation{position:fixed;bottom:110px;right:48px;color:#e6e8d9;text-align:center;font:11px Georgia,serif;pointer-events:none}#orientation:before{content:'↑';display:block;font:32px Georgia,serif;margin-bottom:6px}#toggle-settings{position:fixed;top:24px;right:25px;display:none;background:var(--paper);z-index:5}#error{display:none;position:fixed;inset:35% 20%;padding:25px;background:var(--paper);z-index:10;line-height:1.8}#loading{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);color:#d9ddcf;font-size:11px;pointer-events:none}@media(max-height:850px){#settings-panel{width:252px;padding:16px 18px}label.control{margin:10px 0}.presets{margin-top:6px}.separator{margin:12px 0}#readout{width:250px;padding:16px 18px}.metrics{gap:12px 9px}}@media(max-width:1000px){#toolbar{gap:7px}#toolbar button{padding:8px}#scene-note{display:none}#readout{left:16px;width:225px}#status{left:20px}#settings-panel{right:16px;width:235px}#orientation{display:none}}@media(max-width:700px){#toggle-settings{display:block}#settings-panel{display:none;top:70px}#settings-panel.open{display:block}#readout{bottom:132px;width:190px;padding:14px;background:rgba(242,239,228,.92)}#readout .panel-head{margin-bottom:9px}#clock{font-size:23px;margin:8px 0 12px}.metric strong{font-size:14px}.metric span{font-size:8px}.metrics{gap:10px 5px}.energy-row{grid-template-columns:43px 1fr 40px}#toolbar{bottom:15px;width:calc(100% - 24px);flex-wrap:wrap;justify-content:center;gap:6px;padding:8px}#toolbar .divider{display:none}#toolbar .eyebrow{display:none}kbd{display:none}#status{top:20px}h1{font-size:25px}#loading{bottom:115px}#turn-time{line-height:1.5}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<header id="status"><h1>GPT-6</h1><div class="eyebrow">An experiment in Earth's rotation</div><span id="phase" role="status">Held · release in 1 second</span></header>
+<div id="scene-note"><b>A floor in motion.</b>A pendulum free to follow.</div>
+<button id="toggle-settings" aria-expanded="false" aria-controls="settings-panel">Settings</button>
+<aside id="settings-panel" class="panel" aria-label="Experiment settings">
+ <div class="panel-head"><span>Experiment</span><span class="number">01 / PARAMETERS</span></div>
+ <label class="control"><span class="label-row"><span>Latitude</span><output id="latitude-value">48.8462° N</output></span><input id="latitude" aria-label="Latitude" type="range" min="-90" max="90" step="0.0001" value="48.8462"></label>
+ <div class="presets" aria-label="Latitude presets"><button data-lat="48.8462">Paris</button><button data-lat="90">N. Pole</button><button data-lat="0">Equator</button><button data-lat="-33.87">Sydney</button></div>
+ <div class="separator"></div>
+ <label class="control"><span class="label-row"><span>Wire length</span><output id="length-value">67 m</output></span><input id="length" aria-label="Wire length" type="range" min="10" max="100" step="1" value="67"></label>
+ <label class="control"><span class="label-row"><span>Bob mass</span><output id="mass-value">28 kg</output></span><input id="mass" aria-label="Bob mass" type="range" min="5" max="50" step="1" value="28"></label>
+ <label class="control"><span class="label-row"><span>Release distance</span><output id="releaseDistance-value">3.0 m</output></span><input id="releaseDistance" aria-label="Release distance" type="range" min="0.5" max="5" step="0.1" value="3"></label>
+ <label class="control"><span class="label-row"><span>Earth rotation</span><span class="hint">Exaggeration</span></span><select id="rotationMultiplier" aria-label="Earth rotation multiplier"><option value="1">×1 · Real Earth</option><option value="10">×10</option><option value="100">×100</option><option value="1000">×1000</option></select></label>
+ <label class="control"><span class="label-row"><span>Gravity</span><output id="gravity-value">9.81 m/s²</output></span><input id="gravity" aria-label="Gravity" type="range" min="0.5" max="15" step="0.01" value="9.81"></label>
+ <div class="presets"><button data-g="9.81">Earth</button><button data-g="3.71">Mars</button><button data-g="1.62">Moon</button></div>
+ <div class="separator"></div>
+ <label class="switch-row" for="airDrag">Air resistance<input id="airDrag" type="checkbox" role="switch"></label>
+ <label class="switch-row" for="trace">Floor trace<input id="trace" type="checkbox" role="switch" checked></label>
+ <p class="hint">Changes hold the bob for a fresh release.<br>At real Earth speed, use time-lapse to see the turn.</p>
+</aside>
+<aside id="readout" class="panel" aria-label="Live measurements">
+ <div class="panel-head"><span>Observation</span><span class="number">LIVE</span></div>
+ <div class="eyebrow">Time since release</div><div id="clock">00:00:00</div>
+ <div class="metrics">
+ <div class="metric"><span>Full swings</span><strong id="swings">0</strong></div><div class="metric"><span>Last period</span><strong id="period">—</strong></div>
+ <div class="metric"><span>Plane azimuth</span><strong id="azimuth">—</strong></div><div class="metric"><span>Precession</span><strong id="precession">—</strong></div>
+ <div class="metric"><span>Amplitude</span><strong id="amplitude">—</strong></div><div class="metric"><span>Closest pass</span><strong id="miss">—</strong></div>
+ </div><div id="turn-time">Full turn · awaiting measurements</div>
+ <div class="separator"></div><div class="eyebrow">Energy · joules</div>
+ <div id="energy-bars"><div class="energy-row"><span>Kinetic</span><div class="bar"><i id="kinetic-bar"></i></div><span id="kinetic">0.0 J</span></div><div class="energy-row"><span>Potential</span><div class="bar"><i id="potential-bar"></i></div><span id="potential">0.0 J</span></div><div class="energy-row"><span>Air loss</span><div class="bar"><i id="loss-bar"></i></div><span id="loss">0.0 J</span></div></div>
+ <div class="energy-total"><span>Total, including loss</span><span id="total">—</span></div><div class="energy-total"><span>Pins standing</span><span id="pin-count">36 / 36</span></div>
+</aside>
+<nav id="toolbar" aria-label="Simulation playback and camera">
+ <div class="group"><button id="play" aria-label="Pause simulation">Ⅱ</button><button id="release">Release <kbd>L</kbd></button><button id="reset">↺ Reset <kbd>R</kbd></button></div>
+ <div class="divider"></div><div class="group"><span class="eyebrow">Time</span><select id="speed" aria-label="Simulation speed"><option value="0.25">0.25×</option><option value="1" selected>1×</option><option value="60">60×</option><option value="600">600×</option><option value="3600">3600×</option></select></div>
+ <div class="divider"></div><div class="group" aria-label="Camera"><button class="camera active" data-camera="Hall" aria-pressed="true">Hall</button><button class="camera" data-camera="Overhead" aria-pressed="false">Overhead</button><button class="camera" data-camera="Orbit" aria-pressed="false">Orbit</button></div>
+</nav>
+<div id="orientation">N</div><div id="loading">Preparing the hall…</div><div id="error" role="alert"></div>
+<script>window.addEventListener('error',e=>{const el=document.getElementById('error');el.style.display='block';el.textContent='The scene could not start. Check WebGL support and the connection to the Three.js CDN. '+e.message;});</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+const settings={latitude:48.8462,gravity:9.81,length:67,mass:28,releaseDistance:3,rotationMultiplier:1,airDrag:false,trace:true,speed:1,camera:'Hall'};
+const H=1/120, MAX_STEPS=60000, R=.19, OMEGA=7.2921e-5;
+let q=new Float64Array(7), t=0, steps=0, held=true, paused=false, debt=0, auto=true, holdTime=0;
+const k1=new Float64Array(7), k2=new Float64Array(7), k3=new Float64Array(7), k4=new Float64Array(7), tmp=new Float64Array(7);
+let omegaN=0,omegaU=0,drag=0;
+let count=0,period=null,azimuth=null,precessionRate=null,amplitude=null,missDistance=null;
+let radialPrevious=0,previousQ=new Float64Array(7),extrema=[0],unwrapped=0,fitN=0,fitT=0,fitA=0,fitTT=0,fitTA=0;
+let initialEnergy=1,fallen=0,traceIndex=0;
+const pinStates=new Uint8Array(36),pinMeshes=[];
+function derivative(s,o){
+ const x=s[0],y=s[1],z=s[2],vx=s[3],vy=s[4],vz=s[5],v=Math.hypot(vx,vy,vz);
+ const ax=-2*(omegaN*vz-omegaU*vy)-drag*v*vx,ay=-2*omegaU*vx-drag*v*vy,az=-settings.gravity+2*omegaN*vx-drag*v*vz;
+ const tension=(vx*vx+vy*vy+vz*vz+x*ax+y*ay+z*az)/(x*x+y*y+z*z);
+ o[0]=vx;o[1]=vy;o[2]=vz;o[3]=ax-tension*x;o[4]=ay-tension*y;o[5]=az-tension*z;o[6]=settings.mass*drag*v*v*v;
+}
+function integrate(){
+ previousQ.set(q);
+ derivative(q,k1);for(let i=0;i<7;i++)tmp[i]=q[i]+H*.5*k1[i];
+ derivative(tmp,k2);for(let i=0;i<7;i++)tmp[i]=q[i]+H*.5*k2[i];
+ derivative(tmp,k3);for(let i=0;i<7;i++)tmp[i]=q[i]+H*k3[i];
+ derivative(tmp,k4);for(let i=0;i<7;i++)q[i]+=H/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]);
+ const norm=settings.length/Math.hypot(q[0],q[1],q[2]);for(let i=0;i<3;i++)q[i]*=norm;
+ const radial=(q[0]*q[3]+q[1]*q[4]+q[2]*q[5])/(settings.length*settings.length);
+ for(let i=0;i<3;i++)q[i+3]-=radial*q[i];
+ t=++steps*H;
+ measure();checkPins();if(steps%12===0&&settings.trace)addTrace();
+}
+// Local physical axes are east, north, up. Three.js axes are east, up, south.
+// The radial multiplier is the ideal wire's tension per unit mass. No azimuth
+// formula or latitude-dependent plane rotation is used anywhere in the motion.
+const scene=new THREE.Scene();scene.background=new THREE.Color('#344d43');scene.fog=new THREE.FogExp2('#344d43',.008);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.prepend(renderer.domElement);renderer.domElement.setAttribute('aria-label','Three dimensional pendulum under a vaulted stone hall');
+const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();const env=pmrem.fromScene(room,.04);scene.environment=env.texture;room.dispose();pmrem.dispose();
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.05,350),overhead=new THREE.OrthographicCamera(-9,9,9,-9,.05,120);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.minDistance=4;controls.maxDistance=140;controls.maxPolarAngle=Math.PI/2-.015;controls.enabled=false;
+scene.add(new THREE.HemisphereLight(0xe3eddf,0x494b35,2));
+const sun=new THREE.DirectionalLight(0xffedcb,3.4);sun.position.set(-16,32,13);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-10,right:10,top:10,bottom:-10,near:.1,far:150});sun.shadow.bias=-.00015;sun.shadow.normalBias=.012;scene.add(sun);
+const fill=new THREE.DirectionalLight(0xb7d0bd,1.6);fill.position.set(15,60,-15);scene.add(fill);
+const stone=new THREE.MeshStandardMaterial({color:0x738274,roughness:.94}),paleStone=new THREE.MeshStandardMaterial({color:0xb7bca4,roughness:.9}),darkStone=new THREE.MeshStandardMaterial({color:0x344f43,roughness:.86}),brass=new THREE.MeshStandardMaterial({color:0xc49b4c,metalness:.86,roughness:.24}),steel=new THREE.MeshStandardMaterial({color:0x989e94,metalness:.82,roughness:.32});
+function mesh(geometry,material,x=0,y=0,z=0){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m;}
+function ring(radius,tube,y,material=brass){const m=mesh(new THREE.TorusGeometry(radius,tube,8,160),material,0,y,0);m.rotation.x=Math.PI/2;return m;}
+const floor=mesh(new THREE.CylinderGeometry(27,27,.35,128),stone,0,-.19,0);
+// Inlaid stone paving, generated geometry only.
+for(let i=0;i<18;i++){const a=i*Math.PI/9;const seam=mesh(new THREE.BoxGeometry(.025,.008,52),darkStone);seam.rotation.y=a;}
+for(const r of [8,10.5,14,18,23,26])ring(r,.023,.006,darkStone);
+mesh(new THREE.CylinderGeometry(7.65,7.85,.12,128),paleStone,0,-.015,0);
+const dial=mesh(new THREE.CylinderGeometry(7.38,7.38,.025,128),new THREE.MeshStandardMaterial({color:0x7d8c71,roughness:.9}),0,.055,0);
+ring(7.4,.035,.08);ring(6.5,.018,.08);ring(5.5,.012,.081);ring(.14,.012,.083);
+const tickPositions=[];
+for(let d=0;d<360;d++){const a=d*Math.PI/180,r0=d%10===0?6.64:d%5===0?6.82:6.96;tickPositions.push(Math.sin(a)*r0,.085,-Math.cos(a)*r0,Math.sin(a)*7.23,.085,-Math.cos(a)*7.23);}
+const ticks=new THREE.BufferGeometry();ticks.setAttribute('position',new THREE.Float32BufferAttribute(tickPositions,3));scene.add(new THREE.LineSegments(ticks,new THREE.LineBasicMaterial({color:0xe7dcad})));
+// Text is painted into a generated canvas; there are no texture downloads.
+const dialCanvas=document.createElement('canvas');dialCanvas.width=dialCanvas.height=2048;const dc=dialCanvas.getContext('2d');dc.translate(1024,1024);dc.textAlign='center';dc.textBaseline='middle';
+for(let d=0;d<360;d+=10){const a=d*Math.PI/180;dc.fillStyle='#e1ddba';dc.font='25px Georgia';dc.fillText(String(d).padStart(3,'0'),Math.sin(a)*830,-Math.cos(a)*830);}
+for(const [txt,d]of [['N',0],['E',90],['S',180],['W',270]]){const a=d*Math.PI/180;dc.fillStyle='#eee3b8';dc.font='54px Georgia';dc.fillText(txt,Math.sin(a)*710,-Math.cos(a)*710);}
+dc.font='17px sans-serif';dc.fillStyle='#c8d0ad';dc.fillText('T R U E   N O R T H',0,-610);
+const dialTexture=new THREE.CanvasTexture(dialCanvas);dialTexture.colorSpace=THREE.SRGBColorSpace;const dialText=mesh(new THREE.PlaneGeometry(14.8,14.8),new THREE.MeshStandardMaterial({map:dialTexture,transparent:true,depthWrite:false,roughness:1}),0,.09,0);dialText.rotation.x=-Math.PI/2;
+// A great rotunda: columns, pilasters, cornices and a ribbed coffered dome.
+for(let i=0;i<20;i++){
+ const a=i*Math.PI/10,x=21*Math.sin(a),z=21*Math.cos(a);
+ const wall=mesh(new THREE.BoxGeometry(5.6,87,1.4),darkStone,23*Math.sin(a),43.5,23*Math.cos(a));wall.rotation.y=a;
+ const col=mesh(new THREE.CylinderGeometry(.54,.74,85,16),stone,x,43,z);col.castShadow=true;
+ mesh(new THREE.CylinderGeometry(1,1.15,.5,16),paleStone,x,.3,z);mesh(new THREE.CylinderGeometry(1.05,.85,1,16),paleStone,x,85.5,z);
+ for(let j=0;j<4;j++){const band=mesh(new THREE.CylinderGeometry(.62,.62,.12,16),paleStone,x,9+j*21,z);}
+ const recess=mesh(new THREE.BoxGeometry(2.8,52,.12),new THREE.MeshStandardMaterial({color:0x9fae8d,roughness:.85,emissive:0x65745a,emissiveIntensity:.12}),22.18*Math.sin(a),48,22.18*Math.cos(a));recess.rotation.y=a;
+}
+for(const y of [7,84,86.8,88])ring(22,.25,y,paleStone);
+const dome=mesh(new THREE.SphereGeometry(22,80,40,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x839781,roughness:.87,side:THREE.BackSide}),0,88,0);
+for(let i=0;i<20;i++){const a=i*Math.PI/10,points=[];for(let j=0;j<=32;j++){const b=j/32*Math.PI/2;points.push(new THREE.Vector3(21.7*Math.sin(b)*Math.sin(a),88+21.7*Math.cos(b),21.7*Math.sin(b)*Math.cos(a)));}mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),32,.1,6,false),paleStone);}
+for(const theta of [.3,.6,.9,1.2])ring(21.65*Math.sin(theta),.07,88+21.65*Math.cos(theta),paleStone);
+const oculus=mesh(new THREE.CylinderGeometry(3,3,.1,64),new THREE.MeshBasicMaterial({color:0xe3e9c7}),0,109,0);ring(3,.18,108.9);
+const bob=mesh(new THREE.SphereGeometry(R,48,32),brass);bob.castShadow=true;
+const wire=mesh(new THREE.CylinderGeometry(.009,.009,1,8),steel);wire.castShadow=true;
+const pivotMount=mesh(new THREE.SphereGeometry(.16,24,16),brass);
+const suspension=mesh(new THREE.CylinderGeometry(.045,.045,1,8),darkStone);
+const thread=mesh(new THREE.CylinderGeometry(.006,.006,1,6),new THREE.MeshStandardMaterial({color:0xdbc99a,roughness:1}));
+const anchor=mesh(new THREE.CylinderGeometry(.055,.075,.14,12),brass);
+const ember=mesh(new THREE.SphereGeometry(.035,12,8),new THREE.MeshBasicMaterial({color:0xffc974}));ember.visible=false;
+for(let i=0;i<36;i++){const group=new THREE.Group(),body=new THREE.Mesh(new THREE.CylinderGeometry(.025,.04,.33,10),new THREE.MeshStandardMaterial({color:0xe0d9af,metalness:.25,roughness:.55})),head=new THREE.Mesh(new THREE.SphereGeometry(.043,12,8),brass);body.position.y=.165;head.position.y=.33;body.castShadow=head.castShadow=true;group.add(body,head);scene.add(group);pinMeshes.push(group);}
+const TRACE_CAP=8192,tracePositions=new Float32Array(TRACE_CAP*6),traceBorn=new Float32Array(TRACE_CAP*2).fill(-1e9),traceGeo=new THREE.BufferGeometry();
+traceGeo.setAttribute('position',new THREE.BufferAttribute(tracePositions,3).setUsage(THREE.DynamicDrawUsage));traceGeo.setAttribute('born',new THREE.BufferAttribute(traceBorn,1).setUsage(THREE.DynamicDrawUsage));
+const traceMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{now:{value:0}},vertexShader:'attribute float born; varying float age; uniform float now; void main(){age=now-born;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying float age; void main(){float a=clamp(1.0-age/600.0,0.0,1.0);gl_FragColor=vec4(0.91,0.79,0.47,a*0.72);}' });
+const traceLines=new THREE.LineSegments(traceGeo,traceMat);traceLines.frustumCulled=false;scene.add(traceLines);let traceX=0,traceY=0;
+function addTrace(){const i=traceIndex++%TRACE_CAP,j=i*6;tracePositions[j]=traceX;tracePositions[j+1]=.096;tracePositions[j+2]=-traceY;tracePositions[j+3]=q[0];tracePositions[j+4]=.096;tracePositions[j+5]=-q[1];traceBorn[i*2]=traceBorn[i*2+1]=t;traceX=q[0];traceY=q[1];}
+function addAzimuth(time,x,y){
+ const a=((Math.atan2(x,y)*180/Math.PI)%180+180)%180;
+ if(fitN){let delta=a-azimuth;while(delta>90)delta-=180;while(delta< -90)delta+=180;unwrapped+=delta;}else unwrapped=a;
+ azimuth=a;fitN++;fitT+=time;fitA+=unwrapped;fitTT+=time*time;fitTA+=time*unwrapped;
+ const den=fitN*fitTT-fitT*fitT;if(fitN>=3&&den>0)precessionRate=3600*(fitN*fitTA-fitT*fitA)/den;
+}
+function measure(){
+ const radial=q[0]*q[3]+q[1]*q[4];
+ if(radialPrevious>0&&radial<=0){
+  const f=radialPrevious/(radialPrevious-radial),time=t-H+f*H,x=previousQ[0]+f*(q[0]-previousQ[0]),y=previousQ[1]+f*(q[1]-previousQ[1]);
+  amplitude=Math.hypot(x,y);addAzimuth(time,x,y);extrema.push(time);
+  if(extrema.length>=3){count=Math.floor((extrema.length-1)/2);period=time-extrema[extrema.length-3];}
+  // Keep bounded event history; counting is independent of its storage.
+  if(extrema.length>5){extrema.splice(0,2);completedOffset+=1;count=completedOffset+Math.floor((extrema.length-1)/2);}
+  else count=completedOffset+Math.floor((extrema.length-1)/2);
+ }
+ if(radialPrevious<0&&radial>=0){const f=radialPrevious/(radialPrevious-radial);const x=previousQ[0]+f*(q[0]-previousQ[0]),y=previousQ[1]+f*(q[1]-previousQ[1]),z=previousQ[2]+f*(q[2]-previousQ[2])+settings.length;missDistance=Math.hypot(x,y,z);}
+ radialPrevious=radial;
+}
+let completedOffset=0;
+function checkPins(){
+ const radius=.9*settings.releaseDistance,r=Math.hypot(q[0],q[1]);if(Math.abs(r-radius)>.25)return;
+ const angle=(Math.atan2(q[0],q[1])+Math.PI*2)%(Math.PI*2),nearest=Math.round(angle*18/Math.PI)%36,by=q[2]+settings.length+.29;
+ for(let j=-1;j<=1;j++){const i=(nearest+j+36)%36;if(pinStates[i])continue;const a=i*Math.PI/18,dx=q[0]-radius*Math.sin(a),dy=q[1]-radius*Math.cos(a),dz=by-Math.max(.09,Math.min(.42,by));if(dx*dx+dy*dy+dz*dz<(.19+.04)**2){pinStates[i]=1;fallen++;pinMeshes[i].rotation.set(Math.PI/2,0,-a);}}
+}
+function energy(){return {kinetic:.5*settings.mass*(q[3]**2+q[4]**2+q[5]**2),potential:settings.mass*settings.gravity*(q[2]+settings.length),dissipated:q[6]};}
+function release(){if(held){held=false;auto=false;holdTime=0;amplitude=Math.hypot(q[0],q[1]);addAzimuth(0,q[0],q[1]);updateStatus();}}
+function reset(){
+ q.fill(0);q[1]=settings.releaseDistance;q[2]=-Math.sqrt(settings.length**2-q[1]**2);steps=0;t=0;debt=0;held=true;paused=false;auto=false;holdTime=0;
+ omegaN=OMEGA*settings.rotationMultiplier*Math.cos(settings.latitude*Math.PI/180);omegaU=OMEGA*settings.rotationMultiplier*Math.sin(settings.latitude*Math.PI/180);drag=settings.airDrag?.5*1.225*.47*Math.PI*R*R/settings.mass:0;
+ count=0;completedOffset=0;period=azimuth=precessionRate=amplitude=missDistance=null;radialPrevious=0;extrema=[0];unwrapped=fitN=fitT=fitA=fitTT=fitTA=0;fallen=0;pinStates.fill(0);
+ for(let i=0;i<36;i++){const a=i*Math.PI/18;pinMeshes[i].position.set(.9*settings.releaseDistance*Math.sin(a),.09,-.9*settings.releaseDistance*Math.cos(a));pinMeshes[i].rotation.set(0,0,0);}
+ traceBorn.fill(-1e9);traceGeo.attributes.born.needsUpdate=true;traceIndex=0;traceX=q[0];traceY=q[1];traceLines.visible=settings.trace;
+ initialEnergy=energy().potential;pivotMount.position.set(0,settings.length+.29,0);suspension.position.set(0,(109+settings.length+.29)/2,0);suspension.scale.y=109-settings.length-.29;
+ anchor.position.set(0,.16,-settings.releaseDistance-1.5);setCamera(settings.camera);updateLabels();updateStatus();updateReadout();
+}
+function updateStatus(){document.getElementById('phase').textContent=paused?'Paused':held?(auto?'Held · thread burns in 1 second':'Held · ready for release'):'Swinging · free in the rotating frame';document.getElementById('release').disabled=!held;document.getElementById('play').textContent=paused?'▶':'Ⅱ';document.getElementById('play').setAttribute('aria-label',paused?'Play simulation':'Pause simulation');}
+function setCamera(mode){
+ settings.camera=mode;controls.enabled=mode==='Orbit';
+ if(mode==='Hall'){camera.up.set(0,1,0);camera.position.set(settings.length*.27,settings.length*.25,settings.length*.52);controls.target.set(0,settings.length*.40,0);camera.lookAt(controls.target);}
+ if(mode==='Orbit'){camera.up.set(0,1,0);camera.position.set(10,7,13);controls.target.set(0,2,0);camera.lookAt(controls.target);}
+ if(mode==='Overhead'){overhead.position.set(0,Math.min(settings.length,25),0);overhead.up.set(0,0,-1);overhead.lookAt(0,0,0);}
+ for(const button of document.querySelectorAll('.camera')){const active=button.dataset.camera===mode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}
+ document.getElementById('orientation').style.display=mode==='Overhead'?'block':'none';resize();
+}
+function resize(){const aspect=innerWidth/innerHeight;camera.aspect=aspect;camera.updateProjectionMatrix();const half=aspect<1?10/aspect:9;overhead.left=-half*aspect;overhead.right=half*aspect;overhead.top=half;overhead.bottom=-half;overhead.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+addEventListener('resize',resize);
+function updateLabels(){document.getElementById('latitude-value').textContent=Math.abs(settings.latitude).toFixed(4)+'° '+(settings.latitude<0?'S':'N');for(const [id,unit]of [['length',' m'],['mass',' kg'],['releaseDistance',' m'],['gravity',' m/s²']])document.getElementById(id+'-value').textContent=(id==='releaseDistance'?settings[id].toFixed(1):settings[id])+unit;}
+for(const id of ['latitude','length','mass','releaseDistance','gravity','rotationMultiplier','airDrag','trace'])document.getElementById(id).addEventListener('input',e=>{settings[id]=e.target.type==='checkbox'?e.target.checked:Number(e.target.value);reset();});
+for(const button of document.querySelectorAll('[data-lat]'))button.addEventListener('click',()=>{settings.latitude=Number(button.dataset.lat);document.getElementById('latitude').value=settings.latitude;reset();});
+for(const button of document.querySelectorAll('[data-g]'))button.addEventListener('click',()=>{settings.gravity=Number(button.dataset.g);document.getElementById('gravity').value=settings.gravity;reset();});
+document.getElementById('speed').addEventListener('change',e=>{settings.speed=Number(e.target.value);});
+for(const button of document.querySelectorAll('.camera'))button.addEventListener('click',()=>setCamera(button.dataset.camera));
+document.getElementById('release').addEventListener('click',release);document.getElementById('reset').addEventListener('click',reset);
+function togglePause(){paused=!paused;updateStatus();}document.getElementById('play').addEventListener('click',togglePause);
+document.getElementById('toggle-settings').addEventListener('click',()=>{const open=document.getElementById('settings-panel').classList.toggle('open');document.getElementById('toggle-settings').setAttribute('aria-expanded',String(open));});
+addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement?.tagName)||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;if(e.code==='Space'){e.preventDefault();togglePause();}else if(e.key.toLowerCase()==='l')release();else if(e.key.toLowerCase()==='r')reset();});
+window.pendulumState=()=>({bob:{phase:paused?'paused':held?'held':'swinging',east:q[0],north:q[1],up:q[2]+settings.length,speed:Math.hypot(q[3],q[4],q[5])},swing:{count,period,azimuth,precessionRate,fullTurnHours:precessionRate!==null&&Math.abs(precessionRate)>1e-9?360/Math.abs(precessionRate):null,amplitude,missDistance},time:{simulated:t},energy:energy(),pins:{standing:36-fallen,fallen},settings:{...settings,paused}});
+function updateReadout(){
+ const pad=n=>String(n).padStart(2,'0'),s=Math.floor(t);document.getElementById('clock').textContent=pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+':'+pad(s%60);
+ const show=(id,value,digits,unit)=>document.getElementById(id).textContent=value===null?'—':value.toFixed(digits)+unit;
+ document.getElementById('swings').textContent=count;show('period',period,2,' s');show('azimuth',azimuth,2,'°');show('precession',precessionRate,2,'°/h');show('amplitude',amplitude,2,' m');show('miss',missDistance,3,' m');
+ document.getElementById('turn-time').textContent=precessionRate===null?'Full turn · awaiting measurements':Math.abs(precessionRate)<1e-7?'Full turn · no measurable precession':'Full turn · '+(360/Math.abs(precessionRate)).toFixed(2)+' simulated hours';
+ const e=energy();for(const [id,value]of [['kinetic',e.kinetic],['potential',e.potential],['loss',e.dissipated]]){document.getElementById(id).textContent=value.toFixed(1)+' J';document.getElementById(id+'-bar').style.width=Math.max(0,Math.min(100,value/initialEnergy*100))+'%';}document.getElementById('total').textContent=(e.kinetic+e.potential+e.dissipated).toFixed(2)+' J';document.getElementById('pin-count').textContent=(36-fallen)+' / 36';
+}
+const vertical=new THREE.Vector3(0,1,0),direction=new THREE.Vector3(),pivot=new THREE.Vector3(),threadEnd=new THREE.Vector3();
+function connect(object,a,b,radiusScale=1){direction.subVectors(b,a);object.position.copy(a).add(b).multiplyScalar(.5);object.scale.set(radiusScale,direction.length(),radiusScale);object.quaternion.setFromUnitVectors(vertical,direction.normalize());}
+reset();auto=true;updateStatus();document.getElementById('loading').style.display='none';
+let last=performance.now(),lastUI=0;
+// A fixed 1/120 s RK4 step at every playback speed. The 60,000-step
+// budget covers 3600× even at 8 frames/s; unprocessed time stays in debt.
+function frame(now){
+ requestAnimationFrame(frame);const dt=(now-last)/1000;last=now;
+ if(auto&&!paused){holdTime+=dt;if(holdTime>=1)release();}
+ if(!held&&!paused){debt+=dt*settings.speed;let n=Math.min(MAX_STEPS,Math.floor((debt+1e-10)/H));debt-=n*H;while(n--)integrate();}
+ bob.position.set(q[0],q[2]+settings.length+.29,-q[1]);pivot.set(0,settings.length+.29,0);connect(wire,bob.position,pivot);
+ threadEnd.copy(anchor.position);threadEnd.y=.23;connect(thread,bob.position,threadEnd);thread.visible=held;ember.visible=!held&&t<.6;ember.position.copy(bob.position).lerp(threadEnd,.5);ember.scale.setScalar(Math.max(.05,1-t/.6));
+ traceMat.uniforms.now.value=t;if(settings.trace){traceGeo.attributes.position.needsUpdate=true;traceGeo.attributes.born.needsUpdate=true;}
+ if(controls.enabled)controls.update();if(now-lastUI>100){updateReadout();lastUI=now;}renderer.render(scene,settings.camera==='Overhead'?overhead:camera);
+}
+// Do not integrate time while the browser has suspended the page.
+document.addEventListener('visibilitychange',()=>{last=performance.now();});
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

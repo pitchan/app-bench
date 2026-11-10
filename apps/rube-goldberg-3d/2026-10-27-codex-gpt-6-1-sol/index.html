@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPT-6</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,Segoe UI,Arial,sans-serif;color:#ede9dc;background:#151b22}*{box-sizing:border-box}body{margin:0;overflow:hidden}canvas{display:block;width:100%;height:100%}#view{position:fixed;inset:0}header{position:fixed;left:24px;top:21px;pointer-events:none}h1{font-size:23px;font-weight:650;letter-spacing:-1px;margin:0}header p{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#b9b7ac;margin:7px 0}#checklist{position:fixed;top:95px;left:20px;width:225px;padding:14px;background:#18212be8;border:1px solid #ffffff18;border-radius:12px;backdrop-filter:blur(15px)}.stage{display:grid;grid-template-columns:23px 1fr auto;gap:7px;align-items:center;padding:9px 0;font-size:12px;border-bottom:1px solid #ffffff09}.stage:last-child{border:0}.dot{border:1px solid #71818c;color:#a3b0ba;border-radius:50%;width:21px;height:21px;display:grid;place-items:center;font-size:10px}.triggered .dot{background:#d8ad57;color:#172029;border-color:#d8ad57}.triggered .name{color:#f3d79d}.failed .dot{background:#c8564f;border-color:#c8564f;color:white}.failed .name{color:#ff9e96}.time{font:10px ui-monospace,monospace;color:#b8c9ca}.metrics{border-top:1px solid #ffffff1c;margin-top:10px;padding-top:12px;font-size:11px;color:#9bacb7;line-height:1.8}.metrics b{color:#ead6b0;float:right;font-family:ui-monospace,monospace;font-weight:400}#message{position:fixed;left:50%;top:23px;transform:translateX(-50%);padding:11px 20px;background:#18212bdc;border:1px solid #ffffff20;border-radius:30px;font-size:12px;max-width:45vw;text-align:center}#controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:10px;background:#18212bf2;border:1px solid #ffffff24;border-radius:14px;backdrop-filter:blur(15px);white-space:nowrap}button,select{font:12px inherit;color:#e9e7db;background:#2a3540;border:1px solid #ffffff19;border-radius:7px;padding:9px 12px;cursor:pointer}button:hover,select:hover{background:#3b4852}#replay,#apply{background:#cda654;color:#171f27;border:0}#clock{min-width:75px;text-align:center;font:14px ui-monospace,monospace;color:#efd193}.divider{width:1px;height:23px;background:#ffffff20;margin:0 4px}#settings{position:fixed;right:20px;top:85px;width:285px;background:#18212bf5;border:1px solid #ffffff24;padding:18px;border-radius:12px;max-height:calc(100vh - 180px);overflow:auto}#settings[hidden]{display:none}#settings h2{font-size:13px;margin:0 0 14px;font-weight:500}label.param{display:block;margin:13px 0;font-size:11px;color:#c7ced0}label.param span{display:flex;justify-content:space-between;gap:6px}output{color:#edcf92;font-family:ui-monospace,monospace}input[type=range]{width:100%;accent-color:#d2ac5c;height:17px;margin:5px 0 0}.note{font-size:10px;line-height:1.6;color:#98a9b5}#settingsButton{position:fixed;right:24px;top:24px}#hint{position:fixed;right:24px;bottom:30px;font-size:10px;color:#a3afb5;pointer-events:none}#loading{position:fixed;inset:0;display:grid;place-items:center;background:#18212b;z-index:10;font-size:14px}#loading[hidden]{display:none}@media(max-width:850px){#checklist{width:193px;top:80px;left:12px;padding:10px}.stage{padding:7px 0;font-size:11px}header{left:14px;top:16px}#hint{display:none}#controls{bottom:12px;gap:4px;padding:7px}button,select{padding:8px}#message{top:19px;left:49%;max-width:36vw;font-size:10px}#settings{right:12px;width:255px}#settingsButton{right:12px;top:18px}} 
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="view"></div>
+<header><h1>GPT-6</h1><p>Rigid bodies · nine contacts</p></header>
+<div id="message" role="status" aria-live="polite">Preparing the machine…</div>
+<aside id="checklist" aria-label="Stage checklist"><div id="stages"></div><div class="metrics">Basket acceleration <b id="acceleration">— m/s²</b><br>Pendulum swing <b id="swing">— s</b></div><div class="note" style="margin-top:10px">Contact-driven sequence<br>8 simulation seconds per handoff</div></aside>
+<button id="settingsButton" aria-expanded="false" aria-controls="settings">Parameters</button>
+<section id="settings" hidden aria-label="Physical parameters"><h2>Next run · physical parameters</h2><div id="parameters"></div><button id="apply">Apply & replay</button><p class="note">Changes apply on Replay or Apply. Large gaps, a heavy counterweight, or weak cradle impacts can stop the chain. Basket acceleration is sampled from its vertical velocity; swing time is measured between contacts.</p></section>
+<div id="controls"><button id="pause" aria-label="Pause simulation">Pause</button><button id="replay">Replay</button><span class="divider"></span><label aria-label="Simulation speed"><select id="speed" aria-label="Simulation speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label><select id="cameraMode" aria-label="Camera mode"><option value="follow" selected>Follow</option><option value="overview">Overview</option><option value="orbit">Orbit · drag</option></select><span class="divider"></span><span id="clock">0.00 s</span></div>
+<div id="hint">Space · pause &nbsp; / &nbsp; Orbit · drag + scroll</div><div id="loading">Assembling rigid bodies…</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as CANNON from 'https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js';
+
+const $=id=>document.getElementById(id);
+const definitions=[
+ ['gravity','Gravity',9.81,1,18,.01,'m/s²'],
+ ['dominoSpacing','Domino spacing',.12,.07,.28,.005,'m'],
+ ['dominoMass','Domino mass',.15,.04,.45,.01,'kg'],
+ ['counterweightMass','Counterweight',.22,.10,.40,.005,'kg'],
+ ['pendulumLength','Pendulum length',1,.65,1.5,.01,'m'],
+ ['pendulumAngle','Release angle',60,15,70,1,'°'],
+ ['leverPivot','Lever pivot from short end',.25,.15,.45,.01,'m'],
+ ['cradleRestitution','Cradle restitution',.95,.05,1,.01,'']
+];
+const defaults=Object.fromEntries(definitions.map(d=>[d[0],d[2]]));
+const names=['Release gate','Switchback ramps','24 dominoes','Drop & lever','Basket & pulley','Pendulum release',"Newton’s cradle",'Rail cart','Bell'];
+let stages=[],settings={...defaults},time=0,paused=false,finished=false,failed=false,accumulator=0;
+let basketAcceleration=null,pendulumSwingTime=null,releaseTime=null,lastTrigger=0;
+let world,root,links=[],ropeLines=[],gate,gateHinge,steel,ramps=[],dominoes=[],block,lever,lightBall,basket,counterweight,latch,bob,cradle=[],cart,striker,bellBody;
+let anchors={},previousBasketV=0,accelSamples=[],basketMeasure=false,pendulumReleased=false,dx=0,dz=0;
+const dt=1/240,MAX_STEPS=24;
+for(const [key,label,value,min,max,step,unit] of definitions){
+ const el=document.createElement('label');el.className='param';
+ el.innerHTML=`<span>${label}<output id="${key}Out">${value} ${unit}</output></span><input id="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${value}" aria-label="${label}">`;
+ $('parameters').appendChild(el);
+ $(key).addEventListener('input',()=>$(key+'Out').textContent=`${Number($(key).value)} ${unit}`);
+}
+function readSettings(){return Object.fromEntries(definitions.map(d=>[d[0],Number($(d[0]).value)]));}
+window.machineState=()=>({stages:stages.map(s=>({...s})),basketAcceleration,pendulumSwingTime,settings:{...readSettings(),speed:Number($('speed').value),cameraMode:$('cameraMode').value,paused}});
+
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;$('view').appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#202c37');scene.fog=new THREE.Fog('#202c37',11,25);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.02,70);camera.position.set(5.2,4.3,6.2);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,1.1,.25);orbit.minDistance=1.1;orbit.maxDistance=15;orbit.maxPolarAngle=Math.PI*.49;orbit.enabled=false;
+const pmrem=new THREE.PMREMGenerator(renderer);const env=new RoomEnvironment();const envRT=pmrem.fromScene(env,.04);scene.environment=envRT.texture;env.dispose();pmrem.dispose();
+scene.add(new THREE.HemisphereLight(0xdbeaff,0x504438,2));
+const sun=new THREE.DirectionalLight(0xffebce,4);sun.position.set(-2,7,4);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-5,right:5,top:5,bottom:-5,near:.1,far:17});sun.shadow.bias=-.0002;sun.shadow.normalBias=.015;scene.add(sun);
+const fill=new THREE.PointLight(0x80bdde,20,10);fill.position.set(0,3,-3);scene.add(fill);
+const materials={
+ steel:new THREE.MeshStandardMaterial({color:0xa5b9c8,metalness:.98,roughness:.15}),
+ brass:new THREE.MeshStandardMaterial({color:0xd5ad54,metalness:.85,roughness:.25}),
+ wood:new THREE.MeshStandardMaterial({color:0xa8683c,roughness:.73}),
+ dark:new THREE.MeshStandardMaterial({color:0x273a46,metalness:.65,roughness:.36}),
+ ramp:new THREE.MeshStandardMaterial({color:0x668d91,metalness:.65,roughness:.32}),
+ basket:new THREE.MeshStandardMaterial({color:0xc18c4c,metalness:.6,roughness:.35}),
+ ivory:new THREE.MeshStandardMaterial({color:0xe9d3a4,roughness:.45}),
+ red:new THREE.MeshStandardMaterial({color:0xbd694f,roughness:.42}),
+ rope:new THREE.MeshStandardMaterial({color:0xdacba7,roughness:1}),
+ floor:new THREE.MeshStandardMaterial({color:0x27333a,roughness:.9})
+};
+const room=new THREE.Group();scene.add(room);
+function visualBox(group,size,pos,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(...size),mat);m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;group.add(m);return m;}
+visualBox(room,[18,.12,15],[0,-.39,0],materials.floor);
+visualBox(room,[18,6,.15],[0,2.5,-4],materials.dark);
+for(let i=-6;i<=6;i++)visualBox(room,[.012,.002,12],[i,-.326,0],materials.ramp);
+for(let z=-4;z<=5;z++)visualBox(room,[14,.002,.012],[0,-.325,z],materials.ramp);
+for(let x=-5;x<=5;x+=2){visualBox(room,[.035,3,.02],[x,1.7,-3.9],materials.brass);visualBox(room,[1.45,.035,.12],[x,2.9,-3.8],materials.wood);}
+function vec(x=0,y=0,z=0){return new CANNON.Vec3(x,y,z);}
+function addMesh(body,mesh){root.add(mesh);links.push([body,mesh]);return body;}
+function bodyBox(tag,size,pos,mass,material,physical,rotation){
+ const b=new CANNON.Body({mass,material:physical,position:vec(...pos),allowSleep:false});b.tag=tag;
+ b.addShape(new CANNON.Box(vec(size[0]/2,size[1]/2,size[2]/2)));
+ if(rotation)b.quaternion.setFromEuler(...rotation);world.addBody(b);
+ return addMesh(b,new THREE.Mesh(new THREE.BoxGeometry(...size),material));
+}
+function sphere(tag,r,pos,mass,material,physical){const b=new CANNON.Body({mass,material:physical,position:vec(...pos),allowSleep:false});b.tag=tag;b.addShape(new CANNON.Sphere(r));b.angularDamping=.015;b.linearDamping=.001;world.addBody(b);return addMesh(b,new THREE.Mesh(new THREE.SphereGeometry(r,28,20),material));}
+function fixed(pos){const b=new CANNON.Body({mass:0,position:vec(...pos)});world.addBody(b);return b;}
+function segment(a,b,r,mat,group=root){const av=new THREE.Vector3(...a),bv=new THREE.Vector3(...b);const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,av.distanceTo(bv),10),mat);m.position.copy(av).add(bv).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),bv.sub(av).normalize());m.castShadow=true;m.receiveShadow=true;group.add(m);return m;}
+function rope(getPoints){const geometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);const line=new THREE.Line(geometry,new THREE.LineBasicMaterial({color:0xe6d6b6}));root.add(line);ropeLines.push({line,getPoints});}
+function label(text,pos){const cvs=document.createElement('canvas');cvs.width=512;cvs.height=96;const cx=cvs.getContext('2d');cx.fillStyle='#182630';cx.fillRect(0,0,512,96);cx.strokeStyle='#bda06b';cx.lineWidth=3;cx.strokeRect(2,2,508,92);cx.fillStyle='#e6ce9d';cx.font='500 35px Segoe UI';cx.textAlign='center';cx.fillText(text,256,61);const tx=new THREE.CanvasTexture(cvs);tx.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(.48,.09),new THREE.MeshBasicMaterial({map:tx,side:THREE.DoubleSide}));m.position.set(...pos);m.rotation.x=-Math.PI/5;root.add(m);}
+function setSlide(b,axis){b.linearFactor.copy(vec(...axis));b.angularFactor.set(0,0,0);}
+class PulleyConstraint extends CANNON.Constraint{
+ constructor(a,b){super(a,b,{collideConnected:false});this.sum=a.position.y+b.position.y;const e=new CANNON.Equation(a,b,-1e5,1e5);e.jacobianElementA.spatial.set(0,1,0);e.jacobianElementB.spatial.set(0,1,0);e.setSpookParams(1e9,4,dt);const sum=this.sum;e.computeB=function(h){return -(this.bi.position.y+this.bj.position.y-sum)*this.a-this.computeGW()*this.b-h*this.computeGiMf();};this.equations.push(e);}
+}
+function build(){
+ if(root){scene.remove(root);root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material?.map){o.material.map.dispose();o.material.dispose();}});}
+ settings=readSettings();time=0;accumulator=0;paused=false;finished=false;failed=false;lastTrigger=0;releaseTime=null;pendulumReleased=false;basketAcceleration=null;pendulumSwingTime=null;previousBasketV=0;accelSamples=[];basketMeasure=false;
+ $('pause').textContent='Pause';$('message').textContent='Gate opens at 1.00 s';stages=names.map((name,i)=>({id:i+1,name,status:'waiting',triggeredAt:null}));renderChecklist();
+ root=new THREE.Group();scene.add(root);links=[];ropeLines=[];ramps=[];dominoes=[];cradle=[];
+ world=new CANNON.World({gravity:vec(0,-settings.gravity,0)});world.broadphase=new CANNON.SAPBroadphase(world);world.allowSleep=false;world.solver.iterations=45;world.solver.tolerance=1e-8;world.defaultContactMaterial.friction=.3;world.defaultContactMaterial.restitution=.04;world.defaultContactMaterial.contactEquationStiffness=1e8;world.defaultContactMaterial.contactEquationRelaxation=4;
+ const steelMat=new CANNON.Material('steel'),rampMat=new CANNON.Material('ramps'),woodMat=new CANNON.Material('wood'),cradleMat=new CANNON.Material('cradle'),slick=new CANNON.Material('slider');
+ world.addContactMaterial(new CANNON.ContactMaterial(steelMat,rampMat,{friction:.3,restitution:.03,contactEquationStiffness:1e8}));
+ world.addContactMaterial(new CANNON.ContactMaterial(woodMat,woodMat,{friction:.36,restitution:.015,contactEquationStiffness:1e8}));
+ world.addContactMaterial(new CANNON.ContactMaterial(cradleMat,cradleMat,{friction:0,restitution:settings.cradleRestitution,contactEquationStiffness:1e9,contactEquationRelaxation:2}));
+ world.addContactMaterial(new CANNON.ContactMaterial(slick,slick,{friction:0,restitution:.01}));
+ world.addContactMaterial(new CANNON.ContactMaterial(slick,steelMat,{friction:0,restitution:.02}));
+ world.addContactMaterial(new CANNON.ContactMaterial(cradleMat,slick,{friction:.01,restitution:.35}));
+ const spacing=settings.dominoSpacing;dx=12*(spacing-.12);dz=11*(spacing-.12);
+ const P=(x,y,z)=>[x+dx,y,z+dz];
+ const width=4.7+Math.max(0,dx),depth=3.6+Math.max(0,dz);
+ bodyBox('bench',[width,.18,depth],[dx/2,-.18,dz/2+.2],0,materials.wood,woodMat);
+ for(const x of [-2.05,2.05+Math.max(0,dx)])for(const z of [-1.15,1.6+Math.max(0,dz)])visualBox(root,[.10,.22,.10],[x,-.30,z],materials.dark);
+ // A common shelf supports only the dominoes and the heavy block.
+ bodyBox('dominoDeck',[1.85+Math.max(0,dx),.055,.25],[(-.38+dx/2),.9725,-.95],0,materials.dark,woodMat);
+ bodyBox('turnDeck',[.23,.055,1.55+Math.max(0,dz)],[.58+dx,.9725,-.30+dz/2],0,materials.dark,woodMat);
+ for(let i=0;i<4;i++){
+  const direction=i%2===0?-1:1,startX=direction<0?-1.04:-1.87,endX=direction<0?-1.87:-1.04;
+  const startY=2.60-i*.42,endY=startY-.83*Math.tan(Math.PI/9),theta=direction<0?Math.PI/9:-Math.PI/9;
+  const length=.83/Math.cos(Math.PI/9);const ramp=bodyBox('ramp'+i,[length,.025,.175],[(startX+endX)/2,(startY+endY)/2-.0125,-.95],0,materials.ramp,rampMat,[0,0,theta]);ramps.push(ramp);
+  for(const z of [-1.0525,-.8475])bodyBox('rail',[length,.085,.025],[(startX+endX)/2,(startY+endY)/2+.032,z],0,materials.brass,rampMat,[0,0,theta]);
+  if(i<3)bodyBox('turnWall',[.035,.23,.24],[direction<0?-2.015:-.895,endY-.025,-.95],0,materials.dark,rampMat);
+  segment([direction<0?-1.75:-1.17,0,-1.08],[direction<0?-1.75:-1.17,(startY+endY)/2-.04,-1.08],.012,materials.dark);
+ }
+ // Gate hinge is the sole powered and timed event.
+ steel=sphere('steel',.03,[-1.105,2.60-.065*Math.tan(Math.PI/9)+.039,-.95],.11,materials.steel,steelMat);
+ gate=bodyBox('gate',[.014,.16,.20],[-1.18,2.62,-.95],.035,materials.brass,rampMat);
+ const gateAnchor=fixed([-1.18,2.62,-1.055]);gateHinge=new CANNON.HingeConstraint(gateAnchor,gate,{pivotA:vec(),pivotB:vec(0,0,-.105),axisA:vec(0,1,0),axisB:vec(0,1,0),collideConnected:false});gateHinge.enableMotor();gateHinge.setMotorMaxForce(2);gateHinge.setMotorSpeed(0);world.addConstraint(gateHinge);
+ for(let i=0;i<24;i++){
+  let x,z,angle=0;if(i<=12){x=-.86+i*spacing;z=-.95;if(i===12)angle=-Math.PI/4;}else{x=.58+dx;z=-.95+(i-12)*spacing;angle=-Math.PI/2;}
+  const d=bodyBox('domino'+i,[.03,.20,.10],[x,1.101,z],settings.dominoMass,i%4===0?materials.ivory:materials.wood,woodMat,[0,angle,0]);d.angularDamping=.025;dominoes.push(d);
+ }
+ // Shelf ends immediately ahead of the block; the last domino pushes it over the lip.
+ bodyBox('blockShelf',[.19,.035,.19],P(.58,.9825,.53),0,materials.brass,slick);
+ block=bodyBox('block',[.12,.18,.12],P(.58,1.091,.555),1,materials.dark,slick);
+ const pivotZ=.60+settings.leverPivot,leverCenterZ=1.10;
+ lever=bodyBox('lever',[.14,.035,1],P(.58,.70,leverCenterZ),.12,materials.brass,woodMat);lever.angularDamping=.025;
+ const leverAnchor=fixed(P(.58,.70,pivotZ));const hinge=new CANNON.HingeConstraint(leverAnchor,lever,{pivotA:vec(),pivotB:vec(0,0,settings.leverPivot-.5),axisA:vec(1,0,0),axisB:vec(1,0,0),collideConnected:false});world.addConstraint(hinge);
+ visualBox(root,[.23,.58,.10],P(.58,.34,pivotZ),materials.dark);segment(P(.43,.70,pivotZ),P(.73,.70,pivotZ),.025,materials.steel);
+ // A narrow overhead stop arrests the lever, leaving the ball free to fly.
+ bodyBox('leverStop',[.23,.045,.045],P(.58,1.035,1.495),0,materials.dark,woodMat);
+ bodyBox('leverRest',[.16,.06,.06],P(.58,.651,1.52),0,materials.dark,woodMat);
+ lightBall=sphere('lightBall',.035,P(.58,.755,1.52),.05,materials.red,steelMat);
+ // Basket body: an open five-piece cup, suspended on a vertical carriage.
+ basket=new CANNON.Body({mass:.20,material:slick,position:vec(...P(.58,1.35,1.28)),allowSleep:false});basket.tag='basket';
+ basket.addShape(new CANNON.Box(vec(.235,.0125,.27)));
+ basket.addShape(new CANNON.Box(vec(.0125,.085,.27)),vec(-.2475,.0725,0));basket.addShape(new CANNON.Box(vec(.0125,.085,.27)),vec(.2475,.0725,0));
+ basket.addShape(new CANNON.Box(vec(.235,.085,.0125)),vec(0,.0725,-.2825));basket.addShape(new CANNON.Box(vec(.235,.085,.0125)),vec(0,.0725,.2825));setSlide(basket,[0,1,0]);basket.linearDamping=0;world.addBody(basket);
+ const cup=new THREE.Group();visualBox(cup,[.47,.025,.54],[0,0,0],materials.basket);for(const x of [-.2475,.2475])visualBox(cup,[.025,.17,.54],[x,.0725,0],materials.basket);for(const z of [-.2825,.2825])visualBox(cup,[.47,.17,.025],[0,.0725,z],materials.basket);addMesh(basket,cup);
+ counterweight=bodyBox('counterweight',[.12,.16,.12],P(.01,.10,1.28),settings.counterweightMass,materials.dark,slick);setSlide(counterweight,[0,1,0]);counterweight.linearDamping=0;
+ bodyBox('weightFloor',[.22,.04,.22],P(.01,0,1.28),0,materials.dark,slick);
+ world.addConstraint(new PulleyConstraint(basket,counterweight));
+ const pulleyY=2.47;segment(P(-.08,0,1.28),P(-.08,pulleyY+.10,1.28),.018,materials.dark);segment(P(-.08,pulleyY+.10,1.28),P(.69,pulleyY+.10,1.28),.018,materials.dark);
+ for(const x of [.01,.58]){const wheel=new THREE.Mesh(new THREE.TorusGeometry(.065,.012,10,28),materials.brass);wheel.position.set(...P(x,pulleyY,1.28));root.add(wheel);}
+ rope(()=>[P(.58,basket.position.y+.15,1.28),P(.58,pulleyY+.065,1.28),P(.01,pulleyY+.065,1.28),P(.01,counterweight.position.y+.08,1.28)]);
+ // Pendulum pivot relocates with length and angle. Its lowest point is fixed.
+ const L=settings.pendulumLength,A=settings.pendulumAngle*Math.PI/180,bottomX=1.05,bottomY=.85,pivot= P(bottomX,bottomY+L,1.28),initial=P(bottomX-L*Math.sin(A),bottomY+L-L*Math.cos(A),1.28);
+ const bobRadius=.055;bob=sphere('pendulumBob',bobRadius,initial,.50,materials.brass,cradleMat);bob.linearDamping=0;bob.angularDamping=0;bob.linearFactor.set(1,1,0);
+ const pendAnchor=fixed(pivot);world.addConstraint(new CANNON.DistanceConstraint(pendAnchor,bob,L,1e6));
+ segment(P(bottomX,0,1.08),[pivot[0],pivot[1]+.07,pivot[2]-.20],.017,materials.dark);segment([pivot[0],pivot[1]+.07,pivot[2]-.20],pivot,.018,materials.brass);rope(()=>[pivot,[bob.position.x,bob.position.y,bob.position.z]]);
+ // Sliding latch: the bob rests on a shelf. A 45-degree wedge is pushed left by the basket.
+ // No latch constraint is removed by code; the entire support physically withdraws.
+ const latchY=initial[1]-bobRadius-.0125;
+ latch=new CANNON.Body({mass:.018,position:vec(initial[0],latchY,initial[2]),material:slick,allowSleep:false});latch.tag='latch';
+ latch.addShape(new CANNON.Box(vec(.065,.0125,.07)));
+ const wedgeX=P(.58,0,0)[0]-initial[0],wedgeY=1.025-latchY;
+ const wedgeQ=new CANNON.Quaternion();wedgeQ.setFromEuler(0,0,-Math.PI/4);
+ latch.addShape(new CANNON.Box(vec(.16,.018,.06)),vec(wedgeX,wedgeY,0),wedgeQ);
+ const connectorLength=Math.max(.02,Math.abs(wedgeX));latch.addShape(new CANNON.Box(vec(connectorLength/2,.009,.012)),vec(wedgeX/2,-.045,0));setSlide(latch,[1,0,0]);latch.linearDamping=.03;world.addBody(latch);
+ const latchMesh=new THREE.Group();visualBox(latchMesh,[.13,.025,.14],[0,0,0],materials.red);const wm=visualBox(latchMesh,[.32,.036,.12],[wedgeX,wedgeY,0],materials.red);wm.rotation.z=-Math.PI/4;visualBox(latchMesh,[connectorLength,.018,.024],[wedgeX/2,-.045,0],materials.brass);addMesh(latch,latchMesh);
+ // A guide is decorative; the body's allowed degrees of freedom model a linear bearing.
+ segment([initial[0]-.30,latchY-.045,initial[2]-.08],[initial[0]+.10,latchY-.045,initial[2]-.08],.008,materials.steel);
+ // Five equal steel balls, each on two inextensible suspension links.
+ const cradleY=.85,cradleLength=.255;
+ for(let i=0;i<5;i++){
+  const x=1.132+i*.0501,c=sphere('cradle'+i,.025,P(x,cradleY,1.28),.50,materials.steel,cradleMat);c.linearDamping=0;c.angularDamping=0;cradle.push(c);
+  for(const zoff of [-.055,.055]){const pt=P(x,cradleY+cradleLength,1.28+zoff),anchor=fixed(pt);world.addConstraint(new CANNON.DistanceConstraint(anchor,c,Math.hypot(cradleLength,.055),1e6));rope(()=>[pt,[c.position.x,c.position.y,c.position.z]]);}
+ }
+ for(const z of [1.225,1.335]){segment(P(1.10,.54,z),P(1.10,1.14,z),.009,materials.dark);segment(P(1.39,.54,z),P(1.39,1.14,z),.009,materials.dark);segment(P(1.10,1.14,z),P(1.39,1.14,z),.012,materials.brass);}
+ // Invented stage: an unpowered bearing cart. The last cradle ball hits its rear paddle.
+ bodyBox('cartTrack',[.72,.035,.20],P(1.70,.7875,1.28),0,materials.dark,slick);
+ cart=bodyBox('cart',[.17,.07,.11],P(1.49,.85,1.28),.045,materials.red,slick);setSlide(cart,[1,0,0]);cart.linearDamping=.001;
+ const cartMesh=links[links.length-1][1];for(const x of [-.057,.057])for(const z of [-.065,.065]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.024,.024,.016,16),materials.brass);wheel.rotation.x=Math.PI/2;wheel.position.set(x,-.035,z);cartMesh.add(wheel);}
+ for(const z of [1.19,1.37])segment(P(1.35,.806,z),P(2.06,.806,z),.006,materials.brass);
+ striker=bodyBox('striker',[.14,.045,.045],P(1.87,.86,1.28),.025,materials.steel,slick);setSlide(striker,[1,0,0]);striker.linearDamping=.005;
+ bellBody=sphere('bell',.075,P(2.045,.86,1.28),0,materials.brass,steelMat);links[links.length-1][1].visible=false;
+ // Lathed brass bell, with a collision surface at the strike point.
+ const profile=[[.00,.12],[.022,.12],[.028,.105],[.031,.075],[.038,.035],[.055,-.005],[.085,-.04],[.09,-.048],[.087,-.055],[.078,-.05],[.048,-.006],[.031,.04],[.023,.09],[0,.10]].map(p=>new THREE.Vector2(...p));
+ const bellMesh=new THREE.Mesh(new THREE.LatheGeometry(profile,48),materials.brass);bellMesh.position.set(...P(2.045,.885,1.28));bellMesh.castShadow=true;bellMesh.receiveShadow=true;root.add(bellMesh);
+ segment(P(2.045,.99,1.28),P(2.045,1.21,1.28),.008,materials.brass);segment(P(1.95,.70,1.10),P(1.95,1.23,1.10),.015,materials.dark);segment(P(1.95,1.23,1.10),P(2.045,1.23,1.28),.015,materials.dark);
+ anchors={1:[-1.5,2.45,-.95],2:[-1.48,1.9,-.95],3:[-.15+dx/2,1.1,-.6+dz/2],4:P(.58,.85,.95),5:P(.35,1.5,1.28),6:[initial[0]+.25,1.15,initial[2]],7:P(1.25,1,1.28),8:P(1.65,.9,1.28),9:P(2.0,.9,1.28)};
+ label('01 — 02',[-1.48,2.79,-.97]);label('03',[-.40,1.02,-1.15]);label('04',P(.58,.40,.70));label('05',P(.26,2.70,1.28));label('06 — 07',P(1.15,1.35,1.05));label('08 — 09',P(1.78,.64,1.49));
+ for(const [b,m]of links){m.position.copy(b.position);m.quaternion.copy(b.quaternion);m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});}
+ updateRopes();$('loading').hidden=true;
+}
+function renderChecklist(){
+ $('stages').innerHTML=stages.map(s=>`<div class="stage ${s.status}"><span class="dot">${s.status==='failed'?'!':s.status==='triggered'?'✓':s.id}</span><span class="name">${s.name}</span><span class="time">${s.triggeredAt===null?'—':s.triggeredAt.toFixed(2)+' s'}</span></div>`).join('');
+}
+function trigger(id){if(failed||finished)return;const s=stages[id-1];if(s.status!=='waiting'||(id>1&&stages[id-2].status!=='triggered'))return;s.status='triggered';s.triggeredAt=time;lastTrigger=time;renderChecklist();if(id===9){finished=true;$('message').textContent=`Bell · complete in ${time.toFixed(2)} simulation seconds`;ring();}else $('message').textContent=`${s.name} · ${time.toFixed(2)} s`;}
+function pair(a,b,x,y){return(a===x&&b===y)||(a===y&&b===x);}
+function contacts(){
+ for(const c of world.contacts){
+  if(!c.enabled)continue;const a=c.bi,b=c.bj;
+  // These observers only record contacts. They never alter velocities, forces, or constraints.
+  if(pair(a,b,steel,ramps[1]))trigger(2);
+  if(pair(a,b,steel,dominoes[0]))trigger(3);
+  if(pair(a,b,dominoes[23],block))trigger(4);
+  if(pair(a,b,lightBall,basket)){const before=stages[4].status;trigger(5);if(before==='waiting'&&stages[4].status==='triggered'){basketMeasure=true;accelSamples=[];}}
+  if(pair(a,b,basket,latch))trigger(6);
+  if(pair(a,b,bob,cradle[0])){trigger(7);if(releaseTime!==null&&pendulumSwingTime===null&&stages[6].status==='triggered')pendulumSwingTime=time-releaseTime;}
+  if(pair(a,b,cradle[4],cart))trigger(8);
+  if(pair(a,b,striker,bellBody))trigger(9);
+ }
+}
+function physicsStep(){
+ if(finished||failed)return;
+ // The gate is the only action scheduled on the simulation clock.
+ if(stages[0].status==='waiting'&&time+dt>=1){gateHinge.setMotorSpeed(-4);trigger(1);}
+ const oldV=basket.velocity.y;world.step(dt);time+=dt;
+ contacts();
+ // Actual departure from its support measures pendulum release; it does not release it.
+ if(stages[5].status==='triggered'&&!pendulumReleased&&bob.velocity.x>.025&&bob.velocity.y<-.01){pendulumReleased=true;releaseTime=time;}
+ if(basketMeasure&&stages[5].status==='waiting'&&basket.velocity.y<-.015){const a=-(basket.velocity.y-oldV)/dt;if(Number.isFinite(a)&&Math.abs(a)<settings.gravity*1.5){accelSamples.push(a);if(accelSamples.length>90)accelSamples.shift();basketAcceleration=accelSamples.reduce((s,v)=>s+v,0)/accelSamples.length;}}
+ previousBasketV=basket.velocity.y;
+ if(!finished&&!failed&&time-lastTrigger>=8){const s=stages.find(s=>s.status==='waiting');if(s){s.status='failed';failed=true;renderChecklist();$('message').textContent=`Stopped at ${s.name} · no trigger for 8 simulation seconds`;}}
+}
+function updateRopes(){for(const {line,getPoints}of ropeLines){const points=getPoints().map(p=>new THREE.Vector3(...p));line.geometry.setFromPoints(points);}}
+let audioContext=null;
+function setupAudio(){if(!audioContext){const AC=window.AudioContext||window.webkitAudioContext;if(AC)audioContext=new AC();}if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});}
+function ring(){
+ setupAudio();if(!audioContext)return;
+ if(audioContext.state!=='running'){$('message').textContent+= ' · browser muted audio; interact to enable sound';pendingBell=true;return;}
+ const t=audioContext.currentTime;[1,2.71,4.07,5.43,6.8].forEach((r,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.setValueAtTime(740*r,t);g.gain.setValueAtTime(.12/(i+1),t);g.gain.exponentialRampToValueAtTime(.0001,t+2.8/(1+i*.23));o.connect(g);g.connect(audioContext.destination);o.start(t);o.stop(t+3);});
+}
+let pendingBell=false;
+window.addEventListener('pointerdown',()=>{setupAudio();if(pendingBell){pendingBell=false;audioContext?.resume().then(()=>ring());}},{passive:true});
+$('settingsButton').onclick=()=>{const open=$('settings').hidden;$('settings').hidden=!open;$('settingsButton').setAttribute('aria-expanded',String(open));};
+function togglePause(){if(finished||failed)return;paused=!paused;$('pause').textContent=paused?'Play':'Pause';}
+$('pause').onclick=togglePause;$('replay').onclick=()=>{setupAudio();pendingBell=false;build();};$('apply').onclick=()=>{setupAudio();pendingBell=false;build();$('settings').hidden=true;$('settingsButton').setAttribute('aria-expanded','false');};
+window.addEventListener('keydown',e=>{if(e.code==='Space'&&!['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement.tagName)){e.preventDefault();togglePause();setupAudio();}});
+$('cameraMode').onchange=()=>{orbit.enabled=$('cameraMode').value==='orbit';if(orbit.enabled)orbit.target.copy(lookAt);};
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+const lookAt=new THREE.Vector3(0,1.25,.25),desired=new THREE.Vector3();
+function updateCamera(wallDt){
+ const mode=$('cameraMode').value;if(mode==='orbit'){orbit.update();return;}
+ const active=Math.max(1,stages.filter(s=>s.status==='triggered').length),p=anchors[active]||[0,1,.1];
+ const overview=mode==='overview';const target=overview?new THREE.Vector3(dx/2,1.25,.25+dz/2):new THREE.Vector3(...p);
+ // Follow stays wide enough to retain context; all stages are visible in Overview.
+ const margin=innerWidth<850?1.4:1;desired.copy(target).add(overview?new THREE.Vector3(4.5+dx*.45,3.0,6.7+dz*.5).multiplyScalar(margin):new THREE.Vector3(2.4,1.65,3.3).multiplyScalar(margin));
+ const blend=1-Math.exp(-wallDt*2.2);camera.position.lerp(desired,blend);lookAt.lerp(target,blend);camera.lookAt(lookAt);
+}
+build();
+let lastWall=performance.now();
+function frame(now){requestAnimationFrame(frame);const elapsed=Math.min((now-lastWall)/1000,.10);lastWall=now;
+ if(!paused&&!finished&&!failed){accumulator+=elapsed*Number($('speed').value);let steps=0;while(accumulator>=dt&&steps<MAX_STEPS&&!finished&&!failed){physicsStep();accumulator-=dt;steps++;}if(steps===MAX_STEPS)accumulator=Math.min(accumulator,dt);}
+ for(const [b,m]of links){m.position.copy(b.position);m.quaternion.copy(b.quaternion);}updateRopes();
+ $('clock').textContent=time.toFixed(2)+' s';$('acceleration').textContent=basketAcceleration===null?'— m/s²':basketAcceleration.toFixed(3)+' m/s²';$('swing').textContent=pendulumSwingTime===null?'— s':pendulumSwingTime.toFixed(3)+' s';
+ updateCamera(elapsed);renderer.render(scene,camera);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

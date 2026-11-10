@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPT-6</title>
+<style>
+:root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#eef2ed;font-synthesis:none;--orange:#fc7947;--muted:#a9b8b4;--line:#ffffff16;--panel:#142c2ceF}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#9fb8b0}button,input,select{font:inherit}button,select{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #ffd49c;outline-offset:4px}canvas{display:block;touch-action:none}#app{position:fixed;inset:0}header{position:absolute;left:32px;top:26px;display:flex;align-items:center;gap:17px;pointer-events:none}h1{margin:0;font-size:29px;letter-spacing:-1.6px;font-weight:800}.header-divider{height:29px;width:1px;background:#23484166}.eyebrow{font-size:10px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase}.header-note{color:#294b45;font-size:10px;line-height:1.9}.panel{background:var(--panel);border:1px solid #ffffff19;border-radius:17px;box-shadow:0 12px 40px #122e2c18;backdrop-filter:blur(18px)}#settings{position:absolute;left:28px;top:106px;width:246px;padding:21px}.panel-label{color:var(--muted);font-size:10px;letter-spacing:1.8px;font-weight:600;text-transform:uppercase}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:23px}.tiny-tag{font-size:9px;padding:4px 6px;color:#a7c7ba;background:#ffffff09;border-radius:4px;letter-spacing:1px}.field{margin:0 0 23px}.field-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin-bottom:10px}.field output{font-variant-numeric:tabular-nums;color:#ffb48e;font-weight:600}input[type=range]{width:100%;height:3px;accent-color:var(--orange);cursor:pointer;margin:7px 0}.range-limits{display:flex;justify-content:space-between;color:#819a93;font-size:9px;margin-top:4px}.segmented{display:flex;gap:4px;background:#091d1d66;padding:4px;border-radius:8px}.segmented button{background:transparent;border:0;color:#9fb5ad;padding:8px 0;flex:1;border-radius:5px;font-size:10px}.segmented button.active{background:#39514a;color:#fff}.switch-row{display:flex;justify-content:space-between;align-items:center;margin:17px 0;font-size:12px}.switch-row input{appearance:none;width:31px;height:18px;border-radius:12px;background:#4c605a;position:relative;cursor:pointer;margin:0}.switch-row input:before{content:'';position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:50%;background:#d6ded5;transition:transform .15s}.switch-row input:checked{background:var(--orange)}.switch-row input:checked:before{transform:translateX(13px);background:white}.rule{height:1px;background:var(--line);margin:19px 0}.fineprint{font-size:10px;color:#8ca69c;line-height:1.6;margin:0}#telemetry{position:absolute;right:28px;top:27px;width:276px;padding:22px}.status-row{display:flex;align-items:center;gap:8px;font-size:10px;color:#b8c9c0;letter-spacing:1.4px;text-transform:uppercase}.dot{height:6px;width:6px;flex:none;background:#b1d8a2;border-radius:50%;box-shadow:0 0 11px #b1d8a255}#element{color:#b4c4bb;font-size:11px;margin-top:9px}.speed-display{display:flex;align-items:baseline;gap:8px;margin-top:12px}.speed-display strong{font-size:54px;line-height:1.12;font-weight:400;letter-spacing:-3px;font-variant-numeric:tabular-nums}.unit{font-size:11px;color:#8aa69c}.secondary-speed{font-size:11px;color:#adc1b6;margin-top:3px}.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:22px}.stats label{font-size:9px;color:#8aa69c;display:block;margin-bottom:7px}.stats strong{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}.stats small{font-size:10px;color:#92a89f}.energy-row{display:flex;justify-content:space-between;font-size:10px;color:#b5c9be;margin:12px 0 5px}.bar{height:4px;border-radius:2px;background:#ffffff0b;overflow:hidden}.bar span{height:100%;display:block;width:0;transition:width .08s linear;border-radius:2px}.total{display:flex;justify-content:space-between;font-size:10px;color:#d3dfd4;margin-top:15px}.energy-note{color:#819c90;font-size:9px;margin-top:8px}#lastRide{position:absolute;right:28px;top:490px;width:276px;padding:19px 22px;display:none}.ride-result{font-size:14px;margin:10px 0;color:#ffd1ac}.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;font-size:10px;color:#92a99e}.result-grid b{display:block;color:#dae5d9;font-weight:500;font-size:15px;margin-top:4px}#bottom{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;padding:11px 14px;white-space:nowrap}.primary{border:0;border-radius:8px;padding:12px 21px;background:var(--orange);color:#162b27;font-weight:700;font-size:12px}.primary:disabled{opacity:.45;cursor:default}.secondary{border:1px solid #ffffff22;border-radius:7px;background:transparent;color:#d9e5db;padding:10px 13px;font-size:11px}.secondary:hover{background:#ffffff0c}.key{font-size:9px;opacity:.5;margin-left:7px}.control-divider{width:1px;height:27px;background:var(--line)}.playback{display:flex;gap:7px;align-items:center}.icon-button{width:32px;height:33px;font-size:14px;padding:0}.small-label{color:#8fa79c;font-size:9px;text-transform:uppercase;letter-spacing:1px}.select{border:0;background:#284039;color:#dce7da;border-radius:6px;padding:9px 8px;font-size:11px}#viewHint{position:absolute;bottom:101px;left:50%;transform:translateX(-50%);font-size:10px;color:#27473f;background:#f2eed9b8;border:1px solid #fff5;border-radius:20px;padding:7px 13px;letter-spacing:.3px;pointer-events:none}#physicsNote{position:absolute;bottom:30px;left:30px;color:#244c3e;font-size:9px;line-height:1.8;letter-spacing:.5px}#loading{position:absolute;inset:0;background:#142c2c;display:grid;place-items:center;z-index:10;font-size:12px;letter-spacing:2px}#error{display:none;position:absolute;inset:30%;padding:30px;background:#142c2c;border-radius:15px;z-index:20;font-size:14px;line-height:1.7}@media(max-width:1100px){#physicsNote{display:none}#settings{left:18px;width:218px;padding:17px}#telemetry,#lastRide{right:18px;width:242px}#bottom{gap:9px}header{left:22px}}@media(max-height:800px){#settings{top:87px;padding:16px}.field{margin-bottom:16px}.section-head{margin-bottom:15px}.switch-row{margin:12px 0}.rule{margin:14px 0}#telemetry{padding:17px;top:20px}#lastRide{top:441px;padding:15px 18px}.energy-row{margin-top:9px}.stats{margin-top:15px}#bottom{bottom:16px}#viewHint{bottom:86px}}@media(max-width:740px){header{top:16px}h1{font-size:24px}.header-note{display:none}#settings{top:67px;width:182px;left:10px;padding:13px}#telemetry{right:10px;top:16px;width:183px;padding:14px}.speed-display strong{font-size:40px}.stats strong{font-size:15px}.stats{gap:4px}.stats label{font-size:8px}#lastRide{right:10px;top:425px;width:183px}.result-grid{gap:8px;font-size:9px}.result-grid b{font-size:12px}#bottom{padding:9px;gap:7px;max-width:calc(100% - 16px);flex-wrap:wrap;justify-content:center;width:max-content}.primary{padding:10px 13px}.key,.small-label,.header-divider{display:none}.control-divider{height:23px}.secondary{padding:9px}.select{padding:8px 4px}.field-row{font-size:11px}.fineprint{font-size:9px}#viewHint{display:none}}@media(max-height:620px){#settings{max-height:calc(100% - 155px);overflow:auto}#telemetry .energy-section{display:none}#lastRide{top:275px}.result-grid{gap:7px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<main id="app"></main>
+<header><h1>GPT-6</h1><span class="header-divider"></span><div class="header-note"><div class="eyebrow">Real-time physics</div>240 Hz · continuous track</div></header>
+<aside id="settings" class="panel" aria-label="Ride settings">
+ <div class="section-head"><span class="panel-label">The experiment</span><span class="tiny-tag">LIVE PHYSICS</span></div>
+ <div class="field"><label class="field-row" for="liftHeight">Lift crest <output id="liftValue">40 m</output></label><input id="liftHeight" type="range" min="25" max="50" step="1" value="40"><div class="range-limits"><span>25 m</span><span>50 m</span></div></div>
+ <div class="field"><label class="field-row" for="chainSpeed">Chain speed <output id="chainValue">3.0 m/s</output></label><input id="chainSpeed" type="range" min="1" max="6" step="0.1" value="3"><div class="range-limits"><span>1 m/s</span><span>6 m/s</span></div></div>
+ <div class="field"><label class="field-row" for="cars">Train length <output id="carsValue">6 cars</output></label><input id="cars" type="range" min="1" max="8" step="1" value="6"><div class="range-limits"><span>1 car</span><span>8 cars · 500 kg each</span></div></div>
+ <div class="field"><span class="field-row">Gravity <output id="gravityValue">9.81 m/s²</output></span><div class="segmented" aria-label="Gravity"><button type="button" data-gravity="9.81" class="active" aria-pressed="true">Earth</button><button type="button" data-gravity="3.71" aria-pressed="false">Mars</button><button type="button" data-gravity="1.62" aria-pressed="false">Moon</button></div></div>
+ <div class="rule"></div><label class="switch-row" for="friction">Rolling friction<input id="friction" type="checkbox"></label><label class="switch-row" for="drag">Air drag<input id="drag" type="checkbox"></label>
+ <div class="rule"></div><p class="fineprint">Change a setting to return to the station.<br>Release from the chain. Let forces decide.</p>
+</aside>
+<aside id="telemetry" class="panel" aria-label="Live telemetry"><div class="status-row"><span class="dot" id="statusDot"></span><span id="status">Awaiting dispatch</span></div><div id="element">Station · ready in 1 second</div><div class="speed-display"><strong id="speed">0.0</strong><span class="unit">m/s</span></div><div class="secondary-speed"><span id="kmh">0.0</span> km/h <span style="opacity:.3;margin:0 7px">/</span> <span id="rideClock">0.0</span> s</div><div class="stats"><div><label>HEIGHT</label><strong id="height">2.0</strong> <small>m</small></div><div><label>VERTICAL</label><strong id="gVertical">1.00</strong> <small>g</small></div><div><label>LATERAL</label><strong id="gLateral">0.00</strong> <small>g</small></div></div><div class="energy-section"><div class="rule"></div><div class="panel-label">Energy balance</div><div class="energy-row"><span>Kinetic</span><span id="kinetic">0 kJ</span></div><div class="bar"><span id="barK" style="background:#ff9763"></span></div><div class="energy-row"><span>Potential</span><span id="potential">59 kJ</span></div><div class="bar"><span id="barP" style="background:#a4caa6"></span></div><div class="energy-row"><span>Dissipated</span><span id="dissipated">0 kJ</span></div><div class="bar"><span id="barD" style="background:#9ab6d9"></span></div><div class="total"><span>Σ energy</span><span id="energyTotal">59 kJ</span></div><div class="energy-note">Dissipation: rolling friction + air drag</div></div></aside>
+<aside id="lastRide" class="panel" aria-label="Last ride results"><div class="panel-label">Last ride</div><div class="ride-result" id="rideResult"></div><div class="result-grid"><span>Maximum speed<b id="resultSpeed"></b></span><span>Ride time<b id="resultTime"></b></span><span>Peak vertical g<b id="resultMaxG"></b></span><span>Minimum vertical g<b id="resultMinG"></b></span></div></aside>
+<div id="viewHint">Chase camera · follow the forces</div><div id="physicsNote">FIXED STEP / 240 Hz<br>1 BODY · CONTINUOUS TRACK · NO SPEED SCRIPT</div>
+<nav id="bottom" class="panel" aria-label="Simulation controls"><button class="primary" id="dispatch">Dispatch <span class="key">D</span></button><button class="secondary" id="reset">Reset <span class="key">R</span></button><div class="control-divider"></div><div class="playback"><button id="pause" class="secondary icon-button" aria-label="Pause" title="Pause / Play (Space)">Ⅱ</button><select id="simSpeed" class="select" aria-label="Simulation speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></div><div class="control-divider"></div><span class="small-label">Camera</span><select id="cameraMode" class="select" aria-label="Camera"><option value="front">Front seat</option><option value="chase" selected>Chase</option><option value="orbit">Orbit</option></select></nav>
+<div id="loading">ASSEMBLING THE EXPERIMENT</div><div id="error" role="alert"></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const settings={liftHeight:40,chainSpeed:3,cars:6,friction:false,drag:false,gravity:9.81};
+const $=id=>document.getElementById(id), V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z), Y=V(0,1,0), clamp=THREE.MathUtils.clamp;
+const DT=1/240, SPACING=3.1, INITIAL_S=12;
+let track, state, lastRide=null, record=null, elapsed=0, accumulator=0, paused=false, timeScale=1, cameraMode='chase', autoPending=true, autoTime=0, rollbackElement=null;
+// Quintic Hermite segments specify position, tangent and curvature at both ends.
+// All segment joins are C2, including the two ends of the closed circuit.
+function hermite(a,b,da,db,dda,ddb,t){const c0=a,c1=da,c2=dda/2,A=b-c0-c1-c2,B=db-c1-2*c2,C=ddb-2*c2;return c0+c1*t+c2*t*t+(10*A-4*B+C/2)*t**3+(-15*A+7*B-C)*t**4+(6*A-3*B+C/2)*t**5;}
+function buildTrack(){
+ const raw=[],elements=[],marks={};let distance=0;
+ function add(name,fn,count){const start=distance;for(let i=raw.length?1:0;i<=count;i++){const p=fn(i/count);if(raw.length)distance+=p.distanceTo(raw[raw.length-1].p);raw.push({p,s:distance});}elements.push({name,start,end:distance});}
+ function profile(name,x0,x1,y0,y1,d0,d1,c0,c1,z=0){const L=x1-x0;add(name,t=>V(x0+L*t,hermite(y0,y1,d0*L,d1*L,c0*L*L,c1*L*L,t),z),Math.ceil(Math.abs(L)*20));}
+ add('Station',t=>V(25*t,2,0),400);
+ profile('Chain lift',25,45,2,7,0,.5,0,0);
+ const straightEnd=45+(settings.liftHeight-10)/.5;
+ profile('Chain lift',45,straightEnd,7,settings.liftHeight-3,.5,.5,0,0);
+ const crestX=straightEnd+18;
+ profile('Chain lift',straightEnd,crestX,settings.liftHeight-3,settings.liftHeight,.5,0,0,-1/22);
+ marks.release=distance;
+ const bottomX=crestX+1.6*(settings.liftHeight-2);
+ profile('First drop',crestX,bottomX,settings.liftHeight,2,0,0,-1/22,1/18);
+ marks.dropBottom=distance;
+ // R(theta)=13+5 cos(theta): 26 m tall, R=8 m at the inverted crown.
+ // A circular R=8 crown replaces a small interval; its neighbors are C2 quintics.
+ const thetaA=Math.PI-.28, thetaB=Math.PI+.28;
+ const lp=t=>V(bottomX+13*Math.sin(t)+2.5*t+1.25*Math.sin(2*t),2+13*(1-Math.cos(t))+2.5*Math.sin(t)**2,0);
+ // The analytic teardrop is retained except at the very crown, which is an exact circular arc.
+ const crownX=bottomX+2.5*Math.PI;
+ const circ=t=>V(crownX+8*Math.sin(t),20+8*Math.cos(t),0);
+ const a=lp(thetaA),b=circ(-.16),c=circ(.16),d=lp(thetaB);
+ function curveJoin(p0,p1,t0,t1,k0,k1,L,t){return V(hermite(p0.x,p1.x,t0.x*L,t1.x*L,k0.x*L*L,k1.x*L*L,t),hermite(p0.y,p1.y,t0.y*L,t1.y*L,k0.y*L*L,k1.y*L*L,t),0);}
+ const tangent=t=>V(Math.cos(t),Math.sin(t),0), curv=t=>V(-Math.sin(t),Math.cos(t),0).multiplyScalar(1/(13+5*Math.cos(t)));
+ add('Vertical loop',t=>lp(thetaA*t),700);
+ // Travel at the crown is toward -x; this circle is traversed from +.16 to -.16.
+ // Connect to the right side first, keeping the direction and signed curvature continuous.
+ const entry=c,exit=b,tc0=V(-Math.cos(.16),Math.sin(.16),0),tc1=V(-Math.cos(-.16),Math.sin(-.16),0);
+ const kc0=V(-Math.sin(.16),-Math.cos(.16),0).multiplyScalar(1/8),kc1=V(-Math.sin(-.16),-Math.cos(-.16),0).multiplyScalar(1/8);
+ add('Vertical loop',t=>curveJoin(a,entry,tangent(thetaA),tc0,curv(thetaA),kc0,1.0,t),100);
+ const crownStart=distance;
+ add('Vertical loop',t=>circ(.16-.32*t),160);marks.loopTop=crownStart+(distance-crownStart)/2;
+ add('Vertical loop',t=>curveJoin(exit,d,tc1,tangent(thetaB),kc1,curv(thetaB),1.0,t),100);
+ add('Vertical loop',t=>lp(thetaB+(2*Math.PI-thetaB)*t),700);
+ const loopEndX=bottomX+5*Math.PI;
+ const hillStartX=loopEndX+55, hillEndY=15+15*Math.cos(.5);
+ profile('Airtime hill',loopEndX,hillStartX,2,hillEndY,0,Math.tan(.5),1/18,-1/(15*Math.cos(.5)**3));
+ const hillCenter=hillStartX+15*Math.sin(.5), hillArcStart=distance;
+ add('Airtime hill',t=>{const angle=-.5+t;return V(hillCenter+15*Math.sin(angle),15+15*Math.cos(angle),0);},300);
+ marks.hillCrest=hillArcStart+(distance-hillArcStart)/2;
+ const hillArcEndX=hillCenter+15*Math.sin(.5), turnX=hillArcEndX+55;
+ profile('Airtime hill',hillArcEndX,turnX,hillEndY,6,-Math.tan(.5),0,-1/(15*Math.cos(.5)**3),0);
+ // A radius-20 turn with eased curvature at its entry and exit. The central arc
+ // has radius exactly 20; the complete turn changes heading by exactly pi.
+ const ramp=12, turnLength=Math.PI*20+ramp, turnPoints=[V()];let yaw=0,tx=0,tz=0;
+ function turnCurvature(s){const q=s<ramp?s/ramp:s>turnLength-ramp?(turnLength-s)/ramp:1;return .05*(q*q*(3-2*q));}
+ const nt=1600,ds=turnLength/nt;
+ for(let i=0;i<nt;i++){const k=turnCurvature((i+.5)*ds);tx+=Math.cos(yaw+k*ds/2)*ds;tz+=Math.sin(yaw+k*ds/2)*ds;yaw+=k*ds;turnPoints.push(V(tx,0,tz));}
+ const turnZ=tz;
+ function turnPoint(t){const q=t*nt,i=Math.min(nt-1,Math.floor(q));return turnPoints[i].clone().lerp(turnPoints[i+1],q-i);}
+ const turnStart=distance;
+ add('Banked turn',t=>{const p=turnPoint(t);return V(turnX+p.x,6,p.z);},nt);
+ marks.turnStart=turnStart;marks.turnEnd=distance;marks.turnLength=turnLength;
+ const brakeX=turnX+tx;
+ // The return is a long brake run, followed by a second eased half-turn into the station.
+ profile('Brake run',brakeX,-20,6,2,0,0,0,0,turnZ);
+ add('Brake run',t=>{const p=turnPoint(t);return V(-20-p.x,2,turnZ-p.z);},nt);
+ profile('Brake run',-20-tx,0,2,2,0,0,0,0);
+ const length=distance,N=Math.ceil(length/.14),step=length/N,points=[];let j=0;
+ for(let i=0;i<N;i++){const s=i*step;while(j<raw.length-2&&raw[j+1].s<s)j++;const a=raw[j],b=raw[j+1];points.push(a.p.clone().lerp(b.p,(s-a.s)/(b.s-a.s)));}
+ const tangents=[],curvatures=[],ups=[];const at=i=>points[(i+N)%N];
+ for(let i=0;i<N;i++)tangents.push(at(i+2).clone().sub(at(i-2)).normalize());
+ let up=V(0,1,0);const q=new THREE.Quaternion();
+ for(let i=0;i<N;i++){if(i){q.setFromUnitVectors(tangents[i-1],tangents[i]);up.applyQuaternion(q).addScaledVector(tangents[i],-up.dot(tangents[i])).normalize();}ups.push(up.clone());curvatures.push(tangents[(i+3)%N].clone().sub(tangents[(i-3+N)%N]).multiplyScalar(1/(6*step)));}
+ // Merge adjacent spans into the seven named elements exposed for inspection.
+ const merged=[];for(const e of elements){if(merged.length&&merged[merged.length-1].name===e.name)merged[merged.length-1].end=e.end;else merged.push({...e});}
+ const bankMax=Math.atan((3*3+2*9.81*(40-6))/(20*9.81));
+ function get(s){s=((s%length)+length)%length;const f=s/step,i=Math.floor(f),n=(i+1)%N,t=f-i;const p=points[i].clone().lerp(points[n],t),T=tangents[i].clone().lerp(tangents[n],t).normalize(),U=ups[i].clone().lerp(ups[n],t).normalize(),K=curvatures[i].clone().lerp(curvatures[n],t);let bank=0;
+ if(s>=marks.turnStart&&s<=marks.turnEnd){const local=(s-marks.turnStart)/(marks.turnEnd-marks.turnStart)*turnLength;bank=Math.atan(Math.tan(bankMax)*turnCurvature(local)/.05);}
+ // For a +z turn, rotating up about the forward tangent banks inward.
+ U.applyAxisAngle(T,bank);U.addScaledVector(T,-U.dot(T)).normalize();const R=U.clone().cross(T).normalize();const element=merged.find(e=>s>=e.start&&s<e.end)?.name||'Station';return {p,t:T,u:U,r:R,k:K,element,s};}
+ return {length,elements:merged,marks,get,center:V(turnX*.48,14,turnZ*.48),extent:turnX+100};
+}
+function felt(s,v){const f=track.get(s),force=f.k.clone().multiplyScalar(v*v).addScaledVector(Y,settings.gravity);return {vertical:force.dot(f.u)/settings.gravity,lateral:force.dot(f.r)/settings.gravity};}
+function energy(){const mass=settings.cars*500;return {kinetic:.5*mass*state.v**2,potential:mass*settings.gravity*track.get(state.s).p.y,dissipated:state.dissipated};}
+function resetSimulation(clearResult=true){state={s:INITIAL_S,v:0,phase:'station',dissipated:0};elapsed=0;accumulator=0;record=null;rollbackElement=null;if(clearResult)lastRide=null;updateReadout();}
+function dispatch(){if(state.phase!=='station')return;autoPending=false;elapsed=0;rollbackElement=null;state.s=INITIAL_S;state.v=settings.chainSpeed;state.phase='lift';state.dissipated=0;record={maxSpeed:0,maxG:1,minG:1,speedAtDropBottom:null,speedAtLoopTop:null,gAtLoopTop:null,speedAtHillCrest:null,gAtHillCrest:null,maxLateralGInTurn:0,rideTime:0,completed:false,rollbackElement:null};}
+function forces(s,v){const f=track.get(s),g=settings.gravity,m=settings.cars*500,gravity=-g*f.t.y;const normal=f.k.clone().multiplyScalar(v*v).addScaledVector(Y,g).addScaledVector(f.t,-g*f.t.y).length();const roll=settings.friction?.015*normal:0,drag=settings.drag?.5*1.225*.9*1.5*v*v/m:0;const direction=Math.abs(v)>1e-5?Math.sign(v):Math.sign(gravity);let a=gravity-direction*(roll+drag);if(Math.abs(v)<1e-5&&Math.abs(gravity)<roll)a=0;
+ // Brake force is feedback on stopping distance. Gravity and passive resistance
+ // are already included, so friction cannot make the controller stop short.
+ if(!rollbackElement&&s>=track.marks.turnEnd){const remaining=track.length+INITIAL_S-s;const braking=Math.min(3.2,Math.max(0,v*v/(2*Math.max(.02,remaining))+a));a-=Math.sign(v)*braking;}
+ return {a,loss:(roll+drag)*m*Math.abs(v)};}
+function finalize(completed){if(!record)return;lastRide={...record,rideTime:elapsed,completed,rollbackElement:completed?null:rollbackElement};record=null;}
+function physicsStep(dt){
+ if(state.phase==='station'){if(autoPending){autoTime+=dt;if(autoTime+1e-10>=1)dispatch();}return;}
+ elapsed+=dt;const oldS=state.s,oldV=state.v;
+ if(state.phase==='lift'){
+   state.v=settings.chainSpeed;const chainedDt=Math.min(dt,Math.max(0,(track.marks.release-state.s)/state.v));state.dissipated+=forces(state.s+state.v*chainedDt/2,state.v).loss*chainedDt;state.s+=state.v*dt;
+   // Resolve the release within a step, rather than moving the crest or changing release speed.
+   if(state.s>=track.marks.release){const freeDt=(state.s-track.marks.release)/state.v;state.s=track.marks.release;state.phase='free';if(freeDt>0){const f=forces(state.s,state.v);state.s+=state.v*freeDt+.5*f.a*freeDt*freeDt;state.v+=f.a*freeDt;state.dissipated+=f.loss*freeDt;}}
+ }else{
+   const a0=forces(state.s,state.v),midS=state.s+state.v*dt/2,midV=state.v+a0.a*dt/2,mid=forces(midS,midV);
+   state.s+=midV*dt;state.v+=mid.a*dt;state.dissipated+=mid.loss*dt;
+   if(!rollbackElement&&oldV>0&&state.v<=0&&oldS<track.marks.turnEnd){rollbackElement=track.get(state.s).element;state.phase='rollback';}
+   if(!rollbackElement&&state.s>=track.marks.turnEnd)state.phase='brake';
+   if(!rollbackElement&&(state.s>=track.length+INITIAL_S||((track.length+INITIAL_S-state.s)<.05&&Math.abs(state.v)<.7))){state.s=track.length+INITIAL_S;state.v=0;state.phase='station';}
+ }
+ const g=felt(state.s,state.v);if(record){record.maxSpeed=Math.max(record.maxSpeed,Math.abs(state.v));record.maxG=Math.max(record.maxG,g.vertical);record.minG=Math.min(record.minG,g.vertical);record.rideTime=elapsed;
+   for(const [mark,speedKey,gKey] of [['dropBottom','speedAtDropBottom',null],['loopTop','speedAtLoopTop','gAtLoopTop'],['hillCrest','speedAtHillCrest','gAtHillCrest']]){const s=track.marks[mark];if(oldS<=s&&state.s>=s&&record[speedKey]===null){const v=THREE.MathUtils.lerp(oldV,state.v,(s-oldS)/Math.max(1e-9,state.s-oldS));record[speedKey]=v;if(gKey)record[gKey]=felt(s,v).vertical;}}
+   if(track.get(state.s).element==='Banked turn')record.maxLateralGInTurn=Math.max(record.maxLateralGInTurn,Math.abs(g.lateral));
+   if(state.phase==='station')finalize(true);else if(rollbackElement)finalize(false);
+ }
+}
+window.coasterState=()=>{const f=track.get(state.s),g=felt(state.s,state.v);return {train:{phase:state.phase,element:f.element,distance:f.s,speed:state.v,height:f.p.y,gVertical:g.vertical,gLateral:g.lateral},energy:energy(),track:{length:track.length,elements:track.elements.map(e=>({...e}))},lastRide:lastRide?{...lastRide}:null,settings:{...settings,paused,simulationSpeed:timeScale,camera:cameraMode}};};
+function updateReadout(){if(!track||!state)return;const f=track.get(state.s),g=felt(state.s,state.v),e=energy(),total=e.kinetic+e.potential+e.dissipated,scale=settings.cars*500*settings.gravity*Math.max(50,settings.liftHeight)+settings.cars*250*settings.chainSpeed**2;
+ $('speed').textContent=Math.abs(state.v).toFixed(1);$('kmh').textContent=(Math.abs(state.v)*3.6).toFixed(1);$('height').textContent=f.p.y.toFixed(1);$('gVertical').textContent=g.vertical.toFixed(2);$('gLateral').textContent=g.lateral.toFixed(2);$('rideClock').textContent=elapsed.toFixed(1);$('gVertical').style.color=g.vertical<0?'#ffb18c':g.vertical>4?'#ffc46f':'#eef2ed';
+ for(const [key,bar] of [['kinetic','barK'],['potential','barP'],['dissipated','barD']]){$(key).textContent=(e[key]/1000).toFixed(1)+' kJ';$(bar).style.width=clamp(e[key]/scale*100,0,100)+'%';}$('energyTotal').textContent=(total/1000).toFixed(1)+' kJ';
+ $('status').textContent=paused?'Paused':rollbackElement?'Rollback':state.phase==='station'?(lastRide?.completed?'Back in station':'Awaiting dispatch'):state.phase==='lift'?'Chain engaged':state.phase==='brake'?'Braking':'Free running';$('statusDot').style.background=rollbackElement?'#ff9763':'#b1d8a2';$('element').textContent=rollbackElement?`Rollback at ${rollbackElement} · ${f.element}`:autoPending?'Station · automatic dispatch at 1 s':f.element;$('dispatch').disabled=state.phase!=='station';
+ $('lastRide').style.display=lastRide?'block':'none';if(lastRide){$('rideResult').textContent=lastRide.completed?'Completed · Station':`Rollback · ${lastRide.rollbackElement}`;$('resultSpeed').textContent=lastRide.maxSpeed.toFixed(1)+' m/s';$('resultTime').textContent=lastRide.rideTime.toFixed(1)+' s';$('resultMaxG').textContent=lastRide.maxG.toFixed(2)+' g';$('resultMinG').textContent=lastRide.minG.toFixed(2)+' g';}
+}
+// RENDERING is added below; the solver and renderer only share the continuous track.
+const scene=new THREE.Scene();scene.background=new THREE.Color('#c9d4ca');scene.fog=new THREE.Fog('#c9d4ca',270,1000);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;$('app').append(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(53,innerWidth/innerHeight,.08,1600);camera.position.set(-28,20,22);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.07;orbit.maxPolarAngle=Math.PI*.475;orbit.minDistance=12;orbit.maxDistance=650;orbit.enabled=false;
+scene.add(new THREE.HemisphereLight('#e3eee9','#526849',2.5));
+const sun=new THREE.DirectionalLight('#fff0d0',3.5);sun.position.set(65,150,-90);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=1;sun.shadow.camera.far=650;sun.shadow.camera.left=-245;sun.shadow.camera.right=245;sun.shadow.camera.top=180;sun.shadow.camera.bottom=-180;sun.shadow.normalBias=.13;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun,sun.target);
+const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment(),env=pmrem.fromScene(room,.04);scene.environment=env.texture;room.dispose();pmrem.dispose();
+const mat=(color,metalness=0,roughness=.65)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
+const materials={rail:mat('#e8784c',.65,.32),tie:mat('#344e49',.6,.48),support:mat('#d6d8bd',.3,.64),base:mat('#a8aa94'),car:mat('#174e4e',.55,.3),accent:mat('#f68d53',.4,.36),seat:mat('#263632',.1,.83),metal:mat('#c1c9b7',.8,.3),rubber:mat('#202e2b',.15,.6),ground:mat('#7b9478'),path:mat('#c8c4aa'),roof:mat('#d5d8ba',.5,.52)};
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),materials.ground);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+let trackGroup=null,trainGroup=null,parkGroup=null,cars=[];
+function mesh(geo,material,parent=scene){const m=new THREE.Mesh(geo,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function box(w,h,d,x,y,z,material,parent){const m=mesh(new THREE.BoxGeometry(w,h,d),material,parent);m.position.set(x,y,z);return m;}
+function cylinderBetween(a,b,r,material,parent){const d=b.clone().sub(a),m=mesh(new THREE.CylinderGeometry(r,r,d.length(),7),material,parent);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(Y,d.normalize());return m;}
+function disposeGroup(group){if(!group)return;scene.remove(group);const geometries=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);});geometries.forEach(g=>g.dispose());}
+const frameMatrix=f=>new THREE.Matrix4().makeBasis(f.r,f.u,f.t);
+class RailCurve extends THREE.Curve{constructor(side,down=0){super();this.side=side;this.down=down;}getPoint(t,target=new THREE.Vector3()){const f=track.get(t*track.length);return target.copy(f.p).addScaledVector(f.r,this.side).addScaledVector(f.u,this.down);}}
+function buildTrackVisual(){disposeGroup(trackGroup);trackGroup=new THREE.Group();scene.add(trackGroup);
+ for(const side of [-.59,.59])mesh(new THREE.TubeGeometry(new RailCurve(side),Math.ceil(track.length/.38),.075,8,true),materials.rail,trackGroup);
+ mesh(new THREE.TubeGeometry(new RailCurve(0,-.46),Math.ceil(track.length/.5),.115,7,true),materials.tie,trackGroup);
+ const tieCount=Math.floor(track.length/1.45),ties=new THREE.InstancedMesh(new THREE.BoxGeometry(1.62,.12,.18),materials.tie,tieCount);ties.castShadow=true;ties.receiveShadow=true;
+ const dummy=new THREE.Object3D();
+ for(let i=0;i<tieCount;i++){const f=track.get(i*track.length/tieCount);dummy.position.copy(f.p).addScaledVector(f.u,-.12);dummy.quaternion.setFromRotationMatrix(frameMatrix(f));dummy.scale.set(1,1,1);dummy.updateMatrix();ties.setMatrixAt(i,dummy.matrix);}trackGroup.add(ties);
+ const count=Math.floor(track.length/11),supports=new THREE.InstancedMesh(new THREE.CylinderGeometry(.145,.19,1,7),materials.support,count*2),feet=new THREE.InstancedMesh(new THREE.BoxGeometry(1.1,.27,1.1),materials.base,count*2);supports.castShadow=true;supports.receiveShadow=true;feet.receiveShadow=true;
+ for(let i=0;i<count;i++){const f=track.get(i*track.length/count);for(let j=0;j<2;j++){const top=f.p.clone().addScaledVector(f.r,j?1.6:-1.6).addScaledVector(f.u,-.55);top.y=Math.max(.7,top.y);const bottom=V(top.x,.17,top.z),d=top.clone().sub(bottom);dummy.position.copy(top).add(bottom).multiplyScalar(.5);dummy.quaternion.setFromUnitVectors(Y,d.clone().normalize());dummy.scale.set(1,d.length(),1);dummy.updateMatrix();supports.setMatrixAt(2*i+j,dummy.matrix);dummy.position.copy(bottom);dummy.quaternion.identity();dummy.scale.set(1,1,1);dummy.updateMatrix();feet.setMatrixAt(2*i+j,dummy.matrix);}cylinderBetween(f.p.clone().addScaledVector(f.r,-1.65).addScaledVector(f.u,-.55),f.p.clone().addScaledVector(f.r,1.65).addScaledVector(f.u,-.55),.12,materials.support,trackGroup);}
+ trackGroup.add(supports,feet);
+ // The lift chain is a separate dark guide beneath the train.
+ const lift=track.elements.find(e=>e.name==='Chain lift');for(let s=lift.start;s<lift.end;s+=.5){const f=track.get(s);box(.16,.07,.24,0,0,0,materials.metal,trackGroup).position.copy(f.p).addScaledVector(f.u,-.02);}
+}
+function buildTrain(){disposeGroup(trainGroup);trainGroup=new THREE.Group();scene.add(trainGroup);cars=[];
+ const skin=[mat('#d09c75'),mat('#9a684f'),mat('#e6ba95'),mat('#bb896b')],shirts=[mat('#e5be77'),mat('#a7c5b9'),mat('#cf7956'),mat('#e0e1ce')],hair=mat('#35392e');
+ for(let i=0;i<settings.cars;i++){const car=new THREE.Group();trainGroup.add(car);cars.push(car);
+   box(1.53,.43,2.65,0,.56,0,materials.car,car);box(1.58,.13,2.7,0,.78,0,materials.accent,car);box(1.53,.25,.18,0,.94,1.22,materials.car,car);box(1.53,.27,.18,0,1,-1.21,materials.car,car);
+   for(const x of [-.64,.64]){box(.1,.34,2.45,x,.94,0,materials.car,car);for(const z of [-.9,.9]){for(const y of [.15,-.16]){const wheel=mesh(new THREE.CylinderGeometry(.16,.16,.14,12),materials.rubber,car);wheel.rotation.z=Math.PI/2;wheel.position.set(x,y,z);}const side=mesh(new THREE.CylinderGeometry(.11,.11,.13,10),materials.rubber,car);side.position.set(Math.sign(x)*.77,0,z);}}
+   for(let row=0;row<2;row++)for(let seat=0;seat<2;seat++){const x=seat? .35:-.35,z=row?-.52:.52;box(.58,.13,.6,x,.96,z,materials.seat,car);box(.57,.66,.13,x,1.28,z-.28,materials.seat,car);const idx=(i*4+row*2+seat)%4;
+     const torso=mesh(new THREE.CapsuleGeometry(.16,.33,3,7),shirts[idx],car);torso.position.set(x,1.43,z-.035);
+     const head=mesh(new THREE.SphereGeometry(.145,10,8),skin[idx],car);head.position.set(x,1.85,z-.025);
+     const cap=mesh(new THREE.SphereGeometry(.15,10,6,0,Math.PI*2,0,Math.PI*.48),hair,car);cap.position.set(x,1.89,z-.025);
+     for(const side of [-1,1]){cylinderBetween(V(x+side*.11,1.36,z+.05),V(x+side*.12,1.05,z+.34),.068,shirts[idx],car);cylinderBetween(V(x+side*.12,1.05,z+.34),V(x+side*.12,.86,z+.57),.06,materials.seat,car);cylinderBetween(V(x+side*.19,1.57,z-.08),V(x+side*.19,1.17,z+.21),.035,materials.metal,car);}cylinderBetween(V(x-.19,1.17,z+.21),V(x+.19,1.17,z+.21),.036,materials.accent,car);
+   }
+   box(.12,.13,.65,0,.3,-1.55,materials.metal,car);
+ }
+}
+function buildPark(){disposeGroup(parkGroup);parkGroup=new THREE.Group();scene.add(parkGroup);const center=track.center;
+ const plaza=mesh(new THREE.CircleGeometry(35,64),materials.path,parkGroup);plaza.rotation.x=-Math.PI/2;plaza.position.set(6,.025,-6);
+ box(28,.65,8.4,10,1.45,-1.4,materials.base,parkGroup);box(26,.08,3.1,11,1.82,-3.9,materials.path,parkGroup);
+ for(let x=0;x<=24;x+=6){box(.17,4.7,.17,x,4,-5.1,materials.tie,parkGroup);box(.17,4.7,.17,x,4,-.8,materials.tie,parkGroup);box(.12,.12,4.5,x,6.2,-3,materials.support,parkGroup);}
+ const roof=box(27,.2,5,12,6.5,-3.1,materials.roof,parkGroup);roof.rotation.x=-.08;
+ for(let x=-3;x<29;x+=3){box(.08,1,.08,x,2.3,-5.7,materials.tie,parkGroup);}box(34,.08,.08,13,2.8,-5.7,materials.support,parkGroup);
+ // Paths, clipped shrubs, and trees are all generated geometry. No asset fetches.
+ const path=mesh(new THREE.PlaneGeometry(track.extent+70,5),materials.path,parkGroup);path.rotation.x=-Math.PI/2;path.position.set(center.x,.04,-17);
+ const trunkMat=mat('#72614a'),leaves=[mat('#536c47'),mat('#617f53'),mat('#708a57')];
+ const treeGeo=new THREE.IcosahedronGeometry(1,1),trunkGeo=new THREE.CylinderGeometry(.23,.36,4,6);
+ for(let i=0;i<110;i++){const a=i*2.3999632297,r=60+(i%13)*5.4,x=center.x+Math.cos(a)*r*1.65,z=center.z+Math.sin(a)*r;if(z>-10&&z<82&&x>-65&&x<track.extent-40)continue;const size=2.2+(i%7)*.34;const trunk=mesh(trunkGeo,trunkMat,parkGroup);trunk.position.set(x,2,z);const crown=mesh(treeGeo,leaves[i%3],parkGroup);crown.position.set(x,5,z);crown.scale.set(size,size*1.4,size);}
+ for(let i=0;i<30;i++){const shrub=mesh(new THREE.IcosahedronGeometry(1.1,1),leaves[i%3],parkGroup);shrub.position.set(-28+i*11,.7,-23);shrub.scale.set(1.5,.8,1);}
+ for(let i=0;i<7;i++){const x=-8+i*9;box(2,.13,.58,x,.75,-11,materials.roof,parkGroup);box(2,.5,.1,x,1,-11.3,materials.tie,parkGroup);box(.1,.65,.5,x-.8,.36,-11,materials.tie,parkGroup);box(.1,.65,.5,x+.8,.36,-11,materials.tie,parkGroup);}
+ // Low berms give the horizon depth without obscuring the coaster.
+ const hillMat=mat('#7d9273');for(let i=0;i<11;i++){const hill=mesh(new THREE.SphereGeometry(1,20,12),hillMat,parkGroup);hill.position.set(-220+i*65,-18,195+(i%3)*40);hill.scale.set(70,27+(i%4)*7,50);hill.receiveShadow=true;}
+ sun.target.position.copy(center);sun.position.copy(center).add(V(-95,155,-100));
+}
+let cameraSnap=true;
+function updateTrain(){for(let i=0;i<cars.length;i++){const offset=((cars.length-1)/2-i)*SPACING,f=track.get(state.s+offset);cars[i].position.copy(f.p);cars[i].quaternion.setFromRotationMatrix(frameMatrix(f));}}
+function updateCamera(dt){if(cameraMode==='orbit'){orbit.update();return;}const front=(settings.cars-1)/2*SPACING,f=track.get(state.s+(cameraMode==='front'?front:0));let pos,target,up;
+ if(cameraMode==='front'){pos=f.p.clone().addScaledVector(f.u,1.94).addScaledVector(f.t,1.16);target=pos.clone().addScaledVector(f.t,20);up=f.u;}else{pos=f.p.clone().addScaledVector(f.t,-29).addScaledVector(f.r,-12).addScaledVector(Y,15);pos.y=Math.max(pos.y,4);target=f.p.clone().addScaledVector(Y,1.2);up=Y;}
+ const a=cameraSnap||cameraMode==='front'?1:1-Math.exp(-dt*4);camera.position.lerp(pos,a);camera.up.copy(up);camera.lookAt(target);cameraSnap=false;
+}
+function rebuild(trackNeeded){if(trackNeeded){track=buildTrack();buildTrackVisual();buildPark();}buildTrain();autoPending=false;resetSimulation();cameraSnap=true;updateTrain();}
+function changeSetting(id,value){settings[id]=value;$('liftValue').textContent=settings.liftHeight+' m';$('chainValue').textContent=settings.chainSpeed.toFixed(1)+' m/s';$('carsValue').textContent=settings.cars+' '+(settings.cars===1?'car':'cars');$('gravityValue').textContent=settings.gravity.toFixed(2)+' m/s²';rebuild(id==='liftHeight');}
+for(const id of ['liftHeight','chainSpeed','cars'])$(id).addEventListener('input',e=>changeSetting(id,Number(e.target.value)));
+for(const id of ['friction','drag'])$(id).addEventListener('change',e=>changeSetting(id,e.target.checked));
+document.querySelectorAll('[data-gravity]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-gravity]').forEach(p=>{p.classList.toggle('active',p===b);p.setAttribute('aria-pressed',String(p===b));});changeSetting('gravity',Number(b.dataset.gravity));}));
+function togglePause(){paused=!paused;$('pause').textContent=paused?'▶':'Ⅱ';$('pause').setAttribute('aria-label',paused?'Play':'Pause');accumulator=0;updateReadout();}
+$('dispatch').addEventListener('click',dispatch);$('reset').addEventListener('click',()=>{autoPending=false;resetSimulation();cameraSnap=true;});$('pause').addEventListener('click',togglePause);$('simSpeed').addEventListener('change',e=>{timeScale=Number(e.target.value);accumulator=0;});
+$('cameraMode').addEventListener('change',e=>{cameraMode=e.target.value;orbit.enabled=cameraMode==='orbit';cameraSnap=true;if(orbit.enabled){camera.up.copy(Y);camera.position.copy(track.center).add(V(-105,98,150));orbit.target.copy(track.center);orbit.update();}$('viewHint').textContent=cameraMode==='orbit'?'Orbit camera · drag to explore · scroll to zoom':cameraMode==='front'?'Front seat · the rider’s frame of reference':'Chase camera · follow the forces';});
+window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea,button')||e.repeat)return;if(e.code==='Space'){e.preventDefault();togglePause();}else if(e.code==='KeyD')dispatch();else if(e.code==='KeyR'){autoPending=false;resetSimulation();cameraSnap=true;}});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+document.addEventListener('visibilitychange',()=>{accumulator=0;previous=performance.now();});
+let previous=performance.now(),uiTimer=0;
+try{track=buildTrack();buildTrackVisual();buildTrain();buildPark();resetSimulation();updateTrain();updateCamera(0);$('loading').remove();
+ renderer.setAnimationLoop(now=>{const realDt=Math.min(.12,Math.max(0,(now-previous)/1000));previous=now;if(!paused){accumulator+=realDt*timeScale;let steps=0;while(accumulator>=DT&&steps<36){physicsStep(DT);accumulator-=DT;steps++;}if(steps===36)accumulator=0;}updateTrain();updateCamera(realDt);uiTimer+=realDt;if(uiTimer>.07){updateReadout();uiTimer=0;}renderer.render(scene,camera);});
+}catch(e){$('loading')?.remove();$('error').style.display='block';$('error').textContent='Unable to initialize the 3D experiment: '+e.message;console.error(e);}
+</script>
+</body>
+</html>
