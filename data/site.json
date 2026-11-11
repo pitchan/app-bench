@@ -1,5 +1,5 @@
 {
- "genereLe": "2026-11-10",
+ "genereLe": "2026-11-11",
  "essais": [
   {
    "id": "bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2",
@@ -232,73 +232,96 @@
    "vignette": "vignettes/foucault-pendulum-3d/2026-11-05-codex-gpt-6-luna.webp"
   },
   {
-   "id": "rube-goldberg-3d/2026-11-10-cc-claude-fable-5-2",
+   "id": "rube-goldberg-3d/2026-11-11-cc-claude-fable-5-2",
    "epreuve": "rube-goldberg-3d",
    "modele": "claude-fable-5-2",
    "modeleNom": "Claude Fable 5.2",
    "outil": "Claude Code",
    "effort": "medium",
-   "date": "2026-11-10",
-   "dureeMs": 2979132,
-   "coutUsd": 8.7308755,
-   "jetonsTotal": 1212622,
-   "jetonsSortie": 269423,
-   "tours": 9,
+   "date": "2026-11-11",
+   "dureeMs": 1910128,
+   "coutUsd": 5.8638044,
+   "jetonsTotal": 3999143,
+   "jetonsSortie": 171268,
+   "tours": 24,
    "verifie": true,
    "repartition": {
-    "contexte": 18.5,
+    "contexte": 38.4,
     "plan": 0,
-    "implementation": 81.5,
-    "verification": 0
+    "implementation": 18.6,
+    "verification": 43
    },
-   "app": "apps/rube-goldberg-3d/2026-11-10-cc-claude-fable-5-2/index.html",
-   "vignette": "vignettes/rube-goldberg-3d/2026-11-10-cc-claude-fable-5-2.webp"
+   "app": "apps/rube-goldberg-3d/2026-11-11-cc-claude-fable-5-2/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-cc-claude-fable-5-2.webp"
   },
   {
-   "id": "rube-goldberg-3d/2026-11-10-codex-gpt-6-1-sol-2",
+   "id": "rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5",
+   "epreuve": "rube-goldberg-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-11",
+   "dureeMs": 3968638,
+   "coutUsd": 8.0865032,
+   "jetonsTotal": 2560399,
+   "jetonsSortie": 295966,
+   "tours": 18,
+   "verifie": true,
+   "repartition": {
+    "contexte": 11.8,
+    "plan": 2.7,
+    "implementation": 67.6,
+    "verification": 17.9
+   },
+   "app": "apps/rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5.webp"
+  },
+  {
+   "id": "rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol",
    "epreuve": "rube-goldberg-3d",
    "modele": "gpt-6.1-sol",
    "modeleNom": "GPT-6.1 Sol",
    "outil": "Codex",
    "effort": "medium",
-   "date": "2026-11-10",
-   "dureeMs": 502035,
+   "date": "2026-11-11",
+   "dureeMs": 1218638,
    "coutUsd": null,
-   "jetonsTotal": 111283,
-   "jetonsSortie": 21118,
+   "jetonsTotal": 730911,
+   "jetonsSortie": 51135,
    "tours": null,
    "verifie": true,
    "repartition": {
-    "contexte": 68.6,
-    "plan": 0,
-    "implementation": 19.2,
-    "verification": 12.2
+    "contexte": 20.4,
+    "plan": 3.6,
+    "implementation": 35.2,
+    "verification": 40.8
    },
-   "app": "apps/rube-goldberg-3d/2026-11-10-codex-gpt-6-1-sol-2/index.html",
-   "vignette": "vignettes/rube-goldberg-3d/2026-11-10-codex-gpt-6-1-sol-2.webp"
+   "app": "apps/rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol.webp"
   },
   {
-   "id": "rube-goldberg-3d/2026-11-10-codex-gpt-6-luna-2",
+   "id": "rube-goldberg-3d/2026-11-11-codex-gpt-6-luna",
    "epreuve": "rube-goldberg-3d",
    "modele": "gpt-6-luna",
    "modeleNom": "GPT-6 Luna",
    "outil": "Codex",
    "effort": "medium",
-   "date": "2026-11-10",
-   "dureeMs": 315652,
+   "date": "2026-11-11",
+   "dureeMs": 152878,
    "coutUsd": null,
-   "jetonsTotal": 80053,
-   "jetonsSortie": 16757,
+   "jetonsTotal": 95914,
+   "jetonsSortie": 7378,
    "tours": null,
    "verifie": true,
    "repartition": {
     "contexte": 0,
     "plan": 0,
-    "implementation": 100,
-    "verification": 0
+    "implementation": 80.2,
+    "verification": 19.8
    },
-   "app": "apps/rube-goldberg-3d/2026-11-10-codex-gpt-6-luna-2/index.html",
-   "vignette": "vignettes/rube-goldberg-3d/2026-11-10-codex-gpt-6-luna-2.webp"
+   "app": "apps/rube-goldberg-3d/2026-11-11-codex-gpt-6-luna/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-codex-gpt-6-luna.webp"
   }
  ],
  "epreuves": [
@@ -323,8 +346,8 @@
   {
    "slug": "rube-goldberg-3d",
    "titre": "Rube Goldberg 3D",
-   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D Rube Goldberg machine: a chain reaction where each stage triggers the next one only through physical contact, simulated by a real 3D rigid-body engine. The chain has nine stages in a fixed order. Eight are specified below; the ninth is your own invention. Theme the machine and the room freely.\n\nThis is a simulation, not a scripted animation. If a physical parameter makes a stage fail, the chain must stop there, and the page must say which stage failed.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a compact control bar, and a stage checklist.\n\n- The machine fits on a large workbench or a room floor, about 4 m long. Stages are laid out so every one is visible from the overview camera.\n- The default run starts by itself one second after the page loads. Do not require a click before the chain starts.\n- When the bell rings, the page shows the total chain time in simulation seconds and holds on the finished machine.\n- Replay rebuilds a fresh run from the current settings. The first automatic run must use the mandatory defaults exactly.\n</core-experience>\n\n<mandatory-chain>\nThe stages run in this order. Each stage starts only when a body from the previous stage touches it. No timers, no scripted triggers, no teleporting bodies between stages.\n\n1. Release gate: a steel ball rests behind a gate at the top of a ramp. The gate swings open at t = 1 s. This is the only timed event in the whole machine.\n2. Switchback ramps: the ball rolls down a first ramp, then down three more ramps that zigzag downward, each one reversing the ball's horizontal direction. The ball must stay on the ramps by contact with side rails, not by a guiding constraint.\n3. Dominoes: the ball leaves the last ramp and hits the first of 24 dominoes. The domino line includes one 90° turn. Each domino falls because the previous one hits it.\n4. Lever: the last domino pushes a heavy block off a shelf. The block falls onto the short arm of a seesaw lever. The long arm flips up and launches a light ball.\n5. Pulley: the light ball lands in a basket hanging from a rope that runs over a fixed pulley to a counterweight. At rest, the counterweight sits on the floor, which holds the empty basket up. The loaded basket is heavier than the counterweight, so the basket goes down and the counterweight lifts off the floor. The rope keeps a constant length.\n6. Pendulum: the descending basket presses a latch that releases a pendulum held at 60° from vertical.\n7. Newton's cradle: the pendulum bob strikes the first ball of a five-ball Newton's cradle. The last ball of the cradle swings out.\n8. Your stage: the last cradle ball triggers one stage of your own invention. It must be physical, visible, and different from every other stage in this list (no second set of dominoes, no second pendulum). It must end by touching the bell's striker.\n9. Bell: a striker hits a bell. The bell rings with a sound generated by the Web Audio API, and the chain is complete.\n</mandatory-chain>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation runs the same baseline machine.\n\n- Gravity: 9.81 m/s²\n- Steel ball: radius 0.03 m, mass 0.11 kg\n- Ramp slope: 20°\n- Domino size: 0.20 m tall × 0.10 m wide × 0.03 m thick\n- Domino mass: 0.15 kg\n- Domino spacing (center to center): 0.12 m\n- Heavy block on the shelf: 1.0 kg\n- Lever: total length 1.0 m, pivot 0.25 m from the short end\n- Light ball launched by the lever: 0.05 kg\n- Empty basket: 0.20 kg\n- Counterweight: 0.22 kg\n- Pendulum: length 1.0 m, bob mass 0.5 kg, released from 60°\n- Newton's cradle: 5 steel balls, radius 0.025 m, restitution 0.95\n- Friction between ball and ramps: 0.3\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next run when the user hits Replay or Apply. If a control is on screen, it is wired.\n\nRequired live controls:\n\n- gravity\n- domino spacing\n- domino mass\n- counterweight mass\n- pendulum length and release angle\n- lever pivot position\n- Newton's cradle restitution\n\nThese settings must produce physical consequences, not scripted ones:\n\n- A gap between two dominoes (spacing minus thickness) larger than the domino height: the domino line stops.\n- Counterweight heavier than the loaded basket: the basket does not go down.\n- Changing the pendulum length moves its pivot so the bob still meets the cradle at the bottom of its arc. A longer pendulum takes longer to reach the cradle.\n- Lower cradle restitution: the cradle transfers less motion, and the chain may stop.\n</settings>\n\n<stage-checklist>\nShow a compact list of the nine stages. Each stage lights up when it triggers, with its trigger time in simulation seconds.\n\nIf no stage triggers for 8 simulation seconds after the previous one, mark the waiting stage as failed and show a short message naming it.\n\nShow these measured values, read from the simulated bodies, not computed from a formula:\n\n- the basket's acceleration during its descent, in m/s²\n- the pendulum's swing time, in seconds, from its release to its impact on the cradle\n</stage-checklist>\n\n<playback-and-camera>\n- Pause / Play, freezing physics and the clock. Space toggles pause unless an input is focused.\n- Simulation speed: 0.25×, 0.5×, 1×. The selected speed survives Replay.\n- Cameras: Overview (whole machine), Follow (moves automatically to the active stage), Orbit (drag to orbit). Default is Follow. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: metal balls with reflections, wood dominoes, rope, a brass bell.\n- A shadow map on the main light; all moving bodies cast and receive shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- Give the room and the machine a coherent theme of your choice. Decorations must not touch the chain.\n</rendering>\n\n<physics>\n- Use a real 3D rigid-body engine loaded from a CDN, such as Rapier, cannon-es, or ammo.js.\n- Fixed physics timestep with a cap on steps per frame.\n- No Math.random in the physical setup or the collision response.\n- The same settings produce the same chain on reload and on Replay.\n- Slow motion changes the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.machineState()`. It returns a plain JSON object with:\n\n- `stages`: an array of nine objects `{ id, name, status, triggeredAt }`, where `status` is `waiting`, `triggered`, or `failed` and `triggeredAt` is a simulation time in seconds or `null`\n- `basketAcceleration`: the measured value in m/s², or `null`\n- `pendulumSwingTime`: the measured value in seconds, or `null`\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nWrite the finished page in one shot.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the simulation to visually test it.\n- Do not iterate after a preview.\n- Reason through the layout, the stage-to-stage contacts, the masses, and the settings wiring once, then write the complete file.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js and the physics engine may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nDo not edit files outside the current working directory.",
-   "essais": 3
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D Rube Goldberg machine: a chain reaction where each stage triggers the next one only through physical contact, simulated by a real 3D rigid-body engine. The chain has nine stages in a fixed order. Eight are specified below; the ninth is your own invention. Theme the machine and the room freely.\n\nThis is a simulation, not a scripted animation. If a physical parameter makes a stage fail, the chain must stop there, and the page must say which stage failed.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a compact control bar, and a stage checklist.\n\n- The machine fits on a large workbench or a room floor, about 4 m long. Stages are laid out so every one is visible from the overview camera.\n- The default run starts by itself one second after the page loads. Do not require a click before the chain starts.\n- When the bell rings, the page shows the total chain time in simulation seconds and holds on the finished machine.\n- Replay rebuilds a fresh run from the current settings. The first automatic run must use the mandatory defaults exactly.\n</core-experience>\n\n<mandatory-chain>\nThe stages run in this order. Each stage starts only when a body from the previous stage touches it. No timers, no scripted triggers, no teleporting bodies between stages.\n\n1. Release gate: a steel ball rests behind a gate at the top of a ramp. The gate swings open at t = 1 s. This is the only timed event in the whole machine.\n2. Switchback ramps: the ball rolls down a first ramp, then down three more ramps that zigzag downward, each one reversing the ball's horizontal direction. The ball must stay on the ramps by contact with side rails, not by a guiding constraint.\n3. Dominoes: the ball leaves the last ramp and hits the first of 24 dominoes. The domino line includes one 90° turn. Each domino falls because the previous one hits it.\n4. Lever: the last domino pushes a heavy block off a shelf. The block falls onto the short arm of a seesaw lever. The long arm flips up and launches a light ball.\n5. Pulley: the light ball lands in a basket hanging from a rope that runs over a fixed pulley to a counterweight. At rest, the counterweight sits on the floor, which holds the empty basket up. The loaded basket is heavier than the counterweight, so the basket goes down and the counterweight lifts off the floor. The rope keeps a constant length.\n6. Pendulum: the descending basket presses a latch that releases a pendulum held at 60° from vertical.\n7. Newton's cradle: the pendulum bob strikes the first ball of a five-ball Newton's cradle. The last ball of the cradle swings out.\n8. Your stage: the last cradle ball triggers one stage of your own invention. It must be physical, visible, and different from every other stage in this list (no second set of dominoes, no second pendulum). It must end by touching the bell's striker.\n9. Bell: a striker hits a bell. The bell rings with a sound generated by the Web Audio API, and the chain is complete.\n</mandatory-chain>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation runs the same baseline machine.\n\n- Gravity: 9.81 m/s²\n- Steel ball: radius 0.03 m, mass 0.11 kg\n- Ramp slope: 20°\n- Domino size: 0.20 m tall × 0.10 m wide × 0.03 m thick\n- Domino mass: 0.15 kg\n- Domino spacing (center to center): 0.12 m\n- Heavy block on the shelf: 1.0 kg\n- Lever: total length 1.0 m, pivot 0.25 m from the short end\n- Light ball launched by the lever: 0.05 kg\n- Empty basket: 0.20 kg\n- Counterweight: 0.22 kg\n- Pendulum: length 1.0 m, bob mass 0.5 kg, released from 60°\n- Newton's cradle: 5 steel balls, radius 0.025 m, restitution 0.95\n- Friction between ball and ramps: 0.3\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next run when the user hits Replay or Apply. If a control is on screen, it is wired.\n\nRequired live controls:\n\n- gravity\n- domino spacing\n- domino mass\n- counterweight mass\n- pendulum length and release angle\n- lever pivot position\n- Newton's cradle restitution\n\nThese settings must produce physical consequences, not scripted ones:\n\n- A gap between two dominoes (spacing minus thickness) larger than the domino height: the domino line stops.\n- Counterweight heavier than the loaded basket: the basket does not go down.\n- Changing the pendulum length moves its pivot so the bob still meets the cradle at the bottom of its arc. A longer pendulum takes longer to reach the cradle.\n- Lower cradle restitution: the cradle transfers less motion, and the chain may stop.\n</settings>\n\n<stage-checklist>\nShow a compact list of the nine stages. Each stage lights up when it triggers, with its trigger time in simulation seconds.\n\nIf no stage triggers for 8 simulation seconds after the previous one, mark the waiting stage as failed and show a short message naming it.\n\nShow these measured values, read from the simulated bodies, not computed from a formula:\n\n- the basket's acceleration during its descent, in m/s²\n- the pendulum's swing time, in seconds, from its release to its impact on the cradle\n</stage-checklist>\n\n<playback-and-camera>\n- Pause / Play, freezing physics and the clock. Space toggles pause unless an input is focused.\n- Simulation speed: 0.25×, 0.5×, 1×. The selected speed survives Replay.\n- Cameras: Overview (whole machine), Follow (moves automatically to the active stage), Orbit (drag to orbit). Default is Follow. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: metal balls with reflections, wood dominoes, rope, a brass bell.\n- A shadow map on the main light; all moving bodies cast and receive shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- Give the room and the machine a coherent theme of your choice. Decorations must not touch the chain.\n</rendering>\n\n<physics>\n- Use a real 3D rigid-body engine loaded from a CDN, such as Rapier, cannon-es, or ammo.js.\n- Fixed physics timestep with a cap on steps per frame.\n- No Math.random in the physical setup or the collision response.\n- The same settings produce the same chain on reload and on Replay.\n- Slow motion changes the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.machineState()`. It returns a plain JSON object with:\n\n- `stages`: an array of nine objects `{ id, name, status, triggeredAt }`, where `status` is `waiting`, `triggered`, or `failed` and `triggeredAt` is a simulation time in seconds or `null`\n- `basketAcceleration`: the measured value in m/s², or `null`\n- `pendulumSwingTime`: the measured value in seconds, or `null`\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the simulation to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js and the physics engine may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 4
   }
  ]
 }

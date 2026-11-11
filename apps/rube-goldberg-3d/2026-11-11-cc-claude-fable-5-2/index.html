@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Fable 5</title>
+<style>
+  :root { --bg: rgba(20, 17, 14, .74); --line: rgba(255, 222, 165, .17); --ink: #f4ebda; --dim: #a79a84; --brass: #e6b85c; --bad: #ff7d68; --ok: #9bd8a0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d0b09; color: var(--ink); font: 13px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .panel { position: fixed; background: var(--bg); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); }
+  #brand { position: fixed; left: 16px; top: 10px; font-size: 15px; font-weight: 650; letter-spacing: .05em; color: var(--brass); text-shadow: 0 1px 6px rgba(0, 0, 0, .8); pointer-events: none; }
+  #checklist { left: 12px; top: 40px; width: 236px; padding: 8px 11px 9px; }
+  #stages { list-style: none; margin: 0; padding: 0; }
+  #stages li { display: grid; grid-template-columns: 20px 1fr auto; gap: 7px; align-items: center; padding: 2.5px 0; color: var(--dim); transition: color .25s; }
+  #stages .n { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-size: 10.5px; font-weight: 600; transition: background .25s, box-shadow .25s; }
+  #stages .t { font-variant-numeric: tabular-nums; font-size: 11.5px; }
+  #stages li.triggered { color: var(--ink); }
+  #stages li.triggered .n { background: var(--brass); border-color: var(--brass); color: #1c1407; box-shadow: 0 0 9px rgba(230, 184, 92, .65); }
+  #stages li.next .n { border-color: var(--brass); color: var(--brass); animation: pulse 1.1s ease-in-out infinite; }
+  #stages li.failed { color: var(--bad); }
+  #stages li.failed .n { background: var(--bad); border-color: var(--bad); color: #2a0c06; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 4px rgba(230, 184, 92, .22); } }
+  #measures { margin: 7px 0 0; padding-top: 7px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 12px; }
+  #measures dt { color: var(--dim); } #measures dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+  #msg { margin-top: 7px; padding: 6px 8px; border-radius: 8px; font-size: 12px; display: none; }
+  #msg.fail { display: block; background: rgba(255, 125, 104, .14); color: #ffb3a6; border: 1px solid rgba(255, 125, 104, .35); }
+  #msg.done { display: block; background: rgba(230, 184, 92, .14); color: #ffe2a8; border: 1px solid rgba(230, 184, 92, .4); }
+  #settings { right: 12px; top: 12px; width: 256px; padding: 10px 12px 12px; max-height: calc(100% - 84px); overflow: auto; }
+  #settings h2 { margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--dim); }
+  .ctl { margin: 8px 0 0; }
+  .ctl label { display: flex; justify-content: space-between; gap: 8px; }
+  .ctl output { font-variant-numeric: tabular-nums; color: var(--brass); }
+  .ctl small { display: block; color: var(--dim); font-size: 11px; min-height: 14px; }
+  .ctl small.warn { color: #ffb38a; }
+  input[type=range] { width: 100%; margin: 3px 0 1px; accent-color: var(--brass); }
+  .row { display: flex; gap: 6px; margin-top: 10px; }
+  .row button { flex: 1; }
+  #pending { margin-top: 6px; font-size: 11px; color: #ffcf8a; min-height: 14px; }
+  button { font: inherit; color: var(--ink); background: rgba(255, 255, 255, .07); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  button:hover { background: rgba(255, 255, 255, .14); }
+  button.on, button.primary { background: var(--brass); border-color: var(--brass); color: #1c1407; font-weight: 600; }
+  #bar { left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 6px 8px; max-width: calc(100% - 16px); }
+  .seg { display: flex; }
+  .seg button { border-radius: 0; margin-left: -1px; }
+  .seg button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 8px 8px 0; }
+  #clock { font-variant-numeric: tabular-nums; min-width: 70px; text-align: center; color: var(--dim); }
+  #banner { left: 50%; top: 14px; transform: translateX(-50%); padding: 9px 18px; font-size: 15px; display: none; text-align: center; max-width: calc(100% - 560px); min-width: 240px; }
+  #banner b { color: var(--brass); font-variant-numeric: tabular-nums; }
+  #banner.fail b { color: var(--bad); }
+  #sound { cursor: pointer; }
+  #fatal { position: fixed; inset: 0; display: none; place-items: center; padding: 24px; text-align: center; color: #ffb3a6; background: #0d0b09; }
+  @media (max-width: 900px) {
+    #settings { display: none; top: auto; bottom: 64px; max-height: 55%; }
+    #settings.open { display: block; }
+    #checklist { width: 200px; font-size: 12px; }
+    #banner { top: auto; bottom: 64px; max-width: calc(100% - 24px); }
+  }
+  @media (min-width: 901px) { #settings.closed { display: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="brand">Claude Fable 5</div>
+
+<aside id="checklist" class="panel" aria-label="Stage checklist">
+  <ol id="stages"></ol>
+  <dl id="measures">
+    <dt>Basket acceleration</dt><dd id="mAcc">—</dd>
+    <dt>Pendulum swing time</dt><dd id="mSwing">—</dd>
+    <dt>Total chain time</dt><dd id="mTotal">—</dd>
+  </dl>
+  <div id="msg" role="status"></div>
+</aside>
+
+<aside id="settings" class="panel" aria-label="Settings">
+  <h2>Settings</h2>
+  <div id="controls"></div>
+  <div class="row">
+    <button id="apply" class="primary" title="Rebuild the machine with these values">Apply &amp; replay</button>
+    <button id="defaults" title="Restore the baseline values">Defaults</button>
+  </div>
+  <div id="pending"></div>
+</aside>
+
+<div id="banner" class="panel" role="status"></div>
+
+<nav id="bar" class="panel" aria-label="Playback and camera">
+  <button id="pause" title="Space">Pause</button>
+  <button id="replay">Replay</button>
+  <div class="seg" id="speeds" role="group" aria-label="Simulation speed">
+    <button data-speed="0.25">0.25×</button><button data-speed="0.5">0.5×</button><button data-speed="1">1×</button>
+  </div>
+  <div class="seg" id="cams" role="group" aria-label="Camera">
+    <button data-cam="overview">Overview</button><button data-cam="follow">Follow</button><button data-cam="orbit">Orbit</button>
+  </div>
+  <span id="clock">t = 0.00 s</span>
+  <button id="sound" title="Browsers keep audio locked until the first click or key press">Sound: locked</button>
+  <button id="toggleSettings">Settings</button>
+</nav>
+<div id="fatal"></div>
+
+<script type="module">
+//<PHYS>
+function createMachine(R, S) {
+  const DT = 1 / 240;
+  const rad = d => d * Math.PI / 180;
+  const qAxis = (x, y, z, a) => { const s = Math.sin(a / 2); return { x: x * s, y: y * s, z: z * s, w: Math.cos(a / 2) }; };
+  const qMul = (a, b) => ({
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
+  });
+  const QI = { x: 0, y: 0, z: 0, w: 1 };
+
+  const world = new R.World({ x: 0, y: -S.gravity, z: 0 });
+  world.timestep = DT;
+  world.numSolverIterations = 8;
+  world.integrationParameters.normalizedPredictionDistance = 0.0005;   // lets the cradle balls sit 1 mm apart and still collide one pair at a time
+  const eq = new R.EventQueue(true);
+
+  const ents = [];
+  const tagOf = new Map();
+
+  function ent(kind, name, p, q, o = {}) {
+    const d = kind === 'dyn' ? R.RigidBodyDesc.dynamic()
+      : kind === 'kin' ? R.RigidBodyDesc.kinematicPositionBased() : R.RigidBodyDesc.fixed();
+    d.setTranslation(p[0], p[1], p[2]);
+    if (q) d.setRotation(q);
+    if (o.noSleep) d.setCanSleep(false);
+    if (o.ccd) d.setCcdEnabled(true);
+    if (o.yOnly) { d.enabledTranslations(false, true, false); d.lockRotations(); }
+    if (o.angDamp) d.setAngularDamping(o.angDamp);
+    if (o.massProps) d.setAdditionalMassProperties(o.massProps.m, o.massProps.c, o.massProps.i, QI);
+    const e = { name, kind, body: world.createRigidBody(d), parts: [], mat: o.mat || 'wood' };
+    ents.push(e);
+    return e;
+  }
+  function col(e, shape, dims, o = {}) {
+    const cd = shape === 'box' ? R.ColliderDesc.cuboid(dims[0], dims[1], dims[2])
+      : shape === 'ball' ? R.ColliderDesc.ball(dims[0]) : R.ColliderDesc.cylinder(dims[1], dims[0]);
+    const p = o.p || [0, 0, 0];
+    cd.setTranslation(p[0], p[1], p[2]);
+    if (o.q) cd.setRotation(o.q);
+    if (o.mass !== undefined) cd.setMass(o.mass);
+    else if (o.density !== undefined) cd.setDensity(o.density);
+    else cd.setDensity(0);
+    cd.setFriction(o.f === undefined ? 0.5 : o.f);
+    cd.setRestitution(o.e === undefined ? 0 : o.e);
+    if (o.fMin) cd.setFrictionCombineRule(R.CoefficientCombineRule.Min);
+    if (o.eMin) cd.setRestitutionCombineRule(R.CoefficientCombineRule.Min);
+    cd.setActiveEvents(R.ActiveEvents.COLLISION_EVENTS);
+    const c = world.createCollider(cd, e.body);
+    tagOf.set(c.handle, o.tag || e.name);
+    if (o.vis !== false) e.parts.push({ shape, dims, p, q: o.q || QI, mat: o.mat || e.mat });
+    return c;
+  }
+  function vis(e, shape, dims, o = {}) {
+    e.parts.push({ shape, dims, p: o.p || [0, 0, 0], q: o.q || QI, mat: o.mat || e.mat });
+  }
+  // Hinge to the world: a fixed base body carries the hinge frame.
+  function hinge(e, anchor, local, axis, baseQ) {
+    const base = ent('fix', e.name + '-base', anchor, baseQ || QI);
+    const jd = R.JointData.revolute({ x: 0, y: 0, z: 0 }, { x: local[0], y: local[1], z: local[2] }, { x: axis[0], y: axis[1], z: axis[2] });
+    world.createImpulseJoint(jd, base.body, e.body, true);
+    return base;
+  }
+
+  // ---------------------------------------------------------------- layout
+  const A = rad(20);                       // ramp slope
+  const sinA = Math.sin(A), cosA = Math.cos(A);
+  const DECK = 0.42, XB = 0.5, ZE = 0.15;
+  const DOM = { t: 0.03, h: 0.20, w: 0.10 };
+  const s = S.dominoSpacing;
+  const NA = 9, NARC = 6, NB = 8;
+  const Rarc = s / (2 * Math.sin(rad(90 / NARC / 2)));
+  const zBlock = ZE - 0.012;
+  const z23 = zBlock - 0.02 - (s - DOM.t) - DOM.t / 2;
+  const zArcEnd = z23 - NB * s;
+  const zA = zArcEnd - Rarc;
+  const xArc0 = XB - Rarc;
+  const d0x = xArc0 - NA * s;
+  const span = 0.555, W = 0.64;
+  const xT = d0x - DOM.t / 2 - 0.07 - span;
+
+  const ground = ent('fix', 'ground', [0, 0, 0], null, { mat: 'table' });
+  col(ground, 'box', [30, 0.5, 30], { p: [0, -0.5, 0], f: 0.6, vis: false, tag: 'table' });
+
+  // ---------------------------------------------------------------- deck (raised shelf for stages 1-3)
+  const deck = ent('fix', 'deck', [0, 0, 0], null, { mat: 'deck' });
+  const slab = (x0, x1, z0, z1) => col(deck, 'box', [(x1 - x0) / 2, 0.02, (z1 - z0) / 2],
+    { p: [(x0 + x1) / 2, DECK - 0.02, (z0 + z1) / 2], f: 0.8 });
+  const xSeam = xArc0 - s / 2, zSeam = zArcEnd + s / 2;
+  slab(xT - 0.08, xSeam, zA - 0.17, zA + 0.17);
+  slab(xSeam, XB + 0.17, zA - 0.17, zSeam);
+  slab(XB - 0.17, XB + 0.17, zSeam, ZE);
+  const legAt = (x, z) => vis(deck, 'box', [0.02, (DECK - 0.04) / 2, 0.02], { p: [x, (DECK - 0.04) / 2, z], mat: 'darkwood' });
+  for (const z of [zA - 0.13, zA + 0.13]) {
+    const n = Math.max(2, Math.round((xSeam - xT) / 0.7) + 1);
+    for (let i = 0; i < n; i++) legAt(xT - 0.04 + (xSeam - xT) * i / (n - 1), z);
+  }
+  legAt(XB + 0.13, zA - 0.13); legAt(XB + 0.13, zA + 0.13);
+  {
+    const n = Math.max(2, Math.round((ZE - zSeam) / 0.7) + 1);
+    for (let i = 0; i < n; i++) for (const x of [XB - 0.13, XB + 0.13]) legAt(x, zSeam + (ZE - 0.14 - zSeam) * i / (n - 1));
+  }
+
+  // ---------------------------------------------------------------- stage 1-2: gate and switchback tower
+  const tower = ent('fix', 'tower', [0, 0, 0], null, { mat: 'ramp' });
+  const TW = (u, y, z) => [xT + u, DECK + y, zA + (z || 0)];
+  const drop = span * Math.tan(A), pitch = drop + 0.07, yLow4 = 0.13;
+  const ramps = [];
+  for (let k = 1; k <= 4; k++) {
+    const yTop = yLow4 + drop + (4 - k) * pitch, yLow = yTop - drop;
+    const right = k % 2 === 0;
+    const uTop = right ? 0 : W, uLow = right ? span : W - span;
+    const n = right ? [sinA, cosA] : [-sinA, cosA];
+    const mid = [(uTop + uLow) / 2, (yTop + yLow) / 2];
+    const q = qAxis(0, 0, 1, right ? -A : A);
+    const hl = span / (2 * cosA);
+    col(tower, 'box', [hl, 0.008, 0.045], { p: TW(mid[0] - n[0] * 0.008, mid[1] - n[1] * 0.008), q, f: 0.3, e: 0.1, tag: 'ramp' + k });
+    for (const z of [-0.04, 0.04])
+      col(tower, 'box', [hl, 0.023, 0.005], { p: TW(mid[0] + n[0] * 0.015, mid[1] + n[1] * 0.015, z), q, f: 0.3, e: 0.1, mat: 'brass', tag: 'rail' });
+    ramps.push({ yTop, yLow, right, uTop, uLow, n });
+  }
+  const wallBox = (u, y0, y1) => col(tower, 'box', [0.006, (y1 - y0) / 2, 0.045], { p: TW(u, (y0 + y1) / 2), f: 0.3, e: 0.2, mat: 'darkwood', tag: 'wall' });
+  wallBox(-0.006, ramps[3].yTop - 0.06, ramps[0].yLow + 0.13);
+  wallBox(W + 0.006, ramps[2].yTop - 0.06, ramps[0].yTop + 0.13);
+  for (let k = 0; k < 3; k++) {            // cheeks that close the drop zone between two ramps
+    const left = k % 2 === 0;
+    const u0 = left ? 0 : W - 0.12, u1 = left ? 0.12 : W;
+    const y0 = ramps[k + 1].yTop - 0.05, y1 = ramps[k].yLow + 0.06;
+    for (const z of [-0.04, 0.04])
+      col(tower, 'box', [(u1 - u0) / 2, (y1 - y0) / 2, 0.005], { p: TW((u0 + u1) / 2, (y0 + y1) / 2, z), f: 0.3, e: 0.1, mat: 'brass', tag: 'rail' });
+  }
+  const towerTop = ramps[0].yTop + 0.16;
+  vis(tower, 'box', [(W + 0.024) / 2, towerTop / 2, 0.006], { p: TW(W / 2, towerTop / 2, -0.057), mat: 'board' });
+  const r1 = ramps[0];
+  const onR1 = (sd, h) => TW(W - sd * cosA + r1.n[0] * h, r1.yTop - sd * sinA + r1.n[1] * h);
+  const RB = 0.03;
+  const steel = ent('dyn', 'steel', onR1(0.05, RB + 0.0002), null, { noSleep: true, ccd: true, mat: 'steel' });
+  col(steel, 'ball', [RB], { mass: 0.11, f: 0.3, e: 0.2 });
+  const gate = ent('kin', 'gate', onR1(0.05 + RB + 0.0045, 0.085), qAxis(0, 0, 1, A), { mat: 'brass' });
+  col(gate, 'box', [0.004, 0.0395, 0.032], { p: [0, -0.0395, 0], f: 0.1 });
+  vis(gate, 'cyl', [0.005, 0.05], { q: qAxis(1, 0, 0, Math.PI / 2), mat: 'steel' });
+
+  // ---------------------------------------------------------------- stage 3: dominoes
+  const doms = [];
+  for (let i = 0; i < 24; i++) {
+    let x, z, psi = 0;
+    if (i <= NA) { x = xArc0 - (NA - i) * s; z = zA; }
+    else if (i <= NA + NARC) { psi = rad(90 / NARC * (i - NA)); x = xArc0 + Rarc * Math.sin(psi); z = zA + Rarc - Rarc * Math.cos(psi); }
+    else { psi = Math.PI / 2; x = XB; z = zArcEnd + (i - NA - NARC) * s; }
+    const e = ent('dyn', 'dom' + i, [x, DECK + DOM.h / 2, z], qAxis(0, 1, 0, -psi), { mat: i % 2 ? 'domA' : 'domB' });
+    col(e, 'box', [DOM.t / 2, DOM.h / 2, DOM.w / 2], { mass: S.dominoMass, f: 0.3, e: 0.02 });
+    doms.push(e);
+  }
+
+  // ---------------------------------------------------------------- stage 4: block and lever
+  const block = ent('dyn', 'block', [XB, DECK + 0.10, zBlock], null, { noSleep: true, mat: 'iron' });
+  col(block, 'box', [0.045, 0.10, 0.02], { mass: 1.0, f: 0.5, e: 0 });
+
+  const p = S.leverPivot;
+  const xSE = XB + 0.07, xPV = xSE - p, HP = 0.14, zL = ZE + 0.10;
+  const padTop = 0.012, longArm = 1 - p;
+  const beta = Math.asin((HP - 0.0125 - padTop) / (longArm - 0.03));
+  const lever = ent('dyn', 'lever', [xPV, HP, zL], qAxis(0, 0, 1, beta), { noSleep: true, mat: 'beam' });
+  col(lever, 'box', [0.5, 0.012, 0.035], { p: [p - 0.5, 0, 0], mass: 0.3, f: 0.5 });
+  col(lever, 'box', [0.07, 0.005, 0.12], { p: [p - 0.07, 0.017, 0], mass: 0.15, f: 0.6, mat: 'brass' });
+  for (const sx of [-1, 1]) col(lever, 'box', [0.005, 0.015, 0.12], { p: [p - 0.07 + sx * 0.065, 0.037, 0], f: 0.6, mat: 'brass' });
+  for (const sz of [-1, 1]) col(lever, 'box', [0.07, 0.015, 0.005], { p: [p - 0.07, 0.037, sz * 0.115], f: 0.6, mat: 'brass' });
+  const xCup = p - 1 + 0.045;
+  for (const sx of [-1, 1]) col(lever, 'box', [0.005, 0.012, 0.044], { p: [xCup + sx * 0.039, 0.024, 0], f: 0.4, mat: 'brass' });
+  for (const sz of [-1, 1]) col(lever, 'box', [0.044, 0.012, 0.005], { p: [xCup, 0.024, sz * 0.039], f: 0.4, mat: 'brass' });
+  hinge(lever, [xPV, HP, zL], [0, 0, 0], [0, 0, 1]);
+  const leverFix = ent('fix', 'leverfix', [0, 0, 0], null, { mat: 'darkwood' });
+  col(leverFix, 'box', [0.03, padTop / 2, 0.035], { p: [xPV - (longArm - 0.03), padTop / 2, zL], f: 0.6, mat: 'felt' });
+  const aS = p - 0.04, alpha = rad(12);
+  const yStop = Math.max(0.004, HP - aS * Math.sin(alpha) - 0.012 * Math.cos(alpha));
+  col(leverFix, 'box', [0.03, yStop / 2, 0.035], { p: [xPV + aS, yStop / 2, zL], f: 0.6, mat: 'felt' });
+  for (const sz of [-1, 1]) vis(leverFix, 'box', [0.03, (HP + 0.03) / 2, 0.008], { p: [xPV, (HP + 0.03) / 2, zL + sz * 0.05] });
+  vis(leverFix, 'cyl', [0.008, 0.062], { p: [xPV, HP, zL], q: qAxis(1, 0, 0, Math.PI / 2), mat: 'steel' });
+  const lbL = [xCup, 0.012 + 0.03 + 0.0005];
+  const light = ent('dyn', 'light', [xPV + lbL[0] * Math.cos(beta) - lbL[1] * Math.sin(beta), HP + lbL[0] * Math.sin(beta) + lbL[1] * Math.cos(beta), zL], null, { noSleep: true, ccd: true, mat: 'cork' });
+  col(light, 'ball', [0.03], { mass: 0.05, f: 0.5, e: 0.05 });
+
+  // ---------------------------------------------------------------- stage 5: basket, pulley, counterweight
+  const xBK = xPV - 0.34, yB0 = 0.53, YW = 1.12, RW = 0.14;
+  const basket = ent('dyn', 'basket', [xBK, yB0, zL], null, { noSleep: true, yOnly: true, mat: 'basket' });
+  col(basket, 'box', [0.10, 0.01, 0.10], { p: [0, -0.01, 0], mass: 0.20, f: 0.7, e: 0, eMin: true });
+  for (const sx of [-1, 1]) col(basket, 'box', [0.005, 0.05, 0.10], { p: [sx * 0.095, 0.05, 0], f: 0.5, e: 0, eMin: true });
+  for (const sz of [-1, 1]) col(basket, 'box', [0.10, 0.05, 0.005], { p: [0, 0.05, sz * 0.095], f: 0.5, e: 0, eMin: true });
+  const zCW = zL - 2 * RW, yC0 = 0.04;
+  const cw = ent('dyn', 'cw', [xBK, yC0, zCW], null, { noSleep: true, yOnly: true, mat: 'iron' });
+  col(cw, 'box', [0.035, 0.04, 0.035], { mass: S.counterweight, f: 0.5, e: 0 });
+  let tension = 0;
+  const mB = basket.body.mass(), mC = cw.body.mass();
+
+  // ---------------------------------------------------------------- stage 6: latch and pendulum
+  const zP = zL + 0.35, yC = 0.30, rBob = 0.04, YA = 0.06;
+  const xC = xBK + 0.20 + 0.8660254;
+  const th = rad(S.pendulumAngle), Lp = S.pendulumLength;
+  const pivot = [xC, yC + Lp, zP];
+  const hold = [xC - Lp * Math.sin(th), yC + Lp - Lp * Math.cos(th)];
+  const padC = [hold[0] + Math.cos(th) * (rBob + 0.008), hold[1] - Math.sin(th) * (rBob + 0.008)];
+  const xPed = xBK;
+  const latch = ent('dyn', 'latch', [xPed, YA, zP], null, {
+    noSleep: true, mat: 'brass',
+    massProps: { m: 0.2, c: { x: 0, y: 0.02, z: 0.012 }, i: { x: 0.004, y: 0.05, z: 0.05 } }
+  });
+  col(latch, 'box', [0.05, 0.006, 0.05], { p: [0, 0.294, -0.35], f: 0, fMin: true, tag: 'pedal', mat: 'felt' });
+  const mx = padC[0] - xPed, my = padC[1] - YA;
+  col(latch, 'box', [0.008, 0.03, 0.012], { p: [mx, my, 0], q: qAxis(0, 0, 1, -th), f: 0, fMin: true, e: 0, eMin: true, tag: 'pad', mat: 'steel' });
+  col(latch, 'box', [0.03, 0.008, 0.05], { p: [0, -0.01, 0.10], f: 0.3, tag: 'latchfoot' });
+  col(latch, 'box', [0.03, 0.008, 0.03], { p: [0, -0.01, -0.13], f: 0.3, tag: 'latchfoot' });
+  vis(latch, 'cyl', [0.007, my / 2], { p: [mx, my / 2, 0] });
+  const ax0 = Math.min(0, mx) - 0.06, ax1 = Math.max(0, mx) + 0.06;
+  vis(latch, 'cyl', [0.008, (ax1 - ax0) / 2], { p: [(ax0 + ax1) / 2, 0, 0], q: qAxis(0, 0, 1, Math.PI / 2), mat: 'steel' });
+  vis(latch, 'box', [0.006, 0.006, 0.06], { p: [0, 0, -0.06] });
+  vis(latch, 'box', [0.006, 0.144, 0.006], { p: [0, 0.144, -0.12] });
+  vis(latch, 'box', [0.006, 0.006, 0.115], { p: [0, 0.282, -0.235] });
+  hinge(latch, [xPed, YA, zP], [0, 0, 0], [1, 0, 0]);
+  const latchFix = ent('fix', 'latchfix', [0, 0, 0], null, { mat: 'darkwood' });
+  col(latchFix, 'box', [0.03, 0.021, 0.03], { p: [xPed, 0.021, zP + 0.11], f: 0.3 });
+  col(latchFix, 'box', [0.03, 0.006, 0.02], { p: [xPed, 0.006, zP - 0.14], f: 0.3, mat: 'felt' });
+  for (const x of [xPed + ax0 + 0.02, xPed + ax1 - 0.02]) vis(latchFix, 'box', [0.008, 0.026, 0.02], { p: [x, 0.026, zP] });
+
+  const pend = ent('dyn', 'bob', pivot, qAxis(0, 0, 1, -th), { noSleep: true, mat: 'brassdark' });
+  col(pend, 'ball', [rBob], { p: [0, -Lp, 0], mass: 0.5, f: 0.2, e: S.restitution });
+  vis(pend, 'cyl', [0.005, Lp / 2], { p: [0, -Lp / 2, 0], mat: 'steel' });
+  hinge(pend, pivot, [0, 0, 0], [0, 0, 1]);
+
+  // ---------------------------------------------------------------- stage 7: Newton's cradle
+  const rC = 0.025, lC = 0.30, gapC = 0.001;
+  const cradle = [];
+  for (let i = 0; i < 5; i++) {
+    const x = xC + rBob + rC + i * (2 * rC + gapC);
+    const e = ent('dyn', 'cr' + i, [x, yC, zP], null, { noSleep: true, mat: 'steel' });
+    col(e, 'ball', [rC], { density: 7850, f: 0.05, e: S.restitution });
+    hinge(e, [x, yC + lC, zP], [0, lC, 0], [0, 0, 1]);
+    cradle.push(e);
+  }
+  const x5 = xC + rBob + rC + 4 * (2 * rC + gapC);
+
+  // ---------------------------------------------------------------- stage 8: orrery whirligig
+  const RS = 0.30, xS = x5 + 0.15, zS = zP + RS, yS = yC + 0.03;
+  const spinner = ent('dyn', 'spinner', [xS, yS, zS], null, { noSleep: true, mat: 'brass' });
+  for (const sz of [-1, 1]) {
+    col(spinner, 'box', [0.005, 0.05, 0.035], { p: [0, 0, sz * RS], mass: 0.04, f: 0.3, e: 0.3 });
+    col(spinner, 'ball', [0.035], { p: [0, 0.045, sz * 0.21], mass: 0.3, f: 0.3, e: 0.2, mat: sz < 0 ? 'planetA' : 'planetB' });
+  }
+  col(spinner, 'box', [0.008, 0.008, RS], { mass: 0.06, f: 0.3, e: 0.2, mat: 'steel' });
+  hinge(spinner, [xS, yS, zS], [0, 0, 0], [0, 1, 0]);
+
+  // ---------------------------------------------------------------- stage 9: striker and bell
+  const psiH = rad(130), lean = rad(7);
+  const er = [Math.sin(psiH), -Math.cos(psiH)], tg = [Math.cos(psiH), Math.sin(psiH)];
+  const HH = [xS + RS * er[0], 0.10, zS + RS * er[1]];
+  const qH = qAxis(0, 1, 0, Math.PI / 2 - psiH);
+  const hammer = ent('dyn', 'hammer', HH, qMul(qH, qAxis(1, 0, 0, -lean)), { noSleep: true, mat: 'darkwood', angDamp: 0.2 });
+  col(hammer, 'box', [0.008, 0.19, 0.008], { p: [0, 0.19, 0], mass: 0.03, f: 0.3, e: 0.2 });
+  col(hammer, 'box', [0.035, 0.025, 0.025], { p: [0, 0.38, 0], mass: 0.15, f: 0.3, e: 0.3, mat: 'steel' });
+  const hbase = hinge(hammer, HH, [0, 0, 0], [1, 0, 0], qH);
+  hbase.mat = 'darkwood';
+  col(hbase, 'box', [0.02, 0.02, 0.01], { p: [0, 0.06, -(0.06 * Math.tan(lean) + 0.008 + 0.0105)], f: 0.3 });
+  vis(hbase, 'box', [0.03, 0.05, 0.012], { p: [0, -0.05, -0.03] });
+  vis(hbase, 'box', [0.05, 0.01, 0.05], { p: [0, -0.09, -0.01] });
+  const bellPos = [HH[0] + tg[0] * 0.36, 0.30, HH[2] + tg[1] * 0.36];
+  const bell = ent('fix', 'bell', bellPos, null, { mat: 'bell' });
+  col(bell, 'cyl', [0.066, 0.10], { f: 0.3, e: 0.3, vis: false });
+
+  // ---------------------------------------------------------------- stage bookkeeping
+  const NAMES = ['Release gate', 'Switchback ramps', 'Dominoes', 'Lever', 'Pulley', 'Pendulum', "Newton's cradle", 'Orrery whirligig', 'Bell'];
+  const stages = NAMES.map((name, i) => ({ id: i + 1, name, status: 'waiting', triggeredAt: null }));
+  const sim = {
+    DT, world, ents, stages, time: 0, steps: 0, complete: false, failed: null, totalTime: null,
+    basketAcceleration: null, pendulumSwingTime: null, fx: [],
+    refs: { steel, gate, doms, block, lever, light, basket, cw, latch, pend, cradle, spinner, hammer, bell },
+    geo: {
+      DECK, XB, ZE, xT, zA, W, towerTop, zL, xPV, HP, xBK, yB0, YW, RW, zCW, yC0, zP, yC, xC, pivot, Lp, rC, lC, x5, xS, yS, zS, RS, HH, bellPos, tg, er, xPed, xCr0: xC + rBob + rC, rBob,
+      bounds: { x0: xT - 0.35, x1: xS + RS + 0.45, z0: zA - 0.45, z1: Math.max(bellPos[2] + 0.35, zS + RS + 0.3) }
+    }
+  };
+  let lastTrig = 0, accT0 = null, accLive = null, accDone = false, tRelease = null;
+  const reg = { n: 0, t: 0, v: 0, tv: 0, tt: 0 };
+  function trig(i, t) {
+    const st = stages[i];
+    if (st.status !== 'waiting' || sim.failed || (i > 0 && stages[i - 1].status !== 'triggered')) return false;
+    st.status = 'triggered'; st.triggeredAt = +t.toFixed(4); lastTrig = t;
+    sim.fx.push({ k: 'stage', i });
+    if (i === 8) { sim.complete = true; sim.totalTime = st.triggeredAt; }
+    return true;
+  }
+  const pre = (a, b, x, y) => (a.startsWith(x) && b.startsWith(y)) || (b.startsWith(x) && a.startsWith(y));
+  function contact(a, b, started) {
+    const is = (x, y) => (a === x && b === y) || (a === y && b === x);
+    if (!started) return;
+    if (is('steel', 'ramp2')) trig(1, sim.time);
+    else if (is('steel', 'dom0')) trig(2, sim.time);
+    else if (is('dom23', 'block')) trig(3, sim.time);
+    else if (is('light', 'basket')) trig(4, sim.time);
+    else if (is('basket', 'pedal')) { if (trig(5, sim.time)) { accDone = true; if (accLive !== null) sim.basketAcceleration = accLive; } }
+    else if (is('bob', 'cr0')) {
+      if (trig(6, sim.time)) sim.pendulumSwingTime = +(sim.time - (tRelease === null ? stages[5].triggeredAt : tRelease)).toFixed(4);
+    }
+    else if (is('cr4', 'spinner')) trig(7, sim.time);
+    else if (is('hammer', 'bell')) { const first = trig(8, sim.time); sim.fx.push({ k: 'bell', first, v: Math.abs(hammer.body.angvel().x) + Math.abs(hammer.body.angvel().z) }); }
+    if (pre(a, b, 'dom', 'dom')) sim.fx.push({ k: 'clack' });
+    else if (pre(a, b, 'cr', 'cr') || pre(a, b, 'bob', 'cr')) sim.fx.push({ k: 'tick' });
+    else if (pre(a, b, 'steel', 'wall') || pre(a, b, 'steel', 'dom')) sim.fx.push({ k: 'tock' });
+    else if (pre(a, b, 'block', 'lever') || pre(a, b, 'light', 'basket')) sim.fx.push({ k: 'thud' });
+    else if (pre(a, b, 'cr4', 'spinner') || pre(a, b, 'spinner', 'hammer')) sim.fx.push({ k: 'tock' });
+  }
+
+  sim.step = function () {
+    // stage 1: the only timed event of the machine
+    if (sim.steps >= 240) {
+      trig(0, 1.0);
+      const k = Math.min(1, (sim.steps - 240) * DT / 0.3), e = k * k * (3 - 2 * k);
+      gate.body.setNextKinematicRotation(qAxis(0, 0, 1, A - 1.9 * e));
+    }
+    // rope over the pulley: warm-started tension, then an impulse that keeps the rope length constant
+    basket.body.resetForces(true); cw.body.resetForces(true);
+    if (tension > 0) { basket.body.addForce({ x: 0, y: tension, z: 0 }, true); cw.body.addForce({ x: 0, y: tension, z: 0 }, true); }
+    world.step(eq);
+    sim.steps++; sim.time = sim.steps * DT;
+    {
+      const yb = basket.body.translation().y, yc = cw.body.translation().y;
+      const C = -((yb - yB0) + (yc - yC0));           // rope stretch (>0 means too long)
+      if (C > -1e-4) {
+        const vb = basket.body.linvel().y, vc = cw.body.linvel().y;
+        const mu = 1 / (1 / mB + 1 / mC);
+        const Cdot = -(vb + vc), target = -0.2 * Math.max(C, 0) / DT;
+        const Jw = tension * DT;
+        const Jn = Math.max(0, Jw + (Cdot - target) * mu), dJ = Jn - Jw;
+        basket.body.applyImpulse({ x: 0, y: dJ, z: 0 }, true);
+        cw.body.applyImpulse({ x: 0, y: dJ, z: 0 }, true);
+        tension = Jn / DT;
+      } else tension = 0;
+    }
+    // measured basket acceleration (from body velocities during the descent)
+    if (stages[4].status === 'triggered' && !accDone) {
+      const t5 = stages[4].triggeredAt, v = -basket.body.linvel().y;
+      if (accT0 === null) { if (sim.time >= t5 + 0.04) accT0 = sim.time; }
+      if (accT0 !== null) {                           // least-squares slope of the sampled velocity
+        const t = sim.time - accT0;
+        reg.n++; reg.t += t; reg.v += v; reg.tv += t * v; reg.tt += t * t;
+        const den = reg.n * reg.tt - reg.t * reg.t;
+        if (reg.n >= 8 && den > 1e-12) { accLive = +((reg.n * reg.tv - reg.t * reg.v) / den).toFixed(4); sim.basketAcceleration = accLive; }
+        if (t >= 0.6) accDone = true;
+      }
+    }
+    if (tRelease === null && stages[5].status === 'triggered' && Math.abs(pend.body.angvel().z) > 0.02) tRelease = sim.time - DT;
+    eq.drainCollisionEvents((h1, h2, started) => {
+      const a = tagOf.get(h1), b = tagOf.get(h2);
+      if (a !== undefined && b !== undefined) contact(a, b, started);
+    });
+    if (!sim.complete && !sim.failed && stages[0].status === 'triggered' && sim.time - lastTrig > 8) {
+      const st = stages.find(q => q.status === 'waiting');
+      if (st) { st.status = 'failed'; sim.failed = st; sim.fx.push({ k: 'fail' }); }
+    }
+  };
+
+  // focus point for the Follow camera
+  sim.focus = function () {
+    const P = b => { const t = b.body.translation(); return [t.x, t.y, t.z]; };
+    let n = 0; for (let i = 0; i < 9; i++) if (stages[i].status === 'triggered') n = i + 1;
+    if (n <= 2) return { p: P(steel), d: 1.5, n };
+    if (n === 3) {
+      let f = 0;
+      for (let i = 0; i < 24; i++) { const q = doms[i].body.rotation(); if (1 - 2 * (q.x * q.x + q.z * q.z) < 0.97) f = i; }
+      return { p: P(doms[Math.min(23, f + 1)]), d: 1.5, n };
+    }
+    if (n === 4) {
+      const v = light.body.linvel(), b = P(block), l = P(light);
+      if (v.x * v.x + v.y * v.y > 0.25 || l[1] > 0.3) return { p: [(l[0] + xBK) / 2, (l[1] + yB0) / 2, zL], d: 1.7, n };
+      return { p: [b[0] - 0.25, b[1], b[2]], d: 1.7, n };
+    }
+    if (n === 5) return { p: [xBK, 0.5, zL + 0.1], d: 1.9, n };
+    if (n === 6) { const t = pend.body.translation(), q = pend.body.rotation(); const a = 2 * Math.atan2(q.z, q.w); return { p: [t.x + Lp * Math.sin(a) * 0.6 + 0.1, yC + 0.3, zP], d: 2.0 + Lp * 0.5, n }; }
+    if (n === 7) return { p: [x5, yC + 0.1, zP + 0.1], d: 1.5, n };
+    if (n === 8) return { p: [xS, yS, zS + 0.1], d: 1.6, n };
+    return { p: [bellPos[0], 0.3, bellPos[2] - 0.15], d: 1.5, n };
+  };
+  sim.free = function () { eq.free(); world.free(); };
+  return sim;
+}
+//</PHYS>
+
+// ====================================================================== controls and shared state
+const CONTROLS = [
+  { key: 'gravity', label: 'Gravity', unit: ' m/s²', min: 1.6, max: 20, step: 0.01, def: 9.81, dp: 2 },
+  { key: 'dominoSpacing', label: 'Domino spacing', unit: ' m', min: 0.07, max: 0.28, step: 0.005, def: 0.12, dp: 3,
+    hint: v => { const g = v - 0.03; return [`gap ${g.toFixed(3)} m · domino height 0.200 m`, g > 0.2]; } },
+  { key: 'dominoMass', label: 'Domino mass', unit: ' kg', min: 0.02, max: 0.5, step: 0.01, def: 0.15, dp: 2 },
+  { key: 'counterweight', label: 'Counterweight mass', unit: ' kg', min: 0.21, max: 0.4, step: 0.005, def: 0.22, dp: 3,
+    hint: v => [`loaded basket 0.250 kg · empty 0.200 kg`, v >= 0.25] },
+  { key: 'pendulumLength', label: 'Pendulum length', unit: ' m', min: 0.6, max: 1.5, step: 0.05, def: 1.0, dp: 2 },
+  { key: 'pendulumAngle', label: 'Pendulum release angle', unit: '°', min: 20, max: 80, step: 1, def: 60, dp: 0 },
+  { key: 'leverPivot', label: 'Lever pivot from short end', unit: ' m', min: 0.15, max: 0.4, step: 0.01, def: 0.25, dp: 2,
+    hint: v => [`arms ${v.toFixed(2)} m / ${(1 - v).toFixed(2)} m`, false] },
+  { key: 'restitution', label: 'Cradle restitution', unit: '', min: 0, max: 1, step: 0.01, def: 0.95, dp: 2 }
+];
+const DEFAULTS = Object.fromEntries(CONTROLS.map(c => [c.key, c.def]));
+const state = { sim: null, applied: { ...DEFAULTS }, speed: 1, paused: false, cam: 'follow', done: false, failAt: null };
+const $ = s => document.querySelector(s);
+const inputs = {};
+
+function readControls() {
+  const o = {};
+  for (const c of CONTROLS) { const el = inputs[c.key]; o[c.key] = el ? parseFloat(el.value) : c.def; }
+  return o;
+}
+window.machineState = function () {
+  const sim = state.sim;
+  const stages = sim ? sim.stages.map(s => ({ id: s.id, name: s.name, status: s.status, triggeredAt: s.triggeredAt }))
+    : ['Release gate', 'Switchback ramps', 'Dominoes', 'Lever', 'Pulley', 'Pendulum', "Newton's cradle", 'Orrery whirligig', 'Bell']
+      .map((name, i) => ({ id: i + 1, name, status: 'waiting', triggeredAt: null }));
+  return {
+    stages,
+    basketAcceleration: sim ? sim.basketAcceleration : null,
+    pendulumSwingTime: sim ? sim.pendulumSwingTime : null,
+    settings: readControls(),
+    appliedSettings: { ...state.applied },
+    time: sim ? +sim.time.toFixed(4) : 0,
+    totalTime: sim ? sim.totalTime : null,
+    complete: sim ? sim.complete : false,
+    failedStage: sim && sim.failed ? sim.failed.id : null,
+    paused: state.paused, speed: state.speed, camera: state.cam
+  };
+};
+
+// settings panel
+{
+  const host = $('#controls');
+  for (const c of CONTROLS) {
+    const d = document.createElement('div'); d.className = 'ctl';
+    d.innerHTML = `<label for="c_${c.key}"><span>${c.label}</span><output></output></label>
+      <input type="range" id="c_${c.key}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.def}"><small></small>`;
+    host.appendChild(d);
+    const el = d.querySelector('input'), out = d.querySelector('output'), sm = d.querySelector('small');
+    inputs[c.key] = el;
+    el._show = () => {
+      const v = parseFloat(el.value);
+      out.textContent = v.toFixed(c.dp) + c.unit;
+      if (c.hint) { const [txt, warn] = c.hint(v); sm.textContent = txt; sm.className = warn ? 'warn' : ''; }
+      const cur = readControls();
+      const dirty = CONTROLS.some(k => Math.abs(cur[k.key] - state.applied[k.key]) > 1e-9);
+      $('#pending').textContent = dirty ? 'Changed values take effect on the next run.' : '';
+    };
+    el.addEventListener('input', el._show);
+    el._show();
+  }
+}
+function showFatal(msg) { const f = $('#fatal'); f.style.display = 'grid'; f.textContent = msg; }
+
+// ====================================================================== libraries
+let THREE, OrbitControls, RoomEnvironment, RoundedBoxGeometry, RAPIER;
+try {
+  [THREE, { OrbitControls }, { RoomEnvironment }, { RoundedBoxGeometry }, { default: RAPIER }] = await Promise.all([
+    import('three'),
+    import('three/addons/controls/OrbitControls.js'),
+    import('three/addons/environments/RoomEnvironment.js'),
+    import('three/addons/geometries/RoundedBoxGeometry.js'),
+    import('https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js')
+  ]);
+  await RAPIER.init();
+} catch (err) {
+  showFatal('Could not load Three.js or the Rapier physics engine from the CDN. ' + err);
+  throw err;
+}
+
+// ====================================================================== renderer, lights, materials
+const canvas = $('#scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0b09);
+scene.fog = new THREE.Fog(0x0d0b09, 14, 30);
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+}
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.05, 80);
+camera.position.set(0, 2.6, 4.5);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 0.4; controls.maxDistance = 14; controls.maxPolarAngle = Math.PI * 0.495;
+controls.enabled = false;
+
+scene.add(new THREE.HemisphereLight(0xfff0d8, 0x2a2118, 0.35));
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.012; sun.shadow.radius = 3;
+scene.add(sun, sun.target);
+const moon = new THREE.DirectionalLight(0x8fb2ff, 0.45);
+scene.add(moon, moon.target);
+
+function prng(seed) {                       // deterministic noise for textures and audio
+  let a = seed >>> 0;
+  return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function woodTex(base, dark, seed, planks) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'), r = prng(seed);
+  g.fillStyle = base; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = dark;
+  for (let i = 0; i < 150; i++) {
+    g.globalAlpha = 0.05 + r() * 0.14; g.lineWidth = 0.5 + r() * 1.8;
+    const y = r() * 256;
+    g.beginPath(); g.moveTo(0, y);
+    g.bezierCurveTo(80, y + (r() - 0.5) * 16, 170, y + (r() - 0.5) * 16, 256, y + (r() - 0.5) * 6);
+    g.stroke();
+  }
+  if (planks) {
+    g.globalAlpha = 0.55; g.strokeStyle = '#140c06'; g.lineWidth = 2;
+    for (let i = 0; i < planks; i++) {
+      const y = i * 256 / planks; g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke();
+      const x = r() * 256; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 256 / planks); g.stroke();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+}
+const std = (color, metalness, roughness, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, metalness, roughness }, extra || {}));
+const wood = (base, dark, seed, rough) => new THREE.MeshStandardMaterial({ map: woodTex(base, dark, seed), roughness: rough || 0.62, metalness: 0, envMapIntensity: 0.55 });
+const M = {
+  steel: std(0xe9ecf0, 1, 0.07, { envMapIntensity: 1.35 }),
+  brass: std(0xcfa550, 1, 0.27, { envMapIntensity: 1.1 }),
+  brassdark: std(0xb9862f, 1, 0.2, { envMapIntensity: 1.2 }),
+  bell: std(0xe2b14b, 1, 0.15, { envMapIntensity: 1.3, side: THREE.DoubleSide, emissive: 0xff9a2e, emissiveIntensity: 0 }),
+  iron: std(0x30343a, 0.9, 0.42),
+  wood: wood('#9a6b3c', '#4a2c12', 11),
+  darkwood: wood('#5a3a20', '#22130a', 12, 0.7),
+  deck: wood('#8a5c33', '#3d2410', 13, 0.68),
+  board: wood('#3f4d43', '#1c2620', 14, 0.8),
+  ramp: wood('#c79a5e', '#6a4520', 15, 0.5),
+  beam: wood('#b88a52', '#5a3716', 16, 0.55),
+  domA: wood('#e8d3a6', '#9c7a45', 17, 0.42),
+  domB: wood('#7d4a26', '#2e170a', 18, 0.42),
+  basket: wood('#b58948', '#5d3d16', 19, 0.85),
+  table: new THREE.MeshStandardMaterial({ map: woodTex('#6b4526', '#27150a', 20, 6), roughness: 0.58, envMapIntensity: 0.5 }),
+  floor: new THREE.MeshStandardMaterial({ map: woodTex('#3d2a1b', '#150c06', 21, 8), roughness: 0.8, envMapIntensity: 0.3 }),
+  wall: std(0x27413d, 0, 0.92, { envMapIntensity: 0.25 }),
+  felt: std(0x2f6b4a, 0, 0.98, { envMapIntensity: 0.2 }),
+  cork: new THREE.MeshPhysicalMaterial({ color: 0xff8a3c, roughness: 0.45, metalness: 0, clearcoat: 0.4, clearcoatRoughness: 0.4 }),
+  planetA: new THREE.MeshPhysicalMaterial({ color: 0x2c63c9, roughness: 0.3, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.12 }),
+  planetB: new THREE.MeshPhysicalMaterial({ color: 0xc8402e, roughness: 0.3, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.12 }),
+  rope: std(0xdccba2, 0, 0.95, { envMapIntensity: 0.3 }),
+  string: std(0xf2ead8, 0, 0.8),
+  glow: new THREE.MeshBasicMaterial({ color: 0xffe2a6 }),
+  enamel: std(0x1f3a35, 0.3, 0.45),
+  face: null, sky: null
+};
+{
+  // clock face and night window, drawn in code
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#efe6d2'; g.beginPath(); g.arc(256, 256, 256, 0, 7); g.fill();
+  g.strokeStyle = '#2a211a'; g.fillStyle = '#2a211a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '600 54px Georgia, serif';
+  const R = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * Math.PI * 2, r0 = i % 5 ? 232 : 220;
+    g.lineWidth = i % 5 ? 2 : 5; g.beginPath(); g.moveTo(256 + Math.sin(a) * r0, 256 - Math.cos(a) * r0); g.lineTo(256 + Math.sin(a) * 244, 256 - Math.cos(a) * 244); g.stroke();
+  }
+  R.forEach((s, i) => { const a = i / 12 * Math.PI * 2; g.fillText(s, 256 + Math.sin(a) * 178, 256 - Math.cos(a) * 178); });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  M.face = new THREE.MeshStandardMaterial({ map: t, roughness: 0.7, envMapIntensity: 0.4 });
+  const c2 = document.createElement('canvas'); c2.width = 256; c2.height = 320; const g2 = c2.getContext('2d'), r = prng(5);
+  const gr = g2.createLinearGradient(0, 0, 0, 320); gr.addColorStop(0, '#0a1230'); gr.addColorStop(1, '#27406e');
+  g2.fillStyle = gr; g2.fillRect(0, 0, 256, 320);
+  g2.fillStyle = '#fff';
+  for (let i = 0; i < 90; i++) { g2.globalAlpha = 0.3 + r() * 0.7; g2.fillRect(r() * 256, r() * 250, 1 + r() * 1.5, 1 + r() * 1.5); }
+  g2.globalAlpha = 1; g2.fillStyle = '#f6f1dc'; g2.beginPath(); g2.arc(182, 78, 26, 0, 7); g2.fill();
+  g2.fillStyle = '#0d1736'; g2.beginPath(); g2.arc(194, 70, 23, 0, 7); g2.fill();
+  const t2 = new THREE.CanvasTexture(c2); t2.colorSpace = THREE.SRGBColorSpace;
+  M.sky = new THREE.MeshBasicMaterial({ map: t2 });
+}
+
+// ====================================================================== scene building
+let runRoot = null, dynEnts = [], rig = null;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const YAX = new THREE.Vector3(0, 1, 0);
+function mesh(parent, geo, mat, x, y, z, shadow) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x || 0, y || 0, z || 0);
+  if (shadow !== false) { m.castShadow = true; m.receiveShadow = true; }
+  parent.add(m);
+  return m;
+}
+const box = (parent, w, h, d, x, y, z, mat, shadow) => mesh(parent, new THREE.BoxGeometry(w, h, d), mat, x, y, z, shadow);
+function rod(parent, a, b, r, mat) {             // thin cylinder from point a to point b
+  const va = V(a[0], a[1], a[2]), vb = V(b[0], b[1], b[2]);
+  const len = va.distanceTo(vb);
+  const m = mesh(parent, new THREE.CylinderGeometry(r, r, len, 10), mat, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+  m.quaternion.setFromUnitVectors(YAX, vb.sub(va).normalize());
+  return m;
+}
+function gearGeo(teeth, rOut, depth) {
+  const s = new THREE.Shape(), rIn = rOut * 0.87, n = teeth * 4;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, r = i % 4 < 2 ? rOut : rIn;
+    if (i) s.lineTo(Math.cos(a) * r, Math.sin(a) * r); else s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  s.closePath();
+  const hole = new THREE.Path(); hole.absarc(0, 0, rOut * 0.2, 0, Math.PI * 2, true); s.holes.push(hole);
+  for (let k = 0; k < 5; k++) {
+    const a = k / 5 * Math.PI * 2, h = new THREE.Path();
+    h.absarc(Math.cos(a) * rOut * 0.55, Math.sin(a) * rOut * 0.55, rOut * 0.16, 0, Math.PI * 2, true); s.holes.push(h);
+  }
+  return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 10 });
+}
+function disposeTree(root) {
+  root.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+}
+
+function buildScene(sim) {
+  const root = new THREE.Group();
+  const G = sim.geo, B = G.bounds, R = sim.refs;
+  dynEnts = [];
+  // --- every simulated body, drawn from the collider list of the physics core
+  for (const e of sim.ents) {
+    if (!e.parts.length) continue;
+    const g = new THREE.Group();
+    const rounded = e.name.startsWith('dom') || e.name === 'block';
+    for (const p of e.parts) {
+      let geo;
+      if (p.shape === 'box') geo = rounded ? new RoundedBoxGeometry(p.dims[0] * 2, p.dims[1] * 2, p.dims[2] * 2, 2, 0.004) : new THREE.BoxGeometry(p.dims[0] * 2, p.dims[1] * 2, p.dims[2] * 2);
+      else if (p.shape === 'ball') geo = new THREE.SphereGeometry(p.dims[0], 40, 28);
+      else geo = new THREE.CylinderGeometry(p.dims[0], p.dims[0], p.dims[1] * 2, 20);
+      const m = mesh(g, geo, M[p.mat] || M.wood, p.p[0], p.p[1], p.p[2]);
+      m.quaternion.set(p.q.x, p.q.y, p.q.z, p.q.w);
+    }
+    const t = e.body.translation(), q = e.body.rotation();
+    g.position.set(t.x, t.y, t.z); g.quaternion.set(q.x, q.y, q.z, q.w);
+    root.add(g); e.group = g;
+    if (e.kind !== 'fix') dynEnts.push(e);
+  }
+
+  // --- workbench and room
+  const cx = (B.x0 + B.x1) / 2, cz = (B.z0 + B.z1) / 2, w = B.x1 - B.x0, d = B.z1 - B.z0, FLOOR = -0.9;
+  const top = box(root, w, 0.07, d, cx, -0.035, cz, M.table);
+  top.geometry.attributes.uv.array.forEach((v, i, a) => { a[i] = v * (i % 2 ? d / 0.9 : w / 1.6); });
+  box(root, w - 0.24, 0.12, d - 0.24, cx, -0.13, cz, M.darkwood);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(root, 0.1, 0.83, 0.1, cx + sx * (w / 2 - 0.14), -0.485, cz + sz * (d / 2 - 0.14), M.darkwood);
+  const wallZ = B.z0 - 1.6, roomW = Math.max(16, w + 9), roomD = d + 12;
+  const fl = mesh(root, new THREE.PlaneGeometry(roomW, roomD), M.floor, cx, FLOOR, wallZ + roomD / 2);
+  fl.rotation.x = -Math.PI / 2; fl.castShadow = false;
+  fl.geometry.attributes.uv.array.forEach((v, i, a) => { a[i] = v * (i % 2 ? roomD / 1.6 : roomW / 2.4); });
+  const bw = mesh(root, new THREE.PlaneGeometry(roomW, 5), M.wall, cx, FLOOR + 2.5, wallZ); bw.castShadow = false;
+  for (const sx of [-1, 1]) {
+    const sw = mesh(root, new THREE.PlaneGeometry(roomD, 5), M.wall, cx + sx * roomW / 2, FLOOR + 2.5, wallZ + roomD / 2);
+    sw.rotation.y = -sx * Math.PI / 2; sw.castShadow = false;
+  }
+  box(root, roomW, 1.0, 0.05, cx, FLOOR + 0.5, wallZ + 0.025, M.darkwood, false);
+  box(root, roomW, 0.05, 0.08, cx, FLOOR + 1.02, wallZ + 0.04, M.darkwood, false);
+
+  // night window
+  const wx = cx + 2.6, wy = 1.75;
+  mesh(root, new THREE.PlaneGeometry(1.5, 1.9), M.sky, wx, wy, wallZ + 0.02, false);
+  for (const [bx, by, bwid, bh] of [[0, 0.98, 1.7, 0.09], [0, -0.98, 1.7, 0.09], [-0.8, 0, 0.09, 2.05], [0.8, 0, 0.09, 2.05], [0, 0, 0.05, 1.9], [0, 0.25, 1.5, 0.05]])
+    box(root, bwid, bh, 0.08, wx + bx, wy + by, wallZ + 0.05, M.darkwood, false);
+
+  // wall clock driven by the simulation clock, and a slow gear train
+  const deco = [];
+  {
+    const cxk = cx - 0.2, cyk = 2.05, cr = 0.5;
+    const face = mesh(root, new THREE.CircleGeometry(cr, 64), M.face, cxk, cyk, wallZ + 0.06, false);
+    const rim = mesh(root, new THREE.TorusGeometry(cr + 0.02, 0.04, 14, 64), M.brass, cxk, cyk, wallZ + 0.06, false);
+    void face; void rim;
+    const hand = (len, wid, mat) => { const g = new THREE.Group(); g.position.set(cxk, cyk, wallZ + 0.085); box(g, wid, len, 0.012, 0, len / 2 - 0.04, 0, mat, false); root.add(g); return g; };
+    const hh = hand(0.27, 0.035, M.iron), mh = hand(0.4, 0.024, M.iron), sh = hand(0.44, 0.01, M.planetB);
+    mesh(root, new THREE.CylinderGeometry(0.03, 0.03, 0.05, 20), M.brass, cxk, cyk, wallZ + 0.09, false).rotation.x = Math.PI / 2;
+    deco.push(t => { sh.rotation.z = -t / 60 * Math.PI * 2; mh.rotation.z = -(10 + t / 60) / 60 * Math.PI * 2; hh.rotation.z = -(10 + 10 / 60 + t / 3600) / 12 * Math.PI * 2; });
+    const gx = cx - 2.7, gy = 1.9, spec = [[24, 0.42, 0, 0, M.brass], [14, 0.245, 0.63, 0.12, M.iron], [18, 0.315, 0.2, -0.7, M.brassdark], [10, 0.175, 1.0, -0.2, M.brass]];
+    spec.forEach(([teeth, r, ox, oy, mat], i) => {
+      const gm = mesh(root, gearGeo(teeth, r, 0.05), mat, gx + ox, gy + oy, wallZ + 0.05 + (i % 2) * 0.03, false);
+      const dir = i % 2 ? -1 : 1;
+      deco.push(t => { gm.rotation.z = dir * t * 0.5 * 24 / teeth + i; });
+    });
+  }
+  // pendant lamps
+  for (const sx of [-1, 1]) {
+    const lx = cx + sx * 1.25, ly = 2.55, lz = cz - 0.2;
+    const shade = mesh(root, new THREE.ConeGeometry(0.3, 0.24, 32, 1, true), M.enamel, lx, ly, lz, false);
+    shade.material.side = THREE.DoubleSide;
+    mesh(root, new THREE.SphereGeometry(0.06, 16, 12), M.glow, lx, ly - 0.08, lz, false);
+    rod(root, [lx, ly + 0.12, lz], [lx, 4.1, lz], 0.006, M.iron).castShadow = false;
+    const pl = new THREE.PointLight(0xffc98a, 9, 9, 2); pl.position.set(lx, ly - 0.12, lz); root.add(pl);
+  }
+  // stool on the floor, well away from the bench
+  {
+    const sx = B.x1 + 0.9, sz = cz + 0.6;
+    mesh(root, new THREE.CylinderGeometry(0.2, 0.2, 0.05, 28), M.wood, sx, FLOOR + 0.62, sz);
+    for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; rod(root, [sx + Math.cos(a) * 0.12, FLOOR + 0.6, sz + Math.sin(a) * 0.12], [sx + Math.cos(a) * 0.2, FLOOR, sz + Math.sin(a) * 0.2], 0.018, M.darkwood); }
+  }
+
+  // --- pulley: frame, wheel, rope
+  const wz = G.zL - G.RW;
+  for (const sx of [-1, 1]) {
+    box(root, 0.03, G.YW + 0.06, 0.03, G.xBK + sx * 0.2, (G.YW + 0.06) / 2, wz, M.darkwood);
+    box(root, 0.09, 0.02, 0.12, G.xBK + sx * 0.2, 0.01, wz, M.darkwood);
+  }
+  rod(root, [G.xBK - 0.215, G.YW, wz], [G.xBK + 0.215, G.YW, wz], 0.008, M.steel);
+  const wheel = new THREE.Group(); wheel.position.set(G.xBK, G.YW, wz); root.add(wheel);
+  {
+    const rim = mesh(wheel, new THREE.TorusGeometry(G.RW - 0.008, 0.012, 12, 48), M.brass); rim.rotation.y = Math.PI / 2;
+    const hub = mesh(wheel, new THREE.CylinderGeometry(0.022, 0.022, 0.04, 16), M.brass); hub.rotation.z = Math.PI / 2;
+    for (let k = 0; k < 4; k++) { const sp = box(wheel, 0.012, (G.RW - 0.012) * 2, 0.012, 0, 0, 0, M.brassdark); sp.rotation.x = k * Math.PI / 4; }
+  }
+  const arc = mesh(root, new THREE.TorusGeometry(G.RW + 0.006, 0.004, 8, 32, Math.PI), M.rope, G.xBK, G.YW, wz); arc.rotation.y = Math.PI / 2;
+  const unit = () => new THREE.CylinderGeometry(0.004, 0.004, 1, 8);
+  const rope1 = mesh(root, unit(), M.rope, G.xBK, 0, G.zL), rope2 = mesh(root, unit(), M.rope, G.xBK, 0, G.zCW);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) rod(R.basket.group, [sx * 0.095, 0.1, sz * 0.095], [0, 0.2, 0], 0.003, M.rope);
+  rod(R.cw.group, [0, 0.04, 0], [0, 0.06, 0], 0.006, M.steel);
+
+  // --- pendulum gallows
+  const py = G.pivot[1];
+  for (const sz of [-1, 1]) {
+    box(root, 0.035, py + 0.05, 0.035, G.xC, (py + 0.05) / 2, G.zP + sz * 0.3, M.darkwood);
+    box(root, 0.14, 0.02, 0.1, G.xC, 0.01, G.zP + sz * 0.3, M.darkwood);
+  }
+  rod(root, [G.xC, py, G.zP - 0.3], [G.xC, py, G.zP + 0.3], 0.009, M.steel);
+
+  // --- Newton's cradle frame and strings
+  const ry = G.yC + G.lC, rx0 = G.xCr0 - 0.02, rx1 = G.x5 + 0.02;
+  for (const sz of [-1, 1]) rod(root, [rx0, ry, G.zP + sz * 0.08], [rx1, ry, G.zP + sz * 0.08], 0.006, M.brass);
+  for (const x of [rx0, rx1]) {
+    rod(root, [x, 0, G.zP - 0.2], [x, ry + 0.012, G.zP - 0.2], 0.009, M.brass);
+    rod(root, [x, ry + 0.012, G.zP - 0.2], [x, ry + 0.012, G.zP + 0.085], 0.006, M.brass);
+    mesh(root, new THREE.CylinderGeometry(0.035, 0.04, 0.012, 20), M.brass, x, 0.006, G.zP - 0.2);
+  }
+  for (const e of R.cradle) for (const sz of [-1, 1]) rod(e.group, [0, 0, 0], [0, G.lC, sz * 0.08], 0.0012, M.string);
+
+  // --- orrery spindle and sun
+  rod(root, [G.xS, 0, G.zS], [G.xS, G.yS - 0.012, G.zS], 0.012, M.steel);
+  mesh(root, new THREE.CylinderGeometry(0.07, 0.085, 0.02, 28), M.darkwood, G.xS, 0.01, G.zS);
+  mesh(R.spinner.group, new THREE.SphereGeometry(0.045, 32, 20), M.brassdark, 0, 0.05, 0);
+  for (const sz of [-1, 1]) mesh(R.spinner.group, new THREE.TorusGeometry(0.05, 0.003, 6, 32), M.brass, 0, 0.045, sz * 0.21).rotation.x = Math.PI / 2.3;
+
+  // --- bell and its stand
+  const bp = G.bellPos;
+  const prof = [[0.088, -0.1], [0.079, -0.085], [0.071, -0.05], [0.067, 0], [0.066, 0.05], [0.058, 0.076], [0.04, 0.094], [0.012, 0.1], [0, 0.1]].map(p => new THREE.Vector2(p[0], p[1]));
+  const bellMesh = mesh(root, new THREE.LatheGeometry(prof, 48), M.bell, bp[0], bp[1], bp[2]);
+  const px = bp[0] + G.tg[0] * 0.19, pz = bp[2] + G.tg[1] * 0.19;
+  rod(root, [px, 0, pz], [px, 0.6, pz], 0.011, M.iron);
+  rod(root, [px, 0.59, pz], [bp[0], 0.59, bp[2]], 0.009, M.iron);
+  rod(root, [bp[0], 0.59, bp[2]], [bp[0], bp[1] + 0.1, bp[2]], 0.006, M.iron);
+  mesh(root, new THREE.CylinderGeometry(0.05, 0.06, 0.014, 24), M.iron, px, 0.007, pz);
+
+  // --- light and shadow frustum follow the bench size
+  sun.position.set(cx - 2.2, 5.2, cz + 3.0); sun.target.position.set(cx, 0.3, cz);
+  const sc = sun.shadow.camera, ext = Math.max(w, d) / 2 + 0.9;
+  sc.left = -ext; sc.right = ext; sc.top = ext; sc.bottom = -ext; sc.near = 0.5; sc.far = 16; sc.updateProjectionMatrix();
+  moon.position.set(wx, 3, wallZ + 1); moon.target.position.set(cx, 0, cz);
+
+  scene.add(root);
+  runRoot = root;
+  rig = { G, R, wheel, rope1, rope2, deco, bellMesh, cx, cz, w, d };
+}
+
+function syncVisuals() {
+  const sim = state.sim; if (!sim || !rig) return;
+  for (const e of dynEnts) {
+    const t = e.body.translation(), q = e.body.rotation();
+    e.group.position.set(t.x, t.y, t.z); e.group.quaternion.set(q.x, q.y, q.z, q.w);
+  }
+  const { G, R } = rig;
+  const yb = R.basket.body.translation().y + 0.2, yc = R.cw.body.translation().y + 0.06;
+  rig.rope1.position.y = (yb + G.YW) / 2; rig.rope1.scale.y = Math.max(0.001, G.YW - yb);
+  rig.rope2.position.y = (yc + G.YW) / 2; rig.rope2.scale.y = Math.max(0.001, G.YW - yc);
+  rig.wheel.rotation.x = (G.yB0 + 0.2 - yb) / G.RW;
+  for (const f of rig.deco) f(sim.time);
+  M.bell.emissiveIntensity = bellGlow * 0.9;
+}
+
+// ====================================================================== audio (Web Audio API)
+let actx = null, master = null, noiseBuf = null, pendingBell = null, bellGlow = 0, lastSmall = 0;
+function audioInit() {
+  if (actx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  try {
+    actx = new AC();
+    const comp = actx.createDynamicsCompressor();
+    master = actx.createGain(); master.gain.value = 0.85;
+    master.connect(comp); comp.connect(actx.destination);
+    const n = Math.floor(actx.sampleRate * 0.4), r = prng(9);
+    noiseBuf = actx.createBuffer(1, n, actx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = r() * 2 - 1;
+    actx.onstatechange = soundChip;
+  } catch (e) { actx = null; }
+}
+function soundChip() {
+  const el = $('#sound');
+  if (!actx) { el.textContent = 'Sound: unavailable'; return; }
+  el.textContent = actx.state === 'running' ? 'Sound: on' : (pendingBell !== null ? 'Bell rang · click to hear' : 'Sound: click to enable');
+}
+function audioUnlock() {
+  audioInit();
+  if (!actx) return;
+  const after = () => { soundChip(); if (pendingBell !== null && actx.state === 'running') { ringBell(pendingBell); pendingBell = null; soundChip(); } };
+  if (actx.state !== 'running') actx.resume().then(after).catch(() => {}); else after();
+}
+function ringBell(vel) {
+  if (!actx || actx.state !== 'running') return;
+  const t = actx.currentTime + 0.01, f0 = 587.33, level = Math.min(1, 0.45 + vel * 0.07);
+  const out = actx.createGain(); out.gain.value = 0.2 * level; out.connect(master);
+  // inharmonic partials of a small brass bell: [ratio, amplitude, decay seconds]
+  const partials = [[0.5, 0.55, 5.5], [1, 1, 4.4], [1.19, 0.7, 3.4], [1.5, 0.42, 2.7], [2, 0.8, 2.3], [2.51, 0.34, 1.6], [2.66, 0.3, 1.4], [3.01, 0.26, 1.1], [4.1, 0.16, 0.75], [5.43, 0.09, 0.5]];
+  for (const [m, a, dcy] of partials) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = f0 * m; o.detune.value = (m * 7) % 5 - 2;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dcy);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + dcy + 0.05);
+  }
+  const src = actx.createBufferSource(), hp = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = noiseBuf; hp.type = 'highpass'; hp.frequency.value = 2600;
+  g.gain.setValueAtTime(0.5 * level, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  src.connect(hp); hp.connect(g); g.connect(master); src.start(t); src.stop(t + 0.08);
+}
+function blip(kind) {
+  if (!actx || actx.state !== 'running') return;
+  const t = actx.currentTime + 0.005;
+  const P = { clack: [1900, 0.035, 0.16, 2.2], tick: [3600, 0.03, 0.12, 6], tock: [620, 0.05, 0.14, 2], thud: [140, 0.12, 0.3, 1] }[kind];
+  if (!P) return;
+  const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = P[0]; bp.Q.value = P[3];
+  g.gain.setValueAtTime(P[2], t); g.gain.exponentialRampToValueAtTime(0.0001, t + P[1]);
+  src.connect(bp); bp.connect(g); g.connect(master); src.start(t, (lastSmall++ % 7) * 0.02); src.stop(t + P[1] + 0.02);
+}
+function processFx(sim) {
+  let small = 0;
+  for (const f of sim.fx) {
+    if (f.k === 'bell') {
+      if (f.first) {
+        bellGlow = 1;
+        if (actx && actx.state === 'running') ringBell(f.v); else { pendingBell = f.v; soundChip(); }
+      } else if (f.v > 1.5 && actx && actx.state === 'running') { ringBell(f.v * 0.4); bellGlow = Math.max(bellGlow, 0.5); }
+    } else if (f.k !== 'stage' && f.k !== 'fail' && small < 3) { blip(f.k); small++; }
+  }
+  sim.fx.length = 0;
+}
+
+// ====================================================================== HUD
+const stageEls = [];
+{
+  const ol = $('#stages');
+  for (let i = 0; i < 9; i++) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="n">${i + 1}</span><span class="name"></span><span class="t"></span>`;
+    ol.appendChild(li); stageEls.push(li);
+  }
+}
+let hudSig = '';
+function updateHud() {
+  const sim = state.sim; if (!sim) return;
+  $('#clock').textContent = 't = ' + sim.time.toFixed(2) + ' s';
+  const sig = sim.stages.map(s => s.status[0] + (s.triggeredAt || '')).join('|') + sim.basketAcceleration + '/' + sim.pendulumSwingTime + '/' + sim.totalTime;
+  if (sig === hudSig) return;
+  hudSig = sig;
+  const next = sim.complete || sim.failed ? -1 : sim.stages.findIndex(s => s.status === 'waiting');
+  sim.stages.forEach((s, i) => {
+    const li = stageEls[i];
+    li.className = s.status + (i === next ? ' next' : '');
+    li.children[1].textContent = s.name;
+    li.children[2].textContent = s.status === 'triggered' ? s.triggeredAt.toFixed(2) + ' s' : s.status === 'failed' ? 'failed' : '';
+  });
+  $('#mAcc').textContent = sim.basketAcceleration === null ? '—' : sim.basketAcceleration.toFixed(3) + ' m/s²';
+  $('#mSwing').textContent = sim.pendulumSwingTime === null ? '—' : sim.pendulumSwingTime.toFixed(3) + ' s';
+  $('#mTotal').textContent = sim.totalTime === null ? '—' : sim.totalTime.toFixed(2) + ' s';
+  const msg = $('#msg'), ban = $('#banner');
+  if (sim.failed) {
+    const prev = sim.stages[sim.failed.id - 2];
+    const txt = `Stage ${sim.failed.id} (${sim.failed.name}) failed: nothing touched it within 8 s after ${prev ? prev.name : 'the start'}.`;
+    msg.className = 'fail'; msg.textContent = txt;
+    ban.className = 'panel fail'; ban.style.display = 'block';
+    ban.innerHTML = `Chain stopped at <b>stage ${sim.failed.id} · ${sim.failed.name}</b>`;
+  } else if (sim.complete) {
+    msg.className = 'done'; msg.textContent = `The bell rang. Total chain time ${sim.totalTime.toFixed(2)} s of simulation.`;
+    ban.className = 'panel'; ban.style.display = 'block';
+    ban.innerHTML = `The bell rang · total chain time <b>${sim.totalTime.toFixed(2)} s</b>`;
+  } else { msg.className = ''; msg.textContent = ''; ban.style.display = 'none'; }
+}
+
+// ====================================================================== cameras
+const camTgt = new THREE.Vector3(), wantPos = new THREE.Vector3(), wantTgt = new THREE.Vector3(), dirNow = new THREE.Vector3(0.5, 0.4, 1).normalize();
+let camSnap = true;
+// view direction (from target to camera) for each number of triggered stages
+const DIRS = [[0.5, 0.55, 1], [0.5, 0.55, 1], [0.5, 0.55, 1], [-0.35, 0.62, 1], [-0.25, 0.42, 1], [-0.4, 0.3, 1], [0.1, 0.24, 1], [0.32, 0.36, 1], [0.3, 0.8, 1], [0.8, 0.5, 0.7]];
+function updateCamera(dt) {
+  const sim = state.sim; if (!sim || !rig) return;
+  const aspect = camera.aspect;
+  if (state.cam === 'orbit') { controls.update(); camTgt.copy(controls.target); return; }
+  if (state.cam === 'overview') {
+    const t = Math.tan(camera.fov * Math.PI / 360);
+    const distH = (rig.w / 2 + 0.25) / (t * aspect), distV = (rig.d * 0.315 + 0.7) / t;
+    const dist = Math.max(distH, distV) * 1.04, el = 0.68, az = 0.14;
+    wantTgt.set(rig.cx, 0.35, rig.cz + 0.1);
+    wantPos.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)).multiplyScalar(dist).add(wantTgt);
+  } else {
+    const f = sim.focus(), dv = DIRS[f.n];
+    const want = V(dv[0], dv[1], dv[2]).normalize();
+    dirNow.lerp(want, camSnap ? 1 : 1 - Math.exp(-2.2 * dt)).normalize();
+    wantTgt.set(f.p[0], Math.max(0.15, f.p[1]), f.p[2]);
+    const dist = f.d * (aspect < 1.2 ? Math.min(1.9, 1.2 / aspect) : 1);
+    wantPos.copy(dirNow).multiplyScalar(dist).add(wantTgt);
+  }
+  if (camSnap) { camTgt.copy(wantTgt); camera.position.copy(wantPos); camSnap = false; }
+  else {
+    camTgt.lerp(wantTgt, 1 - Math.exp(-4.5 * dt));
+    camera.position.lerp(wantPos, 1 - Math.exp(-2.6 * dt));
+  }
+  camera.lookAt(camTgt);
+}
+function setCam(mode) {
+  state.cam = mode;
+  controls.enabled = mode === 'orbit';
+  if (mode === 'orbit') { controls.target.copy(camTgt); controls.update(); }
+  document.querySelectorAll('#cams button').forEach(b => b.classList.toggle('on', b.dataset.cam === mode));
+}
+function setSpeed(v) {
+  state.speed = v;
+  document.querySelectorAll('#speeds button').forEach(b => b.classList.toggle('on', parseFloat(b.dataset.speed) === v));
+}
+function setPaused(p) {
+  state.paused = p;
+  const b = $('#pause'); b.textContent = p ? 'Play' : 'Pause'; b.classList.toggle('on', p);
+}
+
+// ====================================================================== run management
+function rebuild(settings) {
+  if (state.sim) { scene.remove(runRoot); disposeTree(runRoot); state.sim.free(); state.sim = null; }
+  state.applied = { ...settings };
+  state.sim = createMachine(RAPIER, { ...settings });
+  buildScene(state.sim);
+  state.done = false; state.failAt = null; stepDebt = 0; hudSig = ''; bellGlow = 0; pendingBell = null;
+  camSnap = state.cam !== 'orbit';
+  soundChip();
+  for (const c of CONTROLS) inputs[c.key]._show();
+  setPaused(false);
+}
+const replay = () => rebuild(readControls());
+
+$('#pause').addEventListener('click', () => setPaused(!state.paused));
+$('#replay').addEventListener('click', replay);
+$('#apply').addEventListener('click', replay);
+$('#defaults').addEventListener('click', () => { for (const c of CONTROLS) { inputs[c.key].value = c.def; } for (const c of CONTROLS) inputs[c.key]._show(); });
+$('#speeds').addEventListener('click', e => { const s = e.target.dataset.speed; if (s) setSpeed(parseFloat(s)); });
+$('#cams').addEventListener('click', e => { const c = e.target.dataset.cam; if (c) setCam(c); });
+$('#toggleSettings').addEventListener('click', () => { const s = $('#settings'); if (window.innerWidth <= 900) s.classList.toggle('open'); else s.classList.toggle('closed'); });
+$('#sound').addEventListener('click', audioUnlock);
+document.addEventListener('click', e => { if (e.target instanceof HTMLButtonElement) e.target.blur(); });
+window.addEventListener('pointerdown', audioUnlock);
+window.addEventListener('keydown', e => {
+  audioUnlock();
+  if (e.code !== 'Space') return;
+  const el = document.activeElement, tag = el && el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) return;
+  e.preventDefault();
+  setPaused(!state.paused);
+});
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+});
+
+// ====================================================================== main loop: fixed physics step, capped steps per frame
+const MAX_STEPS_PER_FRAME = 10;
+let stepDebt = 0, lastNow = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, Math.max(0, (now - lastNow) / 1000)); lastNow = now;
+  const sim = state.sim;
+  if (sim && !state.paused && !state.done) {
+    stepDebt += dt * state.speed;
+    let n = Math.floor(stepDebt / sim.DT);
+    if (n > MAX_STEPS_PER_FRAME) { n = MAX_STEPS_PER_FRAME; stepDebt = 0; } else stepDebt -= n * sim.DT;
+    for (let i = 0; i < n; i++) sim.step();
+    processFx(sim);
+    if (sim.failed && state.failAt === null) state.failAt = sim.time;
+    // hold on the finished machine once it has settled
+    if ((sim.complete && sim.time > sim.totalTime + 6) || (sim.failed && sim.time > state.failAt + 3)) state.done = true;
+  }
+  if (bellGlow > 0) bellGlow = Math.max(0, bellGlow - dt * (state.paused ? 0 : 0.7));
+  syncVisuals();
+  updateCamera(dt);
+  updateHud();
+  renderer.render(scene, camera);
+}
+
+audioInit(); soundChip();
+setSpeed(1); setCam('follow');
+rebuild({ ...DEFAULTS });          // first run: mandatory defaults; the gate opens at t = 1 s on its own
+requestAnimationFrame(t => { lastNow = t; frame(t); });
+</script>
+</body>
+</html>
