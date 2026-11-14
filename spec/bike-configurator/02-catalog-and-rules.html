@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator — 02-catalog-and-rules</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <strong>02-catalog-and-rules</strong> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <a href="08-fr-order.html">08-fr-order</a> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a></nav>
+<h1 id="2-catalog-and-business-rules">2. Catalog and business rules</h1>
+<h2 id="21-glossary">2.1 Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Configuration</td>
+<td>The current choices: rider height, frame, wheels, drivetrain, color, accessories, quantity and applied promo code.</td>
+</tr>
+<tr>
+<td>Option group</td>
+<td>One of: frame, wheels, drivetrain, color, accessories. Frame, wheels, drivetrain and color are single-choice groups; accessories is a multiple-choice group.</td>
+</tr>
+<tr>
+<td>Option card</td>
+<td>The clickable card that represents one option of a group (DR-CMP-02).</td>
+</tr>
+<tr>
+<td>Valid height</td>
+<td>A height that satisfies FR-FIT-02.</td>
+</tr>
+<tr>
+<td>Recommended frame</td>
+<td>The frame given by section 2.3 for a valid height.</td>
+</tr>
+<tr>
+<td>Automatic frame mode</td>
+<td>The state in which the frame follows the recommended frame (FR-FIT-04). It is on when the page loads and after FR-ORD-05; it ends at the first manual frame choice (FR-FIT-05), including activating the card of the frame already selected.</td>
+</tr>
+<tr>
+<td>Cascade</td>
+<td>A change made by the system to another option as a consequence of the user&#39;s change (FR-OPT-04, FR-OPT-07, FR-OPT-08).</td>
+</tr>
+<tr>
+<td>Cents</td>
+<td>An amount expressed as an integer number of euro cents. €12.50 is 1250 cents.</td>
+</tr>
+<tr>
+<td>Today</td>
+<td>The browser&#39;s current local date.</td>
+</tr>
+</tbody></table>
+<h2 id="22-catalog">2.2 Catalog</h2>
+<p>All prices include VAT.</p>
+<h3 id="frames-single-choice-no-default">Frames (single choice, no default)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Rider height (cm)</th>
+<th>Price</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>S</code></td>
+<td><code>Frame S</code></td>
+<td>150 – 164</td>
+<td>€1,190.00</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td><code>Frame M</code></td>
+<td>165 – 174</td>
+<td>€1,190.00</td>
+</tr>
+<tr>
+<td><code>L</code></td>
+<td><code>Frame L</code></td>
+<td>175 – 184</td>
+<td>€1,240.00</td>
+</tr>
+<tr>
+<td><code>XL</code></td>
+<td><code>Frame XL</code></td>
+<td>185 – 200</td>
+<td>€1,290.00</td>
+</tr>
+</tbody></table>
+<p>The <strong>size order</strong> is S, M, L, XL. The <strong>size gap</strong> between two frames is the difference of their positions in this order (S to L is 2).</p>
+<h3 id="wheels-single-choice-default-275">Wheels (single choice, default <code>275</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Surcharge</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>275</code></td>
+<td><code>27.5&quot; wheels</code></td>
+<td>€0.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>29</code></td>
+<td><code>29&quot; wheels</code></td>
+<td>€120.00</td>
+<td>Not available with frame S</td>
+</tr>
+</tbody></table>
+<p>The <code>&quot;</code> character is U+0022.</p>
+<h3 id="drivetrain-single-choice-default-essential">Drivetrain (single choice, default <code>essential</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Surcharge</th>
+<th>Lead time (business days)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>essential</code></td>
+<td><code>Essential 1×10</code></td>
+<td>€0.00</td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>sport</code></td>
+<td><code>Sport 1×12</code></td>
+<td>€240.00</td>
+<td>7</td>
+</tr>
+<tr>
+<td><code>pro</code></td>
+<td><code>Pro Electronic 2×12</code></td>
+<td>€690.00</td>
+<td>12</td>
+</tr>
+</tbody></table>
+<p>The <code>×</code> character is U+00D7.</p>
+<h3 id="color-single-choice-default-graphite">Color (single choice, default <code>graphite</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Hex value</th>
+<th>Surcharge</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>graphite</code></td>
+<td><code>Graphite</code></td>
+<td><code>#3A3A3C</code></td>
+<td>€0.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>sand</code></td>
+<td><code>Sand</code></td>
+<td><code>#D8C7A6</code></td>
+<td>€0.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>red</code></td>
+<td><code>Racing Red</code></td>
+<td><code>#C8102E</code></td>
+<td>€60.00</td>
+<td>Surcharge is €0.00 while drivetrain is <code>pro</code>. Adds 3 business days to the lead time.</td>
+</tr>
+<tr>
+<td><code>glacier</code></td>
+<td><code>Glacier</code></td>
+<td><code>#A9D6E5</code></td>
+<td>€0.00</td>
+<td>Out of stock: never selectable</td>
+</tr>
+</tbody></table>
+<h3 id="accessories-multiple-choice-none-by-default">Accessories (multiple choice, none by default)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Price</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mudguards</code></td>
+<td><code>Mudguards</code></td>
+<td>€45.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>rack</code></td>
+<td><code>Rear rack</code></td>
+<td>€69.00</td>
+<td>Requires <code>mudguards</code></td>
+</tr>
+<tr>
+<td><code>lights</code></td>
+<td><code>Lights</code></td>
+<td>€39.90</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>kickstand</code></td>
+<td><code>Kickstand</code></td>
+<td>€24.50</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p>The <strong>catalog order</strong> of accessories is the order of this table.</p>
+<h3 id="quantity">Quantity</h3>
+<p>An integer from 1 to 5. Default 1.</p>
+<h3 id="promo-codes">Promo codes</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Effect</th>
+<th>Condition for being active</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SPRING10</code></td>
+<td>10 % off the amount after quantity discount</td>
+<td>The amount after quantity discount is at least €1,500.00</td>
+</tr>
+<tr>
+<td><code>WELCOME50</code></td>
+<td>€50.00 off</td>
+<td>No quantity discount applies (quantity below 3)</td>
+</tr>
+<tr>
+<td><code>FREESHIP</code></td>
+<td>Shipping is free</td>
+<td>Always active</td>
+</tr>
+</tbody></table>
+<p>At most one code is applied at a time.</p>
+<h3 id="workshop-closed-days">Workshop closed days</h3>
+<p>Saturdays, Sundays, and these dates: <code>2026-12-24</code>, <code>2026-12-25</code>, <code>2026-12-31</code>, <code>2027-01-01</code>.</p>
+<p>A <strong>business day</strong> is any other day.</p>
+<h2 id="23-frame-recommendation">2.3 Frame recommendation</h2>
+<p>For a valid height <em>h</em>, the recommended frame is the frame whose rider height range in the frames table contains <em>h</em>. The ranges are inclusive at both ends and cover 150 to 200 without gap.</p>
+<h2 id="24-price-calculation">2.4 Price calculation</h2>
+<p>All amounts are integer cents. Rounding uses <strong>round half up</strong>: a non-negative exact value <em>x</em> is rounded to the integer ⌊<em>x</em> + ½⌋. Percentages are computed on exact values, then rounded once. Floating-point arithmetic shall not be used for money.</p>
+<p>For a configuration with a frame selected:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Formula</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Unit price</td>
+<td>frame price + wheels surcharge + drivetrain surcharge + color surcharge (rule of 2.2 applied) + sum of the prices of the selected accessories</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Subtotal</td>
+<td>unit price × quantity</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Quantity discount</td>
+<td>if quantity ≥ 3: round half up of (subtotal × 5 / 100); otherwise 0</td>
+</tr>
+<tr>
+<td>4</td>
+<td>After quantity discount</td>
+<td>subtotal − quantity discount</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Promo discount</td>
+<td><code>SPRING10</code> active: round half up of (after quantity discount × 10 / 100). <code>WELCOME50</code> active: 5000. Otherwise 0.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Merchandise</td>
+<td>after quantity discount − promo discount</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Shipping</td>
+<td>0 if <code>FREESHIP</code> is the applied code, or if merchandise ≥ 200000; otherwise 4900</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Total</td>
+<td>merchandise + shipping</td>
+</tr>
+<tr>
+<td>9</td>
+<td>VAT included</td>
+<td>round half up of (total × 20 / 120)</td>
+</tr>
+</tbody></table>
+<p>The VAT included is informative: it is part of the total, not added to it.</p>
+<h2 id="25-delivery-calculation">2.5 Delivery calculation</h2>
+<ol>
+<li><strong>Lead time</strong> = the drivetrain&#39;s lead time, plus 3 if the color is <code>red</code>, plus 2 if the quantity is 3 or more.</li>
+<li><strong>Delivery date</strong>: starting from the day after today, count business days one by one; the delivery date is the business day whose count equals the lead time. Today itself is never counted, whatever day it is.</li>
+</ol>
+<h2 id="26-display-formats">2.6 Display formats</h2>
+<h3 id="amount">Amount</h3>
+<p><code>€</code>, then the integer euros with a comma <code>,</code> between groups of three digits counted from the right, then <code>.</code>, then exactly two digits of cents. No space anywhere.</p>
+<table>
+<thead>
+<tr>
+<th>Cents</th>
+<th>Display</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td><code>€0.00</code></td>
+</tr>
+<tr>
+<td>3990</td>
+<td><code>€39.90</code></td>
+</tr>
+<tr>
+<td>124000</td>
+<td><code>€1,240.00</code></td>
+</tr>
+<tr>
+<td>455031</td>
+<td><code>€4,550.31</code></td>
+</tr>
+</tbody></table>
+<h3 id="signed-amounts">Signed amounts</h3>
+<table>
+<thead>
+<tr>
+<th>Use</th>
+<th>Format</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Surcharge or accessory price, non-zero</td>
+<td><code>+</code> then the amount</td>
+<td><code>+€120.00</code></td>
+</tr>
+<tr>
+<td>Surcharge, zero</td>
+<td>the word <code>Included</code></td>
+<td><code>Included</code></td>
+</tr>
+<tr>
+<td>Discount</td>
+<td><code>−</code> (U+2212 MINUS SIGN) then the amount</td>
+<td><code>−€266.10</code></td>
+</tr>
+</tbody></table>
+<h3 id="date">Date</h3>
+<p><code>&lt;Weekday&gt;, &lt;D&gt; &lt;Month&gt; &lt;YYYY&gt;</code>: English weekday name, a comma and a space, the day of the month without leading zero, a space, the English month name, a space, the four-digit year.</p>
+<p>Example: <code>Tuesday, 29 December 2026</code>.</p>
+<h2 id="27-worked-examples">2.7 Worked examples</h2>
+<p>These examples are normative: an implementation shall produce exactly these values.</p>
+<h3 id="prices">Prices</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Configuration</th>
+<th>Unit</th>
+<th>Subtotal</th>
+<th>Qty discount</th>
+<th>Promo</th>
+<th>Shipping</th>
+<th>Total</th>
+<th>VAT included</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>P1</td>
+<td>L, 29&quot;, Sport, Racing Red, Mudguards, Rear rack; qty 3; SPRING10</td>
+<td>€1,774.00</td>
+<td>€5,322.00</td>
+<td>−€266.10</td>
+<td>−€505.59</td>
+<td>Free</td>
+<td>€4,550.31</td>
+<td>€758.39</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>M, 27.5&quot;, Essential, Graphite, Lights; qty 3; SPRING10</td>
+<td>€1,229.90</td>
+<td>€3,689.70</td>
+<td>−€184.49</td>
+<td>−€350.52</td>
+<td>Free</td>
+<td>€3,154.69</td>
+<td>€525.78</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>S, 27.5&quot;, Essential, Graphite, Kickstand; qty 1; WELCOME50</td>
+<td>€1,214.50</td>
+<td>€1,214.50</td>
+<td>—</td>
+<td>−€50.00</td>
+<td>€49.00</td>
+<td>€1,213.50</td>
+<td>€202.25</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>as P3 with qty 3 (WELCOME50 inactive)</td>
+<td>€1,214.50</td>
+<td>€3,643.50</td>
+<td>−€182.18</td>
+<td>—</td>
+<td>Free</td>
+<td>€3,461.32</td>
+<td>€576.89</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>M, 27.5&quot;, Pro, Racing Red; qty 1; no code</td>
+<td>€1,880.00</td>
+<td>€1,880.00</td>
+<td>—</td>
+<td>—</td>
+<td>€49.00</td>
+<td>€1,929.00</td>
+<td>€321.50</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>L, 27.5&quot;, Sport, Graphite; qty 1; SPRING10 (inactive)</td>
+<td>€1,480.00</td>
+<td>€1,480.00</td>
+<td>—</td>
+<td>—</td>
+<td>€49.00</td>
+<td>€1,529.00</td>
+<td>€254.83</td>
+</tr>
+<tr>
+<td>P7</td>
+<td>as P6 plus Kickstand (SPRING10 active)</td>
+<td>€1,504.50</td>
+<td>€1,504.50</td>
+<td>—</td>
+<td>−€150.45</td>
+<td>€49.00</td>
+<td>€1,403.05</td>
+<td>€233.84</td>
+</tr>
+</tbody></table>
+<p>In this table <code>—</code> means that the summary line is not shown (FR-SUM-02); it is not a displayed value. Every example has a frame selected.</p>
+<p>P2 rounds 18448.5 cents up to 18449 and 35052.1 cents down to 35052. P7 costs less than P6 although it has one more accessory.</p>
+<h3 id="delivery-dates">Delivery dates</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Today</th>
+<th>Configuration</th>
+<th>Lead time</th>
+<th>Delivery date</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>D1</td>
+<td>Friday 2026-12-18</td>
+<td>Essential, Graphite, qty 1</td>
+<td>5</td>
+<td><code>Tuesday, 29 December 2026</code></td>
+</tr>
+<tr>
+<td>D2</td>
+<td>Friday 2026-12-18</td>
+<td>Pro, Racing Red, qty 3</td>
+<td>17</td>
+<td><code>Monday, 18 January 2027</code></td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Saturday 2026-11-14</td>
+<td>Sport, Sand, qty 1</td>
+<td>7</td>
+<td><code>Tuesday, 24 November 2026</code></td>
+</tr>
+</tbody></table>
+
+</main>
+</body>
+</html>
