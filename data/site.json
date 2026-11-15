@@ -1,5 +1,5 @@
 {
- "genereLe": "2026-11-14",
+ "genereLe": "2026-11-15",
  "essais": [
   {
    "id": "bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2",
@@ -576,6 +576,46 @@
     "testsVerts": 734,
     "ratees": []
    }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-codex-gpt-6-astra",
+   "epreuve": "bike-configurator",
+   "modele": "gpt-6-astra",
+   "modeleNom": "GPT-6 Astra",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 204181,
+   "coutUsd": 1.046426,
+   "coutEstime": true,
+   "jetonsTotal": 307629,
+   "jetonsSortie": 8207,
+   "tours": 8,
+   "verifie": true,
+   "repartition": {
+    "contexte": 31.6,
+    "plan": 0,
+    "implementation": 32.2,
+    "verification": 36.2
+   },
+   "app": "apps/bike-configurator/2026-11-14-codex-gpt-6-astra/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-astra.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 59,
+    "tests": 734,
+    "testsVerts": 719,
+    "ratees": [
+     "FR-PRM-02",
+     "FR-ORD-04",
+     "FR-ORD-05",
+     "DR-LAY-04",
+     "DR-CMP-05",
+     "DR-CMP-07",
+     "DR-STA-01",
+     "NFR-DLG-01"
+    ]
+   }
   }
  ],
  "epreuves": [
@@ -607,7 +647,7 @@
    "slug": "bike-configurator",
    "titre": "Bike Configurator",
    "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nThe folder `spec/` in the current working directory holds the software requirements specification of the application to build: functional behavior, page structure, texts, design tokens, layout and visual states. Read every file of `spec/`, starting with `spec/README.md`, before writing any code.\n\nImplement every requirement of the specification exactly as written: the same `data-testid` values, accessible names, texts, formats, calculations, colors, sizes, layouts and states. Where the specification is explicit, do not improvise and do not add behavior that changes it. Where it is silent, decide yourself.\n</instructions>\n\n<delivery>\n- Do not edit, move or delete the files of `spec/`.\n- You may check your page in any way you like, inside the current working directory.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, or font files. No package manager and no dev server for the delivered page. Everything is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nRun the relevant checks yourself. Do not edit files outside the current working directory.",
-   "essais": 6,
+   "essais": 7,
    "spec": {
     "fichiers": [
      "README",
