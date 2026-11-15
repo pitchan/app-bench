@@ -18,8 +18,8 @@
    "verifie": true,
    "repartition": {
     "contexte": 12.8,
-    "plan": 2.2,
-    "implementation": 75.2,
+    "plan": 0,
+    "implementation": 77.4,
     "verification": 9.8
    },
    "app": "apps/bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2/index.html",
@@ -42,8 +42,8 @@
    "verifie": true,
    "repartition": {
     "contexte": 10.5,
-    "plan": 13.4,
-    "implementation": 26.1,
+    "plan": 0,
+    "implementation": 39.5,
     "verification": 50
    },
    "app": "apps/bluey-house-3d/2026-10-28-codex-gpt-6-1-sol-3/index.html",
@@ -66,8 +66,8 @@
    "verifie": true,
    "repartition": {
     "contexte": 31,
-    "plan": 1.4,
-    "implementation": 40.3,
+    "plan": 0,
+    "implementation": 41.7,
     "verification": 27.3
    },
    "app": "apps/roller-coaster-3d/2026-10-31-cc-claude-opus-5-5/index.html",
@@ -90,9 +90,9 @@
    "verifie": true,
    "repartition": {
     "contexte": 13,
-    "plan": 5.7,
-    "implementation": 60.8,
-    "verification": 20.5
+    "plan": 0,
+    "implementation": 66.6,
+    "verification": 20.4
    },
    "app": "apps/roller-coaster-3d/2026-10-31-codex-gpt-6-1-sol/index.html",
    "vignette": "vignettes/roller-coaster-3d/2026-10-31-codex-gpt-6-1-sol.webp"
@@ -114,9 +114,9 @@
    "verifie": true,
    "repartition": {
     "contexte": 0,
-    "plan": 4.2,
-    "implementation": 73.6,
-    "verification": 22.2
+    "plan": 0,
+    "implementation": 76,
+    "verification": 24
    },
    "app": "apps/roller-coaster-3d/2026-10-31-cc-claude-haiku-5-5/index.html",
    "vignette": "vignettes/roller-coaster-3d/2026-10-31-cc-claude-haiku-5-5.webp"
@@ -162,8 +162,8 @@
    "verifie": true,
    "repartition": {
     "contexte": 7.7,
-    "plan": 1.9,
-    "implementation": 86.3,
+    "plan": 0,
+    "implementation": 88.2,
     "verification": 4.1
    },
    "app": "apps/foucault-pendulum-3d/2026-11-05-cc-claude-opus-5-5/index.html",
@@ -186,8 +186,8 @@
    "verifie": true,
    "repartition": {
     "contexte": 12.8,
-    "plan": 3.4,
-    "implementation": 9.7,
+    "plan": 0,
+    "implementation": 13.1,
     "verification": 74.1
    },
    "app": "apps/foucault-pendulum-3d/2026-11-05-codex-gpt-6-1-sol/index.html",
@@ -281,9 +281,9 @@
    "tours": 18,
    "verifie": true,
    "repartition": {
-    "contexte": 11.8,
-    "plan": 2.7,
-    "implementation": 67.6,
+    "contexte": 13.1,
+    "plan": 0,
+    "implementation": 69,
     "verification": 17.9
    },
    "app": "apps/rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5/index.html",
@@ -306,9 +306,9 @@
    "verifie": true,
    "repartition": {
     "contexte": 25.6,
-    "plan": 2.5,
+    "plan": 0,
     "implementation": 31.1,
-    "verification": 40.8
+    "verification": 43.3
    },
    "app": "apps/rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol/index.html",
    "vignette": "vignettes/rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol.webp"
@@ -353,8 +353,8 @@
    "tours": 39,
    "verifie": true,
    "repartition": {
-    "contexte": 29.2,
-    "plan": 0.6,
+    "contexte": 29.8,
+    "plan": 0,
     "implementation": 46,
     "verification": 24.2
    },
@@ -362,13 +362,12 @@
    "vignette": "vignettes/bike-configurator/2026-11-14-cc-claude-haiku-5-5.webp",
    "score": {
     "exigences": 67,
-    "exigencesTenues": 64,
+    "exigencesTenues": 65,
     "tests": 734,
-    "testsVerts": 728,
+    "testsVerts": 729,
     "ratees": [
      "FR-FIT-05",
-     "DR-STA-05",
-     "NFR-DLG-01"
+     "DR-STA-05"
     ]
    }
   },
@@ -421,8 +420,8 @@
    "tours": 10,
    "verifie": true,
    "repartition": {
-    "contexte": 23.8,
-    "plan": 4.4,
+    "contexte": 28.2,
+    "plan": 0,
     "implementation": 19.1,
     "verification": 52.7
    },
@@ -430,13 +429,10 @@
    "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-1-sol-2.webp",
    "score": {
     "exigences": 67,
-    "exigencesTenues": 65,
+    "exigencesTenues": 67,
     "tests": 734,
-    "testsVerts": 732,
-    "ratees": [
-     "DR-CMP-01",
-     "NFR-DLG-01"
-    ]
+    "testsVerts": 734,
+    "ratees": []
    }
   },
   {
@@ -464,13 +460,25 @@
    "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-luna-2.webp",
    "score": {
     "exigences": 67,
-    "exigencesTenues": 25,
+    "exigencesTenues": 0,
     "tests": 734,
-    "testsVerts": 470,
+    "testsVerts": 0,
     "ratees": [
+     "FR-FIT-01",
+     "FR-FIT-02",
+     "FR-FIT-03",
+     "FR-FIT-04",
      "FR-FIT-05",
+     "FR-FIT-06",
+     "FR-FIT-07",
+     "FR-OPT-01",
+     "FR-OPT-02",
      "FR-OPT-03",
+     "FR-OPT-04",
+     "FR-OPT-05",
      "FR-OPT-06",
+     "FR-OPT-07",
+     "FR-OPT-08",
      "FR-OPT-09",
      "FR-OPT-10",
      "FR-QTY-01",
@@ -494,12 +502,25 @@
      "FR-ORD-03",
      "FR-ORD-04",
      "FR-ORD-05",
+     "DR-TOK-01",
+     "DR-TOK-02",
+     "DR-LAY-01",
+     "DR-LAY-02",
+     "DR-LAY-03",
+     "DR-LAY-04",
+     "DR-LAY-05",
+     "DR-CMP-01",
      "DR-CMP-02",
+     "DR-CMP-03",
+     "DR-CMP-04",
      "DR-CMP-05",
      "DR-CMP-06",
      "DR-CMP-07",
      "DR-CMP-08",
      "DR-CMP-09",
+     "DR-CMP-10",
+     "DR-STA-01",
+     "DR-STA-02",
      "DR-STA-03",
      "DR-STA-04",
      "DR-STA-05",
@@ -602,19 +623,10 @@
    "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-astra.webp",
    "score": {
     "exigences": 67,
-    "exigencesTenues": 59,
+    "exigencesTenues": 67,
     "tests": 734,
-    "testsVerts": 719,
-    "ratees": [
-     "FR-PRM-02",
-     "FR-ORD-04",
-     "FR-ORD-05",
-     "DR-LAY-04",
-     "DR-CMP-05",
-     "DR-CMP-07",
-     "DR-STA-01",
-     "NFR-DLG-01"
-    ]
+    "testsVerts": 734,
+    "ratees": []
    }
   }
  ],
