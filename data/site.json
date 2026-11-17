@@ -1,5 +1,5 @@
 {
- "genereLe": "2026-11-15",
+ "genereLe": "2026-11-17",
  "essais": [
   {
    "id": "bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2",
@@ -628,6 +628,183 @@
     "testsVerts": 734,
     "ratees": []
    }
+  },
+  {
+   "id": "bike-configurator/2026-11-15-codex-gpt-6-luna-2",
+   "epreuve": "bike-configurator",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "max",
+   "date": "2026-11-15",
+   "dureeMs": 1298518,
+   "coutUsd": 0.066402,
+   "coutEstime": true,
+   "jetonsTotal": 2178909,
+   "jetonsSortie": 68541,
+   "tours": 26,
+   "verifie": true,
+   "repartition": {
+    "contexte": 41,
+    "plan": 0,
+    "implementation": 12.3,
+    "verification": 46.7
+   },
+   "app": "apps/bike-configurator/2026-11-15-codex-gpt-6-luna-2/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-15-codex-gpt-6-luna-2.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 66,
+    "tests": 734,
+    "testsVerts": 733,
+    "ratees": [
+     "FR-FIT-05"
+    ]
+   }
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-cc-claude-opus-5-5",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 947729,
+   "coutUsd": 3.0910951999999994,
+   "coutEstime": false,
+   "jetonsTotal": 1143221,
+   "jetonsSortie": 99675,
+   "tours": 10,
+   "verifie": true,
+   "repartition": {
+    "contexte": 28.5,
+    "plan": 0,
+    "implementation": 59.3,
+    "verification": 12.2
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-cc-claude-opus-5-5.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-cc-claude-sonnet-5-5",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-sonnet-5-5",
+   "modeleNom": "Claude Sonnet 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 904156,
+   "coutUsd": 1.907278,
+   "coutEstime": false,
+   "jetonsTotal": 1692096,
+   "jetonsSortie": 120792,
+   "tours": 11,
+   "verifie": true,
+   "repartition": {
+    "contexte": 70,
+    "plan": 0,
+    "implementation": 27.5,
+    "verification": 2.5
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-cc-claude-sonnet-5-5/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-cc-claude-sonnet-5-5.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-codex-gpt-6-luna",
+   "epreuve": "rocket-landing-3d",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 235873,
+   "coutUsd": 0.010466,
+   "coutEstime": true,
+   "jetonsTotal": 148696,
+   "jetonsSortie": 12176,
+   "tours": 5,
+   "verifie": true,
+   "repartition": {
+    "contexte": 26.5,
+    "plan": 0,
+    "implementation": 73.5,
+    "verification": 0
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-codex-gpt-6-luna/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-codex-gpt-6-luna.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-codex-gpt-6-1-sol",
+   "epreuve": "rocket-landing-3d",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 783416,
+   "coutUsd": 0.43966,
+   "coutEstime": true,
+   "jetonsTotal": 540787,
+   "jetonsSortie": 31116,
+   "tours": 13,
+   "verifie": true,
+   "repartition": {
+    "contexte": 1.3,
+    "plan": 0,
+    "implementation": 66.9,
+    "verification": 31.8
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-codex-gpt-6-1-sol/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-codex-gpt-6-1-sol.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-cc-claude-haiku-5-5",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-haiku-5-5",
+   "modeleNom": "Claude Haiku 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 1626989,
+   "coutUsd": 0.36843283000000004,
+   "coutEstime": false,
+   "jetonsTotal": 1246880,
+   "jetonsSortie": 358314,
+   "tours": 16,
+   "verifie": true,
+   "repartition": {
+    "contexte": 14.9,
+    "plan": 0,
+    "implementation": 85.1,
+    "verification": 0
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-cc-claude-haiku-5-5/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-cc-claude-haiku-5-5.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-codex-gpt-6-astra",
+   "epreuve": "rocket-landing-3d",
+   "modele": "gpt-6-astra",
+   "modeleNom": "GPT-6 Astra",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 860633,
+   "coutUsd": 2.579388,
+   "coutEstime": true,
+   "jetonsTotal": 669182,
+   "jetonsSortie": 35314,
+   "tours": 14,
+   "verifie": true,
+   "repartition": {
+    "contexte": 3.9,
+    "plan": 0,
+    "implementation": 70.8,
+    "verification": 25.3
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-codex-gpt-6-astra/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-codex-gpt-6-astra.webp"
   }
  ],
  "epreuves": [
@@ -658,8 +835,8 @@
   {
    "slug": "bike-configurator",
    "titre": "Bike Configurator",
-   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nThe folder `spec/` in the current working directory holds the software requirements specification of the application to build: functional behavior, page structure, texts, design tokens, layout and visual states. Read every file of `spec/`, starting with `spec/README.md`, before writing any code.\n\nImplement every requirement of the specification exactly as written: the same `data-testid` values, accessible names, texts, formats, calculations, colors, sizes, layouts and states. Where the specification is explicit, do not improvise and do not add behavior that changes it. Where it is silent, decide yourself.\n</instructions>\n\n<delivery>\n- Do not edit, move or delete the files of `spec/`.\n- You may check your page in any way you like, inside the current working directory.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, or font files. No package manager and no dev server for the delivered page. Everything is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nRun the relevant checks yourself. Do not edit files outside the current working directory.",
-   "essais": 7,
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nThe folder `spec/` in the current working directory holds the software requirements specification of the application to build: functional behavior, page structure, texts, design tokens, layout and visual states. Read every file of `spec/`, starting with `spec/README.md`, before writing any code.\n\nImplement every requirement of the specification exactly as written: the same `data-testid` values, accessible names, texts, formats, calculations, colors, sizes, layouts and states. Where the specification is explicit, do not improvise and do not add behavior that changes it. Where it is silent, decide yourself.\n</instructions>\n\n<delivery>\n- Do not edit, move or delete the files of `spec/`.\n- You may check your page in any way you like, inside the current working directory.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, or font files. No package manager and no dev server for the delivered page. Everything is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nYour model name is exactly: GPT-6 Luna. Set the browser title and the primary visible title to that name, written exactly as given. Add nothing else to either title.\nRun the relevant checks yourself. Do not edit files outside the current working directory.",
+   "essais": 8,
    "spec": {
     "fichiers": [
      "README",
@@ -945,6 +1122,12 @@
      }
     }
    }
+  },
+  {
+   "slug": "rocket-landing-3d",
+   "titre": "Rocket Landing 3D",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D two-stage rocket launch: the rocket lifts off from a coastal pad, the first stage separates, the second stage flies on, and the first stage flips, flies back, brakes through the atmosphere, and lands upright on a drone barge at sea.\n\nThis is a simulation, not a scripted animation. Every body's position, velocity, and mass must come out of thrust, gravity, and air drag integrated step by step, with mass flow from the engines. Never move a stage along a precomputed path, never set a velocity from a formula, and never place the booster on the barge: it lands only if its own burns stop it there.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a control bar, a settings panel, a live telemetry panel, and an event log.\n\n- A launch pad on the coast, open sea downrange, and the drone barge out at sea.\n- On load, the engines ignite by themselves at t = 1 s, without any click. The mission clock starts at ignition (T+0).\n- The camera follows the flight through separation, then the booster all the way down to the barge.\n- Launch (button or L key) resets everything with the current settings and flies again.\n- At the end of the booster's flight, the page shows \"Landed\" or \"Crashed\". A crashed booster must look crashed (it falls over, breaks, or explodes).\n</core-experience>\n\n<vehicle>\nThe flight takes place in one vertical plane: x is the horizontal distance downrange from the pad, y is the altitude above flat ground and sea level. The ground is flat and gravity is uniform and vertical.\n\n- Stage 1 (the booster): dry mass 25 t, propellant 300 t, 9 engines, diameter 3.7 m, about 45 m tall, 4 landing legs and 4 grid fins stowed against the body.\n- Stage 2: dry mass 5 t, propellant 90 t, 1 engine of 1000 kN, specific impulse 345 s, with the payload under a fairing on top.\n- Each engine has a constant thrust and a constant specific impulse, whatever the altitude. Mass flow of an engine = thrust / (specific impulse × 9.80665), and the stage's mass drops by that flow while the engine burns.\n- Air drag on every flying body: ½ ρ Cd A v² opposite to its velocity, with Cd = 0.5 and A = 10.75 m² for the full rocket, for the booster, and for stage 2 alike. Air density ρ = ρ₀ × exp(−altitude / H).\n- Model each flying body as a point mass for the physics. Its visible attitude follows its thrust direction while an engine burns, and its velocity otherwise.\n</vehicle>\n\n<flight-sequence>\n1. Ignition at T+0, all 9 booster engines at full thrust. The pad holds the rocket until thrust exceeds weight. If thrust has not exceeded weight 5 s after ignition, the engines shut down and the flight ends with \"No liftoff\".\n2. Ascent. The thrust points straight up for the first 10 s after liftoff. Then it tilts downrange from the vertical at the pitch rate, until it is 60° from the vertical, and stays there.\n3. MECO (main engine cut-off): the booster engines stop when the booster's remaining propellant falls to the landing reserve.\n4. Separation 2 s after MECO. Stage 2 ignites 3 s after separation, follows the same pitch program on the mission clock, and burns until its propellant is gone (SECO).\n5. Flip: the booster coasts 10 s after separation while it turns around.\n6. Boostback burn: 3 booster engines at full thrust, pushing horizontally back toward the pad, until the booster's horizontal velocity is zero.\n7. Coast up to apogee and back down.\n8. Entry burn: when the booster descends through 60 km, 3 engines at full thrust push straight up until its speed falls to 500 m/s. The grid fins deploy for the rest of the descent.\n9. Landing burn: 1 engine pushing straight up, throttle 40 % to 100 % of its thrust. Ignition time and throttle are your guidance design. The legs deploy before touchdown.\n10. Touchdown on the barge deck, at sea level. Landed if the vertical speed is at most 2 m/s, the horizontal speed at most 1 m/s, and the booster is within 20 m of the deck center, with propellant left. Anything else is \"Crashed\", including a booster that runs out of propellant or hits the sea.\n\nThe drone barge (about 90 × 50 m) is stationed where the boostback burn will end. Before each liftoff, the page finds that spot by running the same deterministic simulation ahead, then places the barge there. If the rocket crashes into the ground during ascent, the flight ends with \"Vehicle lost\".\n</flight-sequence>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation flies the same baseline mission.\n\n- Gravity: 9.81 m/s², Earth atmosphere: ρ₀ = 1.225 kg/m³, H = 8500 m\n- Booster engine thrust: 900 kN each, specific impulse 300 s\n- Payload: 10 t\n- Landing reserve: 50 t of booster propellant\n- Pitch rate: 0.6 °/s\n- Air drag: on\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next flight. If a control is on screen, it is wired.\n\n- payload mass, 0 to 30 t\n- booster engine thrust, 400 to 1000 kN per engine\n- landing reserve, 20 to 80 t\n- pitch rate, 0.2 to 1.0 °/s\n- air drag on / off\n- world, with presets Earth (9.81 m/s², ρ₀ 1.225 kg/m³, H 8500 m), Mars (3.71 m/s², ρ₀ 0.020 kg/m³, H 11100 m), Moon (1.62 m/s², no atmosphere)\n\nChanging a setting resets the rocket on the pad and moves the barge to its new spot.\n</settings>\n\n<live-readout>\nShow these values live, measured from the simulation, for the stack before separation and then for the stage the camera follows:\n\n- mission clock (T+ s) and current phase\n- altitude (km), speed (m/s), vertical speed (m/s), downrange distance (km)\n- mass (t), remaining propellant (t), engines lit, throttle (%)\n- dynamic pressure ½ ρ v² (kPa) and acceleration felt by the vehicle (g)\n- stage 1 delta-v: the ideal value from the rocket equation, specific impulse × 9.80665 × ln(initial mass / current mass), next to the integral of thrust / mass over time\n\nKeep an event log with the mission time of each event: liftoff, max Q (peak dynamic pressure), MECO, separation, stage 2 ignition, boostback start and end, booster apogee, entry burn start and end, landing burn start, touchdown or crash, SECO.\n\nAfter touchdown, show: outcome, vertical and horizontal speed at touchdown, distance from the deck center, and propellant left in the booster.\n\nDraw both trajectories as trails that stay visible until the next launch.\n</live-readout>\n\n<playback-and-camera>\n- Pause / Play, and simulation speed 0.25×, 1×, 4×, 16×. Space toggles pause unless an input is focused.\n- Cameras: Booster (chases the stack, then the booster after separation), Upper stage (chases stage 2), Tracking (a fixed camera on the coast that turns to follow the booster), Orbit (drag to orbit around the followed body). Default is Booster. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: painted rocket body, metal engine bells, landing legs, grid fins, the steel barge deck, the concrete pad, the sea.\n- A shadow map on the sun light; the rocket, the pad tower, and the barge cast shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- Engine plumes whose size follows the thrust, smoke at liftoff, the sky darkening with altitude. These effects must not change the physical result.\n- The coast, the time of day, the colors, and the atmosphere are your choice.\n</rendering>\n\n<physics>\n- Fixed physics timestep with a cap on steps per frame.\n- No Math.random in the physical setup or the force computation.\n- The same settings give the same flight on reload and on Launch.\n- Slow motion and fast forward change the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.rocketState()`. It returns a plain JSON object with:\n\n- `t`: mission time in s, and `phase`: the name of the current phase\n- `booster` and `upperStage`: `{ x, altitude, vx, vy, mass, propellant, enginesLit, throttle }` in SI units, `throttle` between 0 and 1, `vy` positive upward\n- `barge`: `{ x }` in meters downrange\n- `deltaV`: `{ stage1Ideal, stage1Integrated }` in m/s\n- `events`: `{ liftoff, maxQ, meco, separation, stage2Ignition, boostbackStart, boostbackEnd, boosterApogee, entryBurnStart, entryBurnEnd, landingBurnStart, touchdown, seco }`, each `null` until it happens, then `{ t, x, altitude, speed, propellant }` for the stage concerned, with `q` (Pa) added to `maxQ`\n- `lastFlight`: `{ outcome, liftoffThrustToWeight, touchdownVerticalSpeed, touchdownHorizontalSpeed, bargeOffset, propellantAtTouchdown }` in SI units, where `outcome` is `landed`, `crashed`, `noLiftoff`, or `vehicleLost`, or `null` before the first flight ends\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the page to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nYour model name is exactly: GPT-6 Astra. Set the browser title and the primary visible title to that name, written exactly as given. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 6
   }
  ]
 }

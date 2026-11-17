@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Sonnet 5.5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:rgba(10,14,22,.78);--line:rgba(160,190,230,.22);--fg:#dfe8f5;--dim:#8a9bb5;--acc:#4cc2ff;--ok:#5ee08a;--bad:#ff5d5d}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--fg);font:12px/1.35 system-ui,Segoe UI,Roboto,sans-serif}
+canvas#view{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.panel{position:fixed;background:var(--bg);border:1px solid var(--line);border-radius:8px;backdrop-filter:blur(6px);padding:8px 10px}
+#bar{position:fixed;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 10px;background:linear-gradient(rgba(5,8,14,.85),rgba(5,8,14,.55));border-bottom:1px solid var(--line);z-index:5}
+#brand{font-weight:700;font-size:15px;letter-spacing:.3px;margin-right:6px}
+.grp{display:inline-flex;gap:2px;background:rgba(255,255,255,.05);border-radius:6px;padding:2px}
+button{font:inherit;color:var(--fg);background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:5px;padding:4px 9px;cursor:pointer}
+button:hover{background:rgba(255,255,255,.16)}
+button.on{background:var(--acc);color:#04121c;border-color:var(--acc);font-weight:600}
+button.primary{background:#e8542e;border-color:#e8542e;color:#fff;font-weight:600}
+#settings{top:46px;left:10px;width:236px;z-index:4}
+#settings .row{margin:5px 0}
+#settings .row label{display:flex;justify-content:space-between;color:var(--dim)}
+#settings .row label b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+#settings input[type=range]{width:100%;margin:2px 0 0}
+#worldNote{color:var(--dim);font-size:11px;margin-top:4px}
+#tele{top:46px;right:10px;width:262px;z-index:4}
+#tele .r{display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px dotted rgba(255,255,255,.07)}
+#tele .r span:first-child{color:var(--dim)}
+#tele .r span:last-child{font-variant-numeric:tabular-nums;font-family:ui-monospace,Consolas,monospace}
+#clock{font:600 20px ui-monospace,Consolas,monospace;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+#phase{font-size:12px;color:var(--acc);font-family:system-ui}
+#log{left:10px;bottom:10px;width:330px;max-height:34vh;overflow:auto;z-index:4;font-family:ui-monospace,Consolas,monospace;font-size:11px}
+#log div{padding:1px 0;border-bottom:1px dotted rgba(255,255,255,.07)}
+#log .tm{color:var(--acc)}
+#log .none{color:var(--dim);font-family:system-ui}
+#banner{position:fixed;top:78px;left:50%;transform:translateX(-50%);font-size:34px;font-weight:800;letter-spacing:1px;padding:4px 22px;border-radius:10px;display:none;z-index:6;background:rgba(0,0,0,.55);border:2px solid currentColor}
+#result{right:10px;bottom:10px;width:262px;display:none;z-index:4}
+#result .r{display:flex;justify-content:space-between;padding:1px 0}
+#result .r span:first-child{color:var(--dim)}
+@media (max-width:820px){#settings{width:190px;font-size:11px}#tele{width:210px;font-size:11px}#log{width:240px}#banner{font-size:24px}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="bar">
+  <span id="brand">Claude Sonnet 5.5</span>
+  <button id="bLaunch" class="primary">Launch (L)</button>
+  <button id="bPause">Pause</button>
+  <span class="grp" id="speeds">
+    <button data-speed="0.25">0.25×</button><button data-speed="1" class="on">1×</button><button data-speed="4">4×</button><button data-speed="16">16×</button>
+  </span>
+  <span class="grp" id="cams">
+    <button data-cam="booster" class="on">Booster</button><button data-cam="upper">Upper stage</button><button data-cam="tracking">Tracking</button><button data-cam="orbit">Orbit</button>
+  </span>
+</div>
+
+<div id="settings" class="panel">
+  <div class="row"><label>Payload <b id="vPayload"></b></label><input id="sPayload" type="range" min="0" max="30" step="0.5"></div>
+  <div class="row"><label>Booster thrust / engine <b id="vThrust"></b></label><input id="sThrust" type="range" min="400" max="1000" step="10"></div>
+  <div class="row"><label>Landing reserve <b id="vReserve"></b></label><input id="sReserve" type="range" min="20" max="80" step="1"></div>
+  <div class="row"><label>Pitch rate <b id="vPitch"></b></label><input id="sPitch" type="range" min="0.2" max="1" step="0.05"></div>
+  <div class="row"><label><span>Air drag</span><input id="sDrag" type="checkbox"></label></div>
+  <div class="row"><label>World</label>
+    <span class="grp" id="worlds"><button data-world="earth" class="on">Earth</button><button data-world="mars">Mars</button><button data-world="moon">Moon</button></span>
+    <div id="worldNote"></div>
+  </div>
+</div>
+
+<div id="tele" class="panel">
+  <div id="clock"><span id="tClock">T+ 0.0 s</span><span id="phase">Countdown</span></div>
+  <div id="teleRows"></div>
+</div>
+
+<div id="log" class="panel"><div class="none">Events appear here</div></div>
+<div id="banner"></div>
+<div id="result" class="panel"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ==SIM-START==
+const G0 = 9.80665, DT = 0.005, CDA = 0.5 * 10.75;
+const B_ISP = 300, S_ISP = 345, S_THRUST = 1000e3, B_LEN = 45;
+const ENTRY_ALT = 60000, ENTRY_SPEED = 500, LAND_VF = 1.0, LAND_MARGIN = 45;
+const WORLDS = {
+  earth: { gravity: 9.81, rho0: 1.225, scaleHeight: 8500 },
+  mars:  { gravity: 3.71, rho0: 0.020, scaleHeight: 11100 },
+  moon:  { gravity: 1.62, rho0: 0,     scaleHeight: 8500 }
+};
+const EVENT_KEYS = ['liftoff','maxQ','meco','separation','stage2Ignition','boostbackStart','boostbackEnd',
+  'boosterApogee','entryBurnStart','entryBurnEnd','landingBurnStart','touchdown','seco'];
+
+function densityAt(S, y) {
+  return (S.drag && S.rho0 > 0) ? S.rho0 * Math.exp(-Math.max(y, 0) / S.scaleHeight) : 0;
+}
+
+class Sim {
+  constructor(S, bargeX) {
+    this.S = Object.assign({}, S);
+    this.bargeX = bargeX;
+    this.armed = false; this.ignited = false; this.done = false; this.bEnded = false;
+    this.pre = 0; this.t = 0;
+    this.ph = 'wait';
+    this.sep = false; this.tLift = null; this.tMeco = 0; this.tSep = 0;
+    this.b = { x: 0, y: 0, vx: 0, vy: 0, dry: 25000, prop: 300000, n: 0, thr: 0, F: 0, q: 0, fa: 0, maxY: 0, pY: 0, landDone: false, landTick: 0 };
+    this.s = { x: 0, y: B_LEN, vx: 0, vy: 0, dry: 5000 + this.S.payload * 1000, prop: 90000, n: 0, thr: 0, F: 0, q: 0, fa: 0, mode: 'stack' };
+    this.dir = { x: 0, y: 1 };
+    this.ev = {};
+    for (const k of EVENT_KEYS) this.ev[k] = null;
+    this.twr = null; this.last = null; this.outcome = null; this.td = null;
+    this.mStack = this.b.dry + this.b.prop + this.s.dry + this.s.prop;
+    this.m0 = this.mStack; this.dvInt = 0;
+    this.qPeak = null; this.qDone = false;
+  }
+  rec(body) {
+    return { t: this.t, x: body.x, altitude: body.y, speed: Math.hypot(body.vx, body.vy), propellant: body.prop };
+  }
+  pitch() {
+    const tt = this.tLift === null ? 0 : this.t - this.tLift;
+    if (tt <= 10) return 0;
+    return Math.min(60, this.S.pitchRate * (tt - 10)) * Math.PI / 180;
+  }
+  ignite() {
+    this.ignited = true; this.ph = 'pad';
+    this.m0 = this.mStack;
+    this.twr = 9 * this.S.thrust * 1000 / (this.m0 * this.S.gravity);
+    this.b.n = 9; this.b.thr = 1;
+  }
+  step() {
+    if (!this.armed || this.done) return;
+    if (!this.ignited) {
+      this.pre += DT;
+      if (this.pre >= 1 - 1e-9) this.ignite();
+      return;
+    }
+    this.t += DT;
+    if (!this.sep) this.stackStep(DT);
+    else { this.boosterStep(DT); this.upperStep(DT); }
+    if (this.bEnded) {
+      const m = this.s.mode;
+      if (m !== 'burn' && m !== 'coast1') this.done = true;
+    }
+    if (this.t > 3000) this.done = true;
+  }
+  stackStep(dt) {
+    const S = this.S, b = this.b, s = this.s, g = S.gravity, Fe = S.thrust * 1000;
+    const m = b.dry + b.prop + s.dry + s.prop;
+    if (this.ph === 'pad') {
+      if (9 * Fe > m * g) { this.ph = 'ascent'; this.tLift = this.t; this.ev.liftoff = this.rec(b); }
+      else if (this.t >= 5) {
+        b.n = 0; b.thr = 0; b.F = 0; this.ph = 'nolift'; s.mode = 'dead';
+        this.finish('noLiftoff'); return;
+      }
+    }
+    const burning = this.ph === 'pad' || this.ph === 'ascent';
+    let F = 0, th = 0, cut = false;
+    if (burning) {
+      th = this.pitch();
+      F = 9 * Fe;
+      const mdot = F / (B_ISP * G0) * dt;
+      const avail = b.prop - S.reserve * 1000;
+      let sc = 1;
+      if (mdot >= avail) { sc = Math.max(avail, 0) / mdot; cut = true; }
+      b.prop -= mdot * sc; F *= sc;
+    }
+    const v = Math.hypot(b.vx, b.vy);
+    const rho = densityAt(S, b.y);
+    const D = 0.5 * rho * CDA * v * v;
+    const ux = v > 1e-9 ? b.vx / v : 0, uy = v > 1e-9 ? b.vy / v : 0;
+    const Fx = F * Math.sin(th), Fy = F * Math.cos(th);
+    b.q = 0.5 * rho * v * v;
+    if (this.ph === 'pad') b.fa = g;
+    else {
+      b.fa = Math.hypot(Fx - D * ux, Fy - D * uy) / m;
+      b.vx += (Fx - D * ux) / m * dt;
+      b.vy += ((Fy - D * uy) / m - g) * dt;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+    }
+    b.F = F;
+    this.dvInt += F / m * dt;
+    this.mStack = b.dry + b.prop + s.dry + s.prop;
+    b.maxY = Math.max(b.maxY, b.y);
+    if (this.ph !== 'pad' && b.y < 0) {
+      b.y = 0; b.n = 0; b.F = 0; this.ph = 'lost'; s.mode = 'dead';
+      this.finish('vehicleLost'); return;
+    }
+    if (burning) { this.dir.x = Math.sin(th); this.dir.y = Math.cos(th); }
+    else {
+      const v2 = Math.hypot(b.vx, b.vy);
+      if (v2 > 0.5) { this.dir.x = b.vx / v2; this.dir.y = b.vy / v2; }
+    }
+    // dynamic pressure peak
+    if (!this.qDone) {
+      if (this.qPeak === null || b.q > this.qPeak.q) {
+        this.qPeak = { t: this.t, x: b.x, altitude: b.y, speed: Math.hypot(b.vx, b.vy), propellant: b.prop, q: b.q };
+      } else if (this.qPeak.q > 0 && b.q < 0.9 * this.qPeak.q) {
+        this.ev.maxQ = this.qPeak; this.qDone = true;
+      }
+    }
+    if (cut) {
+      b.n = 0; b.thr = 0; b.F = 0; this.ph = 'meco'; this.tMeco = this.t;
+      this.ev.meco = this.rec(b);
+    } else if (this.ph === 'meco' && this.t >= this.tMeco + 2 - 1e-9) {
+      this.separate();
+    }
+    s.x = b.x + B_LEN * this.dir.x; s.y = b.y + B_LEN * this.dir.y; s.vx = b.vx; s.vy = b.vy;
+  }
+  separate() {
+    const b = this.b, s = this.s;
+    this.sep = true; this.tSep = this.t; this.ph = 'flip';
+    if (!this.qDone && this.qPeak && this.qPeak.q > 0) { this.ev.maxQ = this.qPeak; this.qDone = true; }
+    this.ev.separation = this.rec(b);
+    s.mode = 'coast1';
+    b.pY = b.y;
+  }
+  // altitude where a constant-throttle landing burn would bring the booster to LAND_VF (negative: hits the ground first)
+  predictStop(thr) {
+    const S = this.S, b = this.b, Fe = S.thrust * 1000, g = S.gravity;
+    let y = b.y, vy = b.vy, vx = b.vx, m = b.dry + b.prop, prop = b.prop;
+    const md = Fe * thr / (B_ISP * G0), dtp = 0.05;
+    for (let i = 0; i < 2400; i++) {
+      const v = Math.hypot(vx, vy) || 1;
+      const D = 0.5 * densityAt(S, y) * CDA * v * v;
+      const f = prop > 0 ? Fe * thr : 0;
+      const vy0 = vy; vy += ((f - D * vy / v) / m - g) * dtp; vx += -D * vx / v / m * dtp; y += 0.5 * (vy0 + vy) * dtp;
+      if (prop > 0) { prop -= md * dtp; m -= md * dtp; }
+      if (y <= 0) return -1 - Math.abs(vy);
+      if (vy >= -LAND_VF) return y;
+    }
+    return 1e9;
+  }
+  shouldLand() {
+    return this.predictStop(1) <= LAND_MARGIN;
+  }
+  landThrottle() {
+    // smallest throttle that still stops the booster above the deck; re-solved every 0.05 s
+    const b = this.b;
+    if (b.landTick > 0) { b.landTick--; return b.thr; }
+    b.landTick = 9;
+    const eps = Math.min(40, 0.03 * Math.max(b.y, 0));
+    if (this.predictStop(1) < eps) return 1;
+    if (this.predictStop(0.4) >= eps) return 0.4;
+    let lo = 0.4, hi = 1;
+    for (let i = 0; i < 10; i++) { const mid = 0.5 * (lo + hi); if (this.predictStop(mid) >= eps) hi = mid; else lo = mid; }
+    return hi;
+  }
+  boosterStep(dt) {
+    const S = this.S, b = this.b, g = S.gravity, Fe = S.thrust * 1000;
+    if (this.ph === 'landed' || this.ph === 'crashed') return;
+    const prevY = b.y, prevVy = b.vy;
+    if (this.ph === 'flip' && this.t >= this.tSep + 10 - 1e-9) {
+      this.ph = 'boostback'; b.n = 3; b.thr = 1; this.ev.boostbackStart = this.rec(b);
+    } else if (this.ph === 'coast' && b.vy < 0 && b.pY > ENTRY_ALT && b.y <= ENTRY_ALT) {
+      this.ph = 'entry'; b.n = 3; b.thr = 1; this.ev.entryBurnStart = this.rec(b);
+    } else if (this.ph === 'descent' && b.vy < 0 && b.y < 25000 && !b.landDone && b.prop > 0 && this.shouldLand()) {
+      this.ph = 'landing'; b.n = 1; b.thr = 1; this.ev.landingBurnStart = this.rec(b);
+    }
+    if (this.ph === 'entry' && Math.hypot(b.vx, b.vy) <= ENTRY_SPEED) {
+      this.ph = 'descent'; b.n = 0; b.thr = 0; this.ev.entryBurnEnd = this.rec(b);
+    }
+    const m = b.dry + b.prop;
+    const v = Math.hypot(b.vx, b.vy);
+    const rho = densityAt(S, b.y);
+    const D = 0.5 * rho * CDA * v * v;
+    const ux = v > 1e-9 ? b.vx / v : 0, uy = v > 1e-9 ? b.vy / v : 0;
+    const ph = this.ph;
+    let F = 0, cx = 0, cy = 0, cutProp = false, endBB = false;
+    if (ph === 'boostback' || ph === 'entry' || ph === 'landing') {
+      let thr = 1;
+      if (ph === 'landing') thr = this.landThrottle();
+      b.thr = thr;
+      F = b.n * Fe * thr;
+      if (ph === 'boostback') cx = -1; else cy = 1;
+      const mdot = F / (B_ISP * G0) * dt;
+      let sc = 1;
+      if (mdot >= b.prop) { sc = b.prop / mdot; cutProp = true; }
+      if (ph === 'boostback') {
+        const need = (b.vx * m / dt - D * ux) / F;
+        if (need < sc) { sc = Math.max(need, 0); endBB = true; }
+      }
+      b.prop -= mdot * sc; F *= sc;
+    }
+    const Fx = F * cx, Fy = F * cy;
+    b.fa = Math.hypot(Fx - D * ux, Fy - D * uy) / m;
+    b.vx += (Fx - D * ux) / m * dt;
+    b.vy += ((Fy - D * uy) / m - g) * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    b.F = F; b.q = 0.5 * rho * v * v;
+    b.maxY = Math.max(b.maxY, b.y);
+    if (ph === 'boostback' && (endBB || cutProp)) {
+      this.ph = 'coast'; b.n = 0; b.thr = 0; b.F = 0; this.ev.boostbackEnd = this.rec(b);
+    } else if (ph === 'entry' && cutProp) {
+      this.ph = 'descent'; b.n = 0; b.thr = 0; b.F = 0; this.ev.entryBurnEnd = this.rec(b);
+    } else if (ph === 'landing' && cutProp) {
+      this.ph = 'descent'; b.n = 0; b.thr = 0; b.F = 0; b.landDone = true;
+    }
+    if (!this.ev.boosterApogee && prevVy > 0 && b.vy <= 0) {
+      this.ev.boosterApogee = this.rec(b);
+      if (this.ph === 'coast' && b.maxY < ENTRY_ALT) this.ph = 'descent';
+    }
+    b.pY = prevY;
+    if (b.y <= 0 && b.vy < 0) this.touchdown();
+  }
+  touchdown() {
+    const b = this.b;
+    b.y = 0;
+    const vs = -b.vy, hs = Math.abs(b.vx), off = Math.abs(b.x - this.bargeX);
+    const landed = vs <= 2 && hs <= 1 && off <= 20 && b.prop > 0;
+    this.ev.touchdown = this.rec(b);
+    this.td = { vs, hs, off, landed, vx: b.vx };
+    b.n = 0; b.thr = 0; b.F = 0; b.vx = 0; b.vy = 0;
+    this.ph = landed ? 'landed' : 'crashed';
+    this.finish(landed ? 'landed' : 'crashed');
+  }
+  finish(outcome) {
+    const td = this.td;
+    this.outcome = outcome;
+    this.last = {
+      outcome, liftoffThrustToWeight: this.twr,
+      touchdownVerticalSpeed: td ? td.vs : null, touchdownHorizontalSpeed: td ? td.hs : null,
+      bargeOffset: td ? td.off : null, propellantAtTouchdown: td ? this.b.prop : null
+    };
+    this.bEnded = true;
+  }
+  upperStep(dt) {
+    const S = this.S, s = this.s, g = S.gravity;
+    if (s.mode === 'dead') return;
+    if (s.mode === 'coast1' && this.t >= this.tSep + 3 - 1e-9) {
+      s.mode = 'burn'; s.n = 1; s.thr = 1; this.ev.stage2Ignition = this.rec(s);
+    }
+    const m = s.dry + s.prop;
+    let F = 0, th = 0, cut = false;
+    if (s.mode === 'burn') {
+      th = this.pitch();
+      F = S_THRUST;
+      const mdot = F / (S_ISP * G0) * dt;
+      let sc = 1;
+      if (mdot >= s.prop) { sc = s.prop / mdot; cut = true; }
+      s.prop -= mdot * sc; F *= sc;
+    }
+    const v = Math.hypot(s.vx, s.vy);
+    const rho = densityAt(S, s.y);
+    const D = 0.5 * rho * CDA * v * v;
+    const ux = v > 1e-9 ? s.vx / v : 0, uy = v > 1e-9 ? s.vy / v : 0;
+    const Fx = F * Math.sin(th), Fy = F * Math.cos(th);
+    s.fa = Math.hypot(Fx - D * ux, Fy - D * uy) / m;
+    s.vx += (Fx - D * ux) / m * dt;
+    s.vy += ((Fy - D * uy) / m - g) * dt;
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    s.F = F; s.q = 0.5 * rho * v * v;
+    if (cut) {
+      s.mode = 'coast2'; s.n = 0; s.thr = 0; s.F = 0; s.prop = 0;
+      this.ev.seco = this.rec(s);
+    }
+    if (s.y <= 0 && s.vy < 0) {
+      s.y = 0; s.vx = 0; s.vy = 0; s.n = 0; s.thr = 0; s.F = 0; s.mode = 'dead';
+    }
+  }
+}
+
+function predictBargeX(S) {
+  const p = new Sim(S, 0);
+  p.armed = true; p.pre = 1;
+  while (!p.done && !p.ev.boostbackEnd && p.t < 1500) p.step();
+  return p.ev.boostbackEnd ? p.ev.boostbackEnd.x : 40000;
+}
+// ==SIM-END==
+
+// ---------------------------------------------------------------- settings
+const settings = { payload: 10, thrust: 900, reserve: 50, pitchRate: 0.6, drag: true, world: 'earth' };
+Object.assign(settings, WORLDS.earth);
+
+// ---------------------------------------------------------------- renderer / scene
+const canvas = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 4e6);
+scene.add(camera);
+
+const sun = new THREE.DirectionalLight(0xfff0dc, 3.2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+const sc = sun.shadow.camera; sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110; sc.near = 10; sc.far = 1600;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.4;
+scene.add(sun); scene.add(sun.target);
+const hemi = new THREE.HemisphereLight(0xa8c8ff, 0x4a5538, 0.45);
+scene.add(hemi);
+const SUN_DIR = new THREE.Vector3(0.5, 0.62, 0.6).normalize();
+
+const world = new THREE.Group(); scene.add(world);
+
+function mesh(geo, mat, cast = true, recv = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = recv; return m; }
+
+// ---- sky dome + stars
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthTest: false, depthWrite: false, fog: false,
+  uniforms: { uDark: { value: 0 }, uHor: { value: new THREE.Color(0.7, 0.82, 0.94) }, uZen: { value: new THREE.Color(0.16, 0.38, 0.78) }, uSpace: { value: new THREE.Color(0.05, 0.09, 0.16) } },
+  vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: 'uniform float uDark; uniform vec3 uHor; uniform vec3 uZen; uniform vec3 uSpace; varying vec3 vDir; void main(){ vec3 hor = mix(uHor, uSpace, uDark); vec3 zen = mix(uZen, vec3(0.0,0.0,0.01), uDark); float k = pow(clamp(vDir.y,0.0,1.0),0.5); gl_FragColor = vec4(mix(hor,zen,k),1.0); }'
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(2.5e6, 32, 16), skyMat);
+sky.renderOrder = -2; sky.frustumCulled = false; scene.add(sky);
+let rs = 12345; const vr = () => { rs = (Math.imul(rs, 1664525) + 1013904223) >>> 0; return rs / 4294967296; };
+const starPos = new Float32Array(3 * 1800);
+for (let i = 0; i < 1800; i++) {
+  const u = vr() * 2 - 1, a = vr() * Math.PI * 2, r = Math.sqrt(1 - u * u);
+  starPos[3 * i] = r * Math.cos(a) * 3e6; starPos[3 * i + 1] = Math.abs(u) * 3e6 * 0.9 + 1e5; starPos[3 * i + 2] = r * Math.sin(a) * 3e6;
+}
+const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, depthTest: false, depthWrite: false, fog: false });
+const stars = new THREE.Points(starGeo, starMat); stars.renderOrder = -1; stars.frustumCulled = false; scene.add(stars);
+scene.fog = new THREE.FogExp2(0xb3d1ef, 0);
+
+// ---- procedural textures
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+function makeNormalTex(size) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const ctx = c.getContext('2d'); const img = ctx.createImageData(size, size);
+  const W = [[1, 2, 0.5, 1.0], [3, 1, 1.1, 0.8], [2, 5, 2.0, 0.5], [6, 3, 0.3, 0.35], [5, 7, 1.7, 0.25], [9, 4, 2.6, 0.18], [11, 13, 0.9, 0.1]];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    let sx = 0, sy = 0;
+    for (const w of W) { const a = 2 * Math.PI * (w[0] * x + w[1] * y) / size + w[2]; const cs = Math.cos(a) * w[3]; sx += cs * w[0]; sy += cs * w[1]; }
+    let nx = -sx * 0.06, ny = -sy * 0.06, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    const i = 4 * (y * size + x);
+    img.data[i] = (nx * 0.5 + 0.5) * 255; img.data[i + 1] = (ny * 0.5 + 0.5) * 255; img.data[i + 2] = (nz * 0.5 + 0.5) * 255; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+}
+const hash = (x, y) => { const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return s - Math.floor(s); };
+const radialTex = (stops) => canvasTex(128, 128, (ctx, w, h) => {
+  const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+  stops.forEach(s => g.addColorStop(s[0], s[1])); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+});
+
+// ---- sea and land
+const seaNormal = makeNormalTex(256);
+seaNormal.repeat.set(4e6 / 40, 4e6 / 40);
+const sea = mesh(new THREE.PlaneGeometry(4e6, 4e6), new THREE.MeshStandardMaterial({ color: 0x0a3556, roughness: 0.16, metalness: 0.05, normalMap: seaNormal, normalScale: new THREE.Vector2(0.7, 0.7), envMapIntensity: 1.2 }), false, true);
+sea.rotation.x = -Math.PI / 2; sea.position.y = -1.5; world.add(sea);
+const landTex = canvasTex(256, 256, (ctx, w, h) => {
+  const img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const n = hash(x, y) * 0.5 + hash(Math.floor(x / 4), Math.floor(y / 4)) * 0.5, i = 4 * (y * w + x);
+    img.data[i] = 205 * (0.6 + n * 0.6); img.data[i + 1] = 215 * (0.6 + n * 0.6); img.data[i + 2] = 180 * (0.6 + n * 0.6); img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+});
+landTex.wrapS = landTex.wrapT = THREE.RepeatWrapping; landTex.repeat.set(2e6 / 24, 4e6 / 24);
+const landMat = new THREE.MeshStandardMaterial({ color: 0x5d6b3f, map: landTex, roughness: 1, metalness: 0 });
+const land = mesh(new THREE.PlaneGeometry(2e6, 4e6), landMat, false, true);
+land.rotation.x = -Math.PI / 2; land.position.set(1500 - 1e6, -0.12, 0); world.add(land);
+const beach = mesh(new THREE.PlaneGeometry(120, 4000), new THREE.MeshStandardMaterial({ color: 0xcdbf94, roughness: 1 }), false, true);
+beach.rotation.x = -Math.PI / 2; beach.position.set(1500 + 59, -0.9, 0); world.add(beach);
+
+// ---- launch pad
+const matConcrete = new THREE.MeshStandardMaterial({ color: 0x9c9a92, roughness: 0.92, metalness: 0.0 });
+const matSteel = new THREE.MeshStandardMaterial({ color: 0xaeb3ba, roughness: 0.5, metalness: 0.8 });
+const matDarkSteel = new THREE.MeshStandardMaterial({ color: 0x2a2d32, roughness: 0.55, metalness: 0.7 });
+const pad = new THREE.Group(); world.add(pad);
+const slab = mesh(new THREE.BoxGeometry(80, 1, 80), matConcrete); slab.position.y = -0.55; pad.add(slab);
+const mount = mesh(new THREE.CylinderGeometry(7, 8, 0.6, 32), matDarkSteel); mount.position.y = -0.3; pad.add(mount);
+const trench = mesh(new THREE.BoxGeometry(5, 0.05, 5), new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 1 }), false, true); trench.position.y = -0.03; pad.add(trench);
+(function buildTower() {
+  const t = new THREE.Group(); t.position.set(-15, 0, -4); pad.add(t);
+  const H = 75, w = 2.6;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const p = mesh(new THREE.BoxGeometry(0.5, H, 0.5), matSteel); p.position.set(sx * w, H / 2, sz * w); t.add(p); }
+  for (let y = 0; y <= H; y += 7.5) {
+    for (const sz of [-1, 1]) { const b = mesh(new THREE.BoxGeometry(2 * w, 0.25, 0.25), matSteel); b.position.set(0, y, sz * w); t.add(b); }
+    for (const sx of [-1, 1]) { const b = mesh(new THREE.BoxGeometry(0.25, 0.25, 2 * w), matSteel); b.position.set(sx * w, y, 0); t.add(b); }
+    if (y < H) for (const sz of [-1, 1]) { const len = Math.hypot(2 * w, 7.5), d = mesh(new THREE.BoxGeometry(len, 0.2, 0.2), matSteel); d.position.set(0, y + 3.75, sz * w); d.rotation.z = Math.atan2(7.5, 2 * w) * (Math.floor(y / 7.5) % 2 ? 1 : -1); t.add(d); }
+  }
+  const mast = mesh(new THREE.CylinderGeometry(0.08, 0.15, 14, 8), matSteel); mast.position.y = H + 7; t.add(mast);
+  const arm = mesh(new THREE.BoxGeometry(11, 1.2, 1.4), matSteel); arm.position.set(7.2, 32, 0); t.add(arm);
+  const arm2 = mesh(new THREE.BoxGeometry(8, 0.8, 1.0), matSteel); arm2.position.set(5.6, 55, 0); t.add(arm2);
+  const tank = mesh(new THREE.CylinderGeometry(3, 3, 14, 20), matPaintFn()); tank.position.set(-14, 7, 14); t.add(tank);
+})();
+function matPaintFn() { return new THREE.MeshStandardMaterial({ color: 0xe8e8e4, roughness: 0.5, metalness: 0.2 }); }
+
+// ---- drone barge
+const barge = new THREE.Group(); world.add(barge);
+const deckTex = canvasTex(1024, 568, (ctx, w, h) => {
+  ctx.fillStyle = '#34383d'; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 4000; i++) { const x = hash(i, 1) * w, y = hash(i, 2) * h; ctx.fillStyle = 'rgba(' + (hash(i, 3) > .5 ? '255,255,255' : '0,0,0') + ',0.04)'; ctx.fillRect(x, y, 3, 3); }
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
+  for (let x = 0; x <= w; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y <= h; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  ctx.strokeStyle = '#e9e9e9'; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(w / 2, h / 2, 150, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 16; ctx.strokeStyle = '#f2c230';
+  ctx.beginPath(); ctx.moveTo(w / 2 - 105, h / 2 - 105); ctx.lineTo(w / 2 + 105, h / 2 + 105); ctx.moveTo(w / 2 + 105, h / 2 - 105); ctx.lineTo(w / 2 - 105, h / 2 + 105); ctx.stroke();
+  ctx.lineWidth = 10; ctx.strokeStyle = '#f2c230'; ctx.strokeRect(10, 10, w - 20, h - 20);
+});
+const deckMat = new THREE.MeshStandardMaterial({ map: deckTex, color: 0xffffff, roughness: 0.55, metalness: 0.7 });
+const hullMat = new THREE.MeshStandardMaterial({ color: 0x23272c, roughness: 0.6, metalness: 0.6 });
+const hull = mesh(new THREE.BoxGeometry(90, 3, 50), [hullMat, hullMat, deckMat, hullMat, hullMat, hullMat]); hull.position.y = -1.5; barge.add(hull);
+for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+  const pod = mesh(new THREE.CylinderGeometry(2.4, 2.4, 3.2, 20), hullMat); pod.position.set(sx * 42.5, 1.6, sz * 22.5); barge.add(pod);
+}
+const house = mesh(new THREE.BoxGeometry(9, 7, 9), new THREE.MeshStandardMaterial({ color: 0xdadde0, roughness: 0.6, metalness: 0.3 })); house.position.set(-38, 3.5, 18); barge.add(house);
+
+// ---- rocket models
+const matPaint = new THREE.MeshStandardMaterial({ color: 0xf1f1ee, roughness: 0.36, metalness: 0.15 });
+const matBlack = new THREE.MeshStandardMaterial({ color: 0x18191c, roughness: 0.6, metalness: 0.3 });
+const matMetal = new THREE.MeshStandardMaterial({ color: 0x8d9097, roughness: 0.3, metalness: 0.95, side: THREE.DoubleSide });
+const matLeg = new THREE.MeshStandardMaterial({ color: 0x2b2e33, roughness: 0.5, metalness: 0.7 });
+const matFin = new THREE.MeshStandardMaterial({ color: 0x6a6c72, roughness: 0.45, metalness: 0.9 });
+const coneGeo = new THREE.ConeGeometry(1, 1, 24, 1, true); coneGeo.rotateX(Math.PI); coneGeo.translate(0, -0.5, 0);
+function makePlume() {
+  const g = new THREE.Group();
+  const outer = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({ color: 0xff9a3c, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide }));
+  const inner = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide }));
+  inner.scale.set(0.5, 0.8, 0.5); g.add(outer, inner); g.visible = false; return g;
+}
+function gridFin() {
+  const g = new THREE.Group();
+  for (let i = 0; i <= 4; i++) { const s = mesh(new THREE.BoxGeometry(0.08, 1.5, 0.06), matFin); s.position.z = -0.8 + i * 0.4; g.add(s); }
+  for (let i = 0; i <= 3; i++) { const s = mesh(new THREE.BoxGeometry(0.08, 0.06, 1.6), matFin); s.position.y = -0.75 + i * 0.5; g.add(s); }
+  return g;
+}
+function buildBooster() {
+  const g = new THREE.Group();
+  const body = mesh(new THREE.CylinderGeometry(1.85, 1.85, 38, 40), matPaint); body.position.y = 23; g.add(body);
+  const lower = mesh(new THREE.CylinderGeometry(1.86, 1.86, 2.6, 40), matBlack); lower.position.y = 2.7; g.add(lower);
+  const inter = mesh(new THREE.CylinderGeometry(1.86, 1.86, 3, 40), matBlack); inter.position.y = 43.5; g.add(inter);
+  const bellGeo = new THREE.CylinderGeometry(0.2, 0.42, 1.4, 20, 1, true);
+  const bp = [[0, 0]]; for (let i = 0; i < 8; i++) bp.push([Math.cos(i * Math.PI / 4) * 1.15, Math.sin(i * Math.PI / 4) * 1.15]);
+  bp.forEach(p => { const b = mesh(bellGeo, matMetal); b.position.set(p[0], 0.7, p[1]); g.add(b); });
+  const legs = [], fins = [];
+  for (let k = 0; k < 4; k++) {
+    const phi = Math.PI / 4 + k * Math.PI / 2;
+    const pivot = new THREE.Group(); pivot.position.set(Math.cos(phi) * 1.95, 7, Math.sin(phi) * 1.95); pivot.rotation.y = -phi;
+    const swing = new THREE.Group(); pivot.add(swing);
+    const leg = mesh(new THREE.BoxGeometry(0.35, 9, 0.5), matLeg); leg.position.y = 4.5; swing.add(leg);
+    const foot = mesh(new THREE.BoxGeometry(0.9, 0.25, 1.1), matLeg); foot.position.y = 9; swing.add(foot);
+    g.add(pivot); legs.push(swing);
+  }
+  for (let k = 0; k < 4; k++) {
+    const phi = k * Math.PI / 2;
+    const pivot = new THREE.Group(); pivot.position.set(Math.cos(phi) * 1.9, 40.5, Math.sin(phi) * 1.9); pivot.rotation.y = -phi;
+    const fin = new THREE.Group(); pivot.add(fin);
+    const grid = gridFin(); grid.position.set(0.12, 0, 0.8); fin.add(grid);
+    g.add(pivot); fins.push(fin);
+  }
+  const plume = makePlume(); g.add(plume);
+  world.add(g);
+  return { g, legs, fins, plume };
+}
+function buildStage2() {
+  const g = new THREE.Group();
+  const nozzle = mesh(new THREE.CylinderGeometry(0.55, 1.25, 3.2, 24, 1, true), matMetal); nozzle.position.y = 1.6; g.add(nozzle);
+  const body = mesh(new THREE.CylinderGeometry(1.85, 1.85, 11, 40), matPaint); body.position.y = 8.7; g.add(body);
+  const band = mesh(new THREE.CylinderGeometry(1.86, 1.86, 1.2, 40), matBlack); band.position.y = 3.8; g.add(band);
+  const pts = [new THREE.Vector2(1.85, 14.2), new THREE.Vector2(1.85, 22.2)];
+  for (let i = 1; i <= 12; i++) { const u = i / 12; pts.push(new THREE.Vector2(1.85 * Math.pow(1 - u * u, 0.6), 22.2 + 6.2 * u)); }
+  const fairing = mesh(new THREE.LatheGeometry(pts, 40), new THREE.MeshStandardMaterial({ color: 0xf6f6f3, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide })); g.add(fairing);
+  const ring = mesh(new THREE.CylinderGeometry(1.87, 1.87, 0.5, 40), matBlack); ring.position.y = 14.4; g.add(ring);
+  const plume = makePlume(); g.add(plume);
+  world.add(g);
+  return { g, plume };
+}
+const BV = buildBooster(), SV = buildStage2();
+
+// ---- trails
+const TR_MAX = 12000;
+function makeTrail(color) {
+  const geo = new THREE.BufferGeometry(); const arr = new Float32Array(3 * TR_MAX);
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3)); geo.setDrawRange(0, 0);
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, fog: false, toneMapped: false }));
+  line.frustumCulled = false; world.add(line);
+  return { geo, arr, line, n: 0, lastT: -1 };
+}
+const trB = makeTrail(0x45e0ff), trS = makeTrail(0xffd24a);
+function trailPush(tr, x, y) { if (tr.n < TR_MAX - 1) { tr.arr[3 * tr.n] = x; tr.arr[3 * tr.n + 1] = y; tr.arr[3 * tr.n + 2] = 0; tr.n++; } }
+function trailHead(tr, x, y, show) {
+  if (!show || tr.n === 0) { tr.geo.setDrawRange(0, 0); return; }
+  tr.arr[3 * tr.n] = x; tr.arr[3 * tr.n + 1] = y; tr.arr[3 * tr.n + 2] = 0;
+  tr.geo.setDrawRange(0, tr.n + 1); tr.geo.attributes.position.needsUpdate = true;
+}
+
+// ---- smoke, fire, debris (visual only)
+const puffTex = radialTex([[0, 'rgba(255,255,255,0.9)'], [0.5, 'rgba(255,255,255,0.45)'], [1, 'rgba(255,255,255,0)']]);
+const fireTex = radialTex([[0, 'rgba(255,250,210,1)'], [0.3, 'rgba(255,170,60,0.9)'], [0.7, 'rgba(200,60,10,0.4)'], [1, 'rgba(120,20,0,0)']]);
+const smoke = [];
+for (let i = 0; i < 160; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0 }));
+  sp.visible = false; world.add(sp); smoke.push({ sp, life: 0, max: 0, vx: 0, vy: 0, vz: 0, s0: 1, s1: 1, a: 0.5 });
+}
+let smokeIdx = 0;
+function emitSmoke(x, y, z, vx, vy, vz, life, s0, s1, a, color) {
+  const p = smoke[smokeIdx++ % smoke.length];
+  p.life = 0; p.max = life; p.vx = vx; p.vy = vy; p.vz = vz; p.s0 = s0; p.s1 = s1; p.a = a;
+  p.sp.material.color.setHex(color); p.sp.position.set(x, y, z); p.sp.visible = true; p.sp.material.opacity = 0;
+}
+function updateSmoke(dt) {
+  for (const p of smoke) {
+    if (!p.sp.visible) continue;
+    p.life += dt; const k = p.life / p.max;
+    if (k >= 1) { p.sp.visible = false; continue; }
+    const damp = Math.exp(-0.5 * dt); p.vx *= damp; p.vz *= damp;
+    p.sp.position.x += p.vx * dt; p.sp.position.y += p.vy * dt; p.sp.position.z += p.vz * dt;
+    const s = p.s0 + (p.s1 - p.s0) * Math.sqrt(k); p.sp.scale.set(s, s, 1);
+    p.sp.material.opacity = p.a * (1 - k) * Math.min(1, k * 10);
+  }
+}
+const fires = [];
+for (let i = 0; i < 6; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fireTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false }));
+  sp.visible = false; world.add(sp); fires.push({ sp, life: 0, max: 0, s1: 1 });
+}
+let debris = [];
+const debrisGeo = new THREE.BoxGeometry(1, 1, 1);
+let crashFx = null; // {x, t, style}
+function spawnExplosion(x, y) {
+  fires.forEach((f, i) => { f.life = 0; f.max = 1.8 + i * 0.35; f.s1 = 40 + i * 14; f.sp.position.set(x + (i - 3) * 2.5, y + 6 + i * 3, (i % 2 ? 3 : -3)); f.sp.visible = true; });
+  for (let i = 0; i < 22; i++) {
+    const w = 0.5 + vr() * 2.6, h = 0.3 + vr() * 3.5;
+    const m = mesh(debrisGeo, i % 3 ? matPaint : matBlack); m.scale.set(w, h, 0.3 + vr() * 1.4);
+    m.position.set(x, y + 4, 0);
+    const a = vr() * Math.PI * 2, sp = 6 + vr() * 34;
+    debris.push({ m, vx: Math.cos(a) * sp, vy: 8 + vr() * 32, vz: Math.sin(a) * sp * 0.6, rx: (vr() - .5) * 6, rz: (vr() - .5) * 6 });
+    world.add(m);
+  }
+}
+function updateFx(dt, g) {
+  fires.forEach(f => {
+    if (!f.sp.visible) return; f.life += dt; const k = f.life / f.max;
+    if (k >= 1) { f.sp.visible = false; return; }
+    const s = f.s1 * Math.sqrt(k) + 2; f.sp.scale.set(s, s, 1); f.sp.material.opacity = 1 - k;
+  });
+  for (const d of debris) {
+    if (d.vy === 0 && d.vx === 0) continue;
+    d.vy -= g * dt; d.m.position.x += d.vx * dt; d.m.position.y += d.vy * dt; d.m.position.z += d.vz * dt;
+    d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;
+    if (d.m.position.y < 0.3) { d.m.position.y = 0.3; d.vx = d.vy = d.vz = 0; }
+  }
+}
+
+// ---------------------------------------------------------------- simulation state
+let sim = null, paused = false, speed = 1, camMode = 'booster', acc = 0;
+let lastFlightStored = null;
+let psiB = 0, psiS = 0, legD = 0, finD = 0, tip = null;
+let loggedKeys = {}, loggedEnd = false;
+const dirOf = psi => ({ x: -Math.sin(psi), y: Math.cos(psi) });
+const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+const angOf = (x, y) => Math.atan2(-x, y);
+
+const logEl = document.getElementById('log');
+const bannerEl = document.getElementById('banner');
+const resultEl = document.getElementById('result');
+
+function applyWorldVisuals() {
+  const w = settings.world;
+  landMat.color.setHex(w === 'earth' ? 0x5d6b3f : w === 'mars' ? 0x9a5a3a : 0x8c8c8c);
+  if (w === 'earth') { skyMat.uniforms.uHor.value.setRGB(0.7, 0.82, 0.94); skyMat.uniforms.uZen.value.setRGB(0.16, 0.38, 0.78); skyMat.uniforms.uSpace.value.setRGB(0.05, 0.09, 0.16); }
+  else if (w === 'mars') { skyMat.uniforms.uHor.value.setRGB(0.82, 0.62, 0.46); skyMat.uniforms.uZen.value.setRGB(0.5, 0.4, 0.38); skyMat.uniforms.uSpace.value.setRGB(0.04, 0.03, 0.03); }
+  else { skyMat.uniforms.uHor.value.setRGB(0, 0, 0); skyMat.uniforms.uZen.value.setRGB(0, 0, 0); skyMat.uniforms.uSpace.value.setRGB(0, 0, 0); }
+}
+
+function resetFlight(armed) {
+  const bx = predictBargeX(settings);
+  sim = new Sim(settings, bx);
+  sim.armed = armed;
+  barge.position.set(bx, 0, 0);
+  acc = 0; psiB = 0; psiS = 0; legD = 0; finD = 0; tip = null; crashFx = null;
+  trB.n = 0; trS.n = 0; trB.lastT = -1; trS.lastT = -1;
+  smoke.forEach(p => { p.sp.visible = false; }); fires.forEach(f => { f.sp.visible = false; });
+  debris.forEach(d => world.remove(d.m)); debris = [];
+  BV.g.visible = true; SV.g.visible = true;
+  loggedKeys = {}; loggedEnd = false;
+  logEl.innerHTML = '<div class="none">Events appear here</div>';
+  bannerEl.style.display = 'none'; resultEl.style.display = 'none';
+  applyWorldVisuals();
+}
+
+// ---------------------------------------------------------------- inspection API
+function bodyState(b, n, thr) {
+  return { x: b.x, altitude: b.y, vx: b.vx, vy: b.vy, mass: b.dry + b.prop, propellant: b.prop, enginesLit: n, throttle: n > 0 ? thr : 0 };
+}
+function cloneEv(e) { return e ? JSON.parse(JSON.stringify(e)) : null; }
+window.rocketState = function () {
+  const b = sim.b, s = sim.s;
+  const phaseNames = { wait: sim.armed ? 'Countdown' : 'Standby', pad: 'Ignition', ascent: 'Ascent', meco: 'MECO', flip: 'Flip', boostback: 'Boostback', coast: 'Coast', entry: 'Entry burn', descent: 'Descent', landing: 'Landing burn', landed: 'Landed', crashed: 'Crashed', nolift: 'No liftoff', lost: 'Vehicle lost' };
+  const ev = {}; for (const k of EVENT_KEYS) ev[k] = cloneEv(sim.ev[k]);
+  return JSON.parse(JSON.stringify({
+    t: sim.t, phase: phaseNames[sim.ph] || sim.ph,
+    booster: bodyState(b, b.n, b.thr),
+    upperStage: bodyState(s, s.n, s.thr),
+    barge: { x: sim.bargeX },
+    deltaV: { stage1Ideal: B_ISP * G0 * Math.log(sim.m0 / sim.mStack), stage1Integrated: sim.dvInt },
+    events: ev,
+    lastFlight: lastFlightStored,
+    settings: Object.assign({}, settings)
+  }));
+};
+
+// ---------------------------------------------------------------- HUD
+const rowsDef = [
+  ['fol', 'Following', ''], ['alt', 'Altitude', 'km'], ['spd', 'Speed', 'm/s'], ['vy', 'Vertical speed', 'm/s'], ['dr', 'Downrange', 'km'],
+  ['mass', 'Mass', 't'], ['prop', 'Propellant', 't'], ['eng', 'Engines lit', ''], ['thr', 'Throttle', '%'],
+  ['q', 'Dynamic pressure', 'kPa'], ['g', 'Acceleration felt', 'g'], ['dvi', 'Stage 1 Δv ideal', 'm/s'], ['dvn', 'Stage 1 Δv ∫F/m dt', 'm/s']
+];
+const rowsEl = document.getElementById('teleRows');
+rowsEl.innerHTML = rowsDef.map(r => '<div class="r"><span>' + r[1] + (r[2] ? ' (' + r[2] + ')' : '') + '</span><span id="h_' + r[0] + '">–</span></div>').join('');
+const H = {}; rowsDef.forEach(r => H[r[0]] = document.getElementById('h_' + r[0]));
+const tClockEl = document.getElementById('tClock'), phaseEl = document.getElementById('phase');
+const fmt = (v, d = 1) => Number.isFinite(v) ? v.toFixed(d) : '–';
+const PHASE_LABEL = { wait: null, pad: 'Ignition', ascent: 'Ascent', meco: 'MECO', flip: 'Flip', boostback: 'Boostback burn', coast: 'Coast', entry: 'Entry burn', descent: 'Descent', landing: 'Landing burn', landed: 'Landed', crashed: 'Crashed', nolift: 'No liftoff', lost: 'Vehicle lost' };
+function hudView() {
+  const b = sim.b, s = sim.s;
+  if (!sim.sep) return { name: 'Stack', b: b, mass: b.dry + b.prop + s.dry + s.prop, prop: b.prop + s.prop, n: b.n, thr: b.n > 0 ? b.thr : 0 };
+  const u = camMode === 'upper', body = u ? s : b;
+  return { name: u ? 'Stage 2' : 'Booster', b: body, mass: body.dry + body.prop, prop: body.prop, n: body.n, thr: body.n > 0 ? body.thr : 0 };
+}
+function updateHud() {
+  tClockEl.textContent = 'T+ ' + fmt(sim.t, 1) + ' s';
+  phaseEl.textContent = sim.ph === 'wait' ? (sim.armed ? 'Countdown' : 'Standby – press Launch') : PHASE_LABEL[sim.ph];
+  const v = hudView(), b = v.b, sp = Math.hypot(b.vx, b.vy);
+  H.fol.textContent = v.name;
+  H.alt.textContent = fmt(b.y / 1000, 2); H.spd.textContent = fmt(sp, 1); H.vy.textContent = fmt(b.vy, 1); H.dr.textContent = fmt(b.x / 1000, 2);
+  H.mass.textContent = fmt(v.mass / 1000, 1); H.prop.textContent = fmt(v.prop / 1000, 1);
+  H.eng.textContent = v.n; H.thr.textContent = fmt(v.thr * 100, 0);
+  H.q.textContent = fmt(b.q / 1000, 2); H.g.textContent = fmt(b.fa / G0, 2);
+  H.dvi.textContent = fmt(B_ISP * G0 * Math.log(sim.m0 / sim.mStack), 0); H.dvn.textContent = fmt(sim.dvInt, 0);
+}
+const EV_LABEL = { liftoff: 'Liftoff', maxQ: 'Max Q', meco: 'MECO', separation: 'Stage separation', stage2Ignition: 'Stage 2 ignition', boostbackStart: 'Boostback start', boostbackEnd: 'Boostback end', boosterApogee: 'Booster apogee', entryBurnStart: 'Entry burn start', entryBurnEnd: 'Entry burn end', landingBurnStart: 'Landing burn start', touchdown: 'Touchdown', seco: 'SECO' };
+function addLog(k, e) {
+  if (logEl.querySelector('.none')) logEl.innerHTML = '';
+  let label = EV_LABEL[k];
+  if (k === 'touchdown') label = sim.outcome === 'landed' ? 'Touchdown – landed' : 'Impact – crashed';
+  const d = document.createElement('div');
+  d.innerHTML = '<span class="tm">T+' + fmt(e.t, 1) + 's</span> ' + label + ' · alt ' + fmt(e.altitude / 1000, 1) + ' km · ' + fmt(e.speed, 0) + ' m/s' + (k === 'maxQ' ? ' · q ' + fmt(e.q / 1000, 1) + ' kPa' : '');
+  logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight;
+}
+function updateLog() {
+  const fresh = [];
+  for (const k of EVENT_KEYS) if (sim.ev[k] && !loggedKeys[k]) { loggedKeys[k] = true; fresh.push([k, sim.ev[k]]); }
+  fresh.sort((a, b) => a[1].t - b[1].t).forEach(f => addLog(f[0], f[1]));
+  if (sim.bEnded && !loggedEnd) {
+    loggedEnd = true;
+    lastFlightStored = JSON.parse(JSON.stringify(sim.last));
+    const o = sim.outcome;
+    if (o === 'noLiftoff' || o === 'vehicleLost') {
+      if (logEl.querySelector('.none')) logEl.innerHTML = '';
+      const d = document.createElement('div'); d.innerHTML = '<span class="tm">T+' + fmt(sim.t, 1) + 's</span> ' + (o === 'noLiftoff' ? 'No liftoff – engines shut down' : 'Vehicle lost – impact during ascent'); logEl.appendChild(d);
+    }
+    const names = { landed: 'Landed', crashed: 'Crashed', noLiftoff: 'No liftoff', vehicleLost: 'Vehicle lost' };
+    bannerEl.textContent = names[o]; bannerEl.style.color = o === 'landed' ? 'var(--ok)' : 'var(--bad)'; bannerEl.style.display = 'block';
+    const L = sim.last, row = (a, b) => '<div class="r"><span>' + a + '</span><span>' + b + '</span></div>';
+    resultEl.innerHTML = row('Outcome', names[o]) + row('Thrust / weight at liftoff', fmt(L.liftoffThrustToWeight, 2)) +
+      (L.touchdownVerticalSpeed === null ? '' : row('Vertical speed', fmt(L.touchdownVerticalSpeed, 2) + ' m/s') + row('Horizontal speed', fmt(L.touchdownHorizontalSpeed, 2) + ' m/s') +
+        row('Distance from deck center', fmt(L.bargeOffset, 1) + ' m') + row('Propellant left', fmt(L.propellantAtTouchdown / 1000, 2) + ' t'));
+    resultEl.style.display = 'block';
+  }
+}
+
+// ---------------------------------------------------------------- controls
+const $ = id => document.getElementById(id);
+const sliders = [['sPayload', 'payload', 'vPayload', v => v.toFixed(1) + ' t'], ['sThrust', 'thrust', 'vThrust', v => v.toFixed(0) + ' kN'],
+  ['sReserve', 'reserve', 'vReserve', v => v.toFixed(0) + ' t'], ['sPitch', 'pitchRate', 'vPitch', v => v.toFixed(2) + ' °/s']];
+function syncSettingsUI() {
+  sliders.forEach(s => { $(s[0]).value = settings[s[1]]; $(s[2]).textContent = s[3](+settings[s[1]]); });
+  $('sDrag').checked = settings.drag;
+  document.querySelectorAll('#worlds button').forEach(b => b.classList.toggle('on', b.dataset.world === settings.world));
+  $('worldNote').textContent = 'g ' + settings.gravity + ' m/s² · ' + (settings.rho0 > 0 ? 'ρ₀ ' + settings.rho0 + ' kg/m³ · H ' + settings.scaleHeight + ' m' : 'no atmosphere');
+}
+sliders.forEach(s => $(s[0]).addEventListener('input', e => { settings[s[1]] = parseFloat(e.target.value); syncSettingsUI(); resetFlight(false); }));
+$('sDrag').addEventListener('change', e => { settings.drag = e.target.checked; resetFlight(false); e.target.blur(); });
+document.querySelectorAll('#worlds button').forEach(b => b.addEventListener('click', () => {
+  settings.world = b.dataset.world; Object.assign(settings, WORLDS[settings.world]); syncSettingsUI(); resetFlight(false); b.blur();
+}));
+function launch() { resetFlight(true); }
+$('bLaunch').addEventListener('click', e => { launch(); e.currentTarget.blur(); });
+function setPaused(p) { paused = p; $('bPause').textContent = paused ? 'Play' : 'Pause'; }
+$('bPause').addEventListener('click', e => { setPaused(!paused); e.currentTarget.blur(); });
+document.querySelectorAll('#speeds button').forEach(b => b.addEventListener('click', () => {
+  speed = parseFloat(b.dataset.speed); document.querySelectorAll('#speeds button').forEach(x => x.classList.toggle('on', x === b)); b.blur();
+}));
+document.querySelectorAll('#cams button').forEach(b => b.addEventListener('click', () => {
+  camMode = b.dataset.cam; document.querySelectorAll('#cams button').forEach(x => x.classList.toggle('on', x === b)); b.blur();
+}));
+window.addEventListener('keydown', e => {
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (e.code === 'Space') {
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    e.preventDefault(); setPaused(!paused);
+  } else if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey) { launch(); }
+});
+const orbit = { yaw: 0.7, pitch: 0.25, dist: 170 };
+let dragging = false, lx = 0, ly = 0;
+canvas.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup', () => { dragging = false; });
+canvas.addEventListener('pointermove', e => {
+  if (!dragging || camMode !== 'orbit') return;
+  orbit.yaw -= (e.clientX - lx) * 0.006; orbit.pitch = Math.max(-0.2, Math.min(1.5, orbit.pitch + (e.clientY - ly) * 0.006)); lx = e.clientX; ly = e.clientY;
+});
+canvas.addEventListener('wheel', e => { if (camMode === 'orbit') { orbit.dist = Math.max(30, Math.min(6000, orbit.dist * Math.exp(e.deltaY * 0.001))); e.preventDefault(); } }, { passive: false });
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize); resize();
+
+// ---------------------------------------------------------------- per-frame visuals
+function approachAngle(cur, target, rate, dt) { const d = wrap(target - cur); const m = rate * dt; return cur + Math.max(-m, Math.min(m, d)); }
+function plumeUpdate(pv, F, rho, time, phase) {
+  if (F <= 0) { pv.plume.visible = false; return; }
+  const P = F / 900e3, vac = settings.rho0 > 0 ? 1 - Math.min(1, rho / settings.rho0) : 1;
+  const fl = 1 + 0.08 * Math.sin(time * 70 + phase) + 0.05 * Math.sin(time * 113);
+  const R = (0.6 + 0.5 * Math.sqrt(P)) * (1 + vac * 1.1), L = (5 + 7 * Math.sqrt(P)) * (1 + vac * 0.7) * fl;
+  pv.plume.scale.set(R, L, R); pv.plume.visible = true;
+}
+let smokeAcc = 0, wreckAcc = 0, simClock = 0;
+function updateVisuals(dt) {
+  const b = sim.b, s = sim.s, g = sim.S.gravity;
+  simClock += dt;
+  // attitude
+  if (!sim.sep) { const a = angOf(sim.dir.x, sim.dir.y); psiB = a; psiS = a; }
+  else {
+    let tx, ty; const ph = sim.ph;
+    if (ph === 'flip' || ph === 'boostback') { tx = -1; ty = 0; }
+    else if (ph === 'entry' || ph === 'landing' || ph === 'landed') { tx = 0; ty = 1; }
+    else {
+      const sp = Math.hypot(b.vx, b.vy);
+      if (sp < 5) { tx = 0; ty = 1; } else { const sg = b.vy >= 0 ? 1 : -1; tx = sg * b.vx / sp; ty = sg * b.vy / sp; }
+    }
+    if (ph !== 'crashed') psiB = approachAngle(psiB, angOf(tx, ty), 0.9, dt);
+    let sx, sy;
+    if (s.mode === 'burn') { const th = sim.pitch(); sx = Math.sin(th); sy = Math.cos(th); }
+    else { const sp = Math.hypot(s.vx, s.vy); sx = sp > 1 ? s.vx / sp : 0; sy = sp > 1 ? s.vy / sp : 1; }
+    psiS = approachAngle(psiS, angOf(sx, sy), 0.6, dt);
+  }
+  // legs and fins
+  const legT = (sim.ph === 'landing' && b.y < 450) || sim.ph === 'landed' ? 1 : (sim.ph === 'crashed' && legD > 0.5 ? legD : 0);
+  const finT = (sim.ph === 'descent' || sim.ph === 'landing' || sim.ph === 'landed') ? 1 : 0;
+  legD += Math.max(-0.5 * dt, Math.min(0.5 * dt, legT - legD)); finD += Math.max(-0.7 * dt, Math.min(0.7 * dt, finT - finD));
+  const ease = x => x * x * (3 - 2 * x);
+  BV.legs.forEach(l => { l.rotation.z = -ease(legD) * 141 * Math.PI / 180; });
+  BV.fins.forEach(f => { f.rotation.y = ease(finD) * Math.PI / 2; });
+  // crash visuals
+  if (sim.ph === 'crashed' && !crashFx) {
+    const td = sim.td;
+    const style = (td.vs <= 14 && td.off <= 45) ? 'tip' : 'boom';
+    crashFx = { style, x: b.x };
+    if (style === 'boom') { BV.g.visible = false; spawnExplosion(b.x, 0); }
+    else { tip = { a: 0, w: 0, dir: td.vx >= 0 ? -1 : 1 }; }
+  }
+  if (sim.ph === 'lost' && !crashFx) {
+    crashFx = { style: 'boom', x: b.x }; BV.g.visible = false; SV.g.visible = false; spawnExplosion(b.x, 0);
+  }
+  if (tip) { tip.w += 0.7 * dt; tip.a = Math.min(Math.PI / 2 - 0.05, tip.a + tip.w * dt); psiB = tip.dir * tip.a; }
+  if (crashFx && sim.ph === 'crashed' && crashFx.style === 'tip' && tip && tip.a > 1.2 && !crashFx.fire) { crashFx.fire = true; spawnExplosion(b.x + 8 * -tip.dir * -1, 0); debris.forEach(d => { d.vx *= 0.15; d.vy *= 0.2; d.vz *= 0.15; }); }
+  // place bodies
+  BV.g.position.set(b.x, b.y + (tip ? 1.9 * Math.sin(tip.a) : 0), 0); BV.g.rotation.z = psiB;
+  const bs = sim.ph === 'lost' ? 0 : 1;
+  SV.g.visible = bs === 1 && s.mode !== 'dead' || (bs === 1 && sim.sep);
+  SV.g.position.set(s.x, s.y, 0); SV.g.rotation.z = psiS;
+  // plumes
+  const rhoB = densityAt({ drag: true, rho0: settings.rho0, scaleHeight: settings.scaleHeight }, b.y);
+  plumeUpdate(BV, b.F, rhoB, simClock, 0);
+  plumeUpdate(SV, s.F, densityAt({ drag: true, rho0: settings.rho0, scaleHeight: settings.scaleHeight }, s.y), simClock, 1.7);
+  // smoke at liftoff and landing
+  if (dt > 0) {
+    if (b.F > 0 && b.y < 110 && sim.ph !== 'nolift') {
+      const k = Math.max(0, 1 - b.y / 110) * Math.min(1, b.F / 3e6);
+      smokeAcc += 90 * k * dt;
+      while (smokeAcc >= 1) {
+        smokeAcc -= 1; const a = vr() * Math.PI * 2, sp = 6 + vr() * 16;
+        emitSmoke(b.x + (vr() - .5) * 8, 1 + vr() * 2, (vr() - .5) * 8, Math.cos(a) * sp, 1 + vr() * 4, Math.sin(a) * sp, 5 + vr() * 4, 6, 30 + vr() * 20, 0.5, sim.ph === 'landing' ? 0xe6f0f6 : 0xd9d5cc);
+      }
+    }
+    if (crashFx && sim.ph !== 'landed') {
+      wreckAcc += 14 * dt;
+      while (wreckAcc >= 1) {
+        wreckAcc -= 1; emitSmoke(crashFx.x + (vr() - .5) * 10, 3, (vr() - .5) * 6, (vr() - .5) * 3, 6 + vr() * 5, 0, 8 + vr() * 6, 6, 28, 0.45, 0x2b2b2b);
+      }
+    }
+    updateSmoke(dt); updateFx(dt, g);
+    seaNormal.offset.x += dt * 0.0006; seaNormal.offset.y += dt * 0.0004;
+  }
+}
+
+// ---------------------------------------------------------------- main loop
+const tmpC = new THREE.Color(), tmpD = new THREE.Color();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const wdt = Math.min((now - frame.last) / 1000 || 0, 0.1); frame.last = now;
+  let steps = 0;
+  if (!paused && sim.armed && !sim.done) {
+    acc += wdt * speed;
+    while (acc >= DT && steps < 600 && !sim.done) {
+      sim.step(); acc -= DT; steps++;
+      if (sim.ignited) {
+        if (sim.t - trB.lastT >= 0.25 && !sim.bEnded) { trB.lastT = sim.t; trailPush(trB, sim.b.x, sim.b.y); if (sim.sep && sim.s.mode !== 'dead') trailPush(trS, sim.s.x, sim.s.y); }
+      }
+    }
+    if (steps >= 600) acc = 0;
+  } else if (sim.done) acc = 0;
+  const dtSim = steps * DT;
+  updateVisuals(dtSim);
+  trailHead(trB, sim.b.x, sim.b.y, sim.ignited);
+  trailHead(trS, sim.s.x, sim.s.y, sim.ignited && sim.sep);
+  updateLog();
+  if (!frame.hudT || now - frame.hudT > 90) { frame.hudT = now; updateHud(); }
+  updateCamera();
+  renderer.render(scene, camera);
+}
+frame.last = performance.now();
+
+function updateCamera() {
+  const b = sim.b, s = sim.s;
+  let fx, fy;
+  if (camMode === 'upper') { const d = dirOf(psiS); fx = s.x + d.x * 14; fy = s.y + d.y * 14; }
+  else { const d = dirOf(psiB); const L = sim.sep ? 22 : 36; fx = b.x + d.x * L; fy = b.y + d.y * L; }
+  let ox = fx, oy = fy, oz = 0;
+  const cam = camera;
+  if (camMode === 'tracking') {
+    ox = 1300; oy = 6; oz = 700;
+    world.position.set(-ox, -oy, -oz);
+    cam.position.set(0, 0, 0);
+    const rx = fx - ox, ry = fy - oy, rz = -oz, dist = Math.hypot(rx, ry, rz);
+    cam.lookAt(rx, ry, rz);
+    const fov = Math.max(1.4, Math.min(50, 2 * Math.atan(110 / dist) * 180 / Math.PI));
+    if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
+    sun.target.position.set(rx, ry, rz);
+  } else {
+    world.position.set(-ox, -oy, -oz);
+    let px, py, pz;
+    if (camMode === 'orbit') {
+      const d = orbit.dist, cp = Math.cos(orbit.pitch);
+      px = d * cp * Math.sin(orbit.yaw); py = d * Math.sin(orbit.pitch); pz = d * cp * Math.cos(orbit.yaw);
+    } else {
+      const D = camMode === 'upper' ? 80 : (sim.sep ? 105 : 140);
+      px = D * 0.36; py = D * 0.1; pz = D * 0.93;
+    }
+    if (oy + py < 3) py = 3 - oy;
+    cam.position.set(px, py, pz); cam.lookAt(0, 0, 0);
+    if (Math.abs(cam.fov - 50) > 0.01) { cam.fov = 50; cam.updateProjectionMatrix(); }
+    sun.target.position.set(0, 0, 0);
+  }
+  sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 700);
+  // atmosphere look
+  const camAlt = oy + cam.position.y;
+  const dens = settings.rho0 > 0 ? Math.exp(-camAlt / settings.scaleHeight) : 0;
+  const dark = settings.rho0 > 0 ? 1 - Math.exp(-(camAlt / settings.scaleHeight) / 3) * (1 - 0) : 1;
+  const thin = Math.min(1, settings.rho0 / 1.225 * 4);
+  const darkAmt = settings.rho0 > 0 ? Math.max(0, Math.min(1, dark)) : 1;
+  skyMat.uniforms.uDark.value = darkAmt;
+  sky.position.copy(cam.position);
+  stars.position.copy(cam.position);
+  starMat.opacity = Math.max(0, Math.min(1, (darkAmt - 0.45) * 2.2));
+  const horCol = skyMat.uniforms.uHor.value;
+  tmpC.copy(horCol).lerp(skyMat.uniforms.uSpace.value, darkAmt);
+  scene.fog.color.copy(tmpC);
+  scene.fog.density = 1.3e-5 * dens * thin;
+  const lit = 0.35 + 0.65 * (1 - darkAmt * 0.0);
+  sun.intensity = 3.2; hemi.intensity = 0.45 * (1 - darkAmt * 0.7) * lit;
+}
+
+// ---------------------------------------------------------------- start
+syncSettingsUI();
+resetFlight(true);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
