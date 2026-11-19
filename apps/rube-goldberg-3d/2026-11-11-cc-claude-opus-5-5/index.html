@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opus 5.5</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#140f0c;font:13px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#f3e9dc}
+  #app{position:fixed;inset:0}
+  #app canvas{display:block}
+  .panel{position:fixed;background:rgba(24,18,14,.84);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(224,168,74,.28);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:5}
+  #bar{top:12px;left:12px;display:flex;gap:8px;align-items:center;padding:8px 10px;flex-wrap:wrap;max-width:calc(100vw - 340px)}
+  .brand{font-weight:700;letter-spacing:.04em;color:#f0c071;margin-right:4px;font-size:15px}
+  button,select{background:#3a2b1f;color:#f3e9dc;border:1px solid #6b5137;border-radius:6px;padding:5px 10px;font:inherit;cursor:pointer}
+  button:hover,select:hover{background:#4b3826}
+  #bar label{display:flex;align-items:center;gap:5px;color:#cdbba6}
+  #clock{font-variant-numeric:tabular-nums;min-width:96px;color:#f0c071}
+  #settings{top:64px;left:12px;padding:10px 12px;width:300px;max-height:calc(100vh - 90px);overflow:auto}
+  #settings h3,#checklist h3{margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#d9b77d;font-weight:600}
+  .hidden{display:none!important}
+  .row{margin:7px 0}
+  .row .lab{display:flex;justify-content:space-between;color:#e6d6c2}
+  .row .lab b{font-weight:600;color:#f0c071;font-variant-numeric:tabular-nums}
+  .row input[type=range]{width:100%;accent-color:#e0a84a;margin:3px 0 0}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  .hint{color:#a8957f;font-size:11.5px;margin-top:8px}
+  #checklist{top:12px;right:12px;width:292px;padding:10px 12px;max-height:calc(100vh - 24px);overflow:auto}
+  #stageList{list-style:none;margin:0;padding:0}
+  #stageList li{display:flex;align-items:center;gap:8px;padding:3px 5px;border-radius:5px;color:#b9a896;transition:background .3s}
+  #stageList li .dot{width:10px;height:10px;border-radius:50%;background:#4a3d33;flex:none}
+  #stageList li .num{width:14px;color:#8f7d69;font-variant-numeric:tabular-nums}
+  #stageList li.triggered{color:#fff4e0;background:rgba(224,168,74,.15)}
+  #stageList li.triggered .dot{background:#f0c071;box-shadow:0 0 8px #f0c071}
+  #stageList li.failed{color:#ffd0c8;background:rgba(200,60,40,.28)}
+  #stageList li.failed .dot{background:#e0503a;box-shadow:0 0 8px #e0503a}
+  #stageList li .tm{margin-left:auto;font-variant-numeric:tabular-nums}
+  .meas{display:flex;justify-content:space-between;margin-top:6px;color:#d8c7b2}
+  .meas b{color:#f0c071;font-variant-numeric:tabular-nums;font-weight:600}
+  .sep{height:1px;background:rgba(224,168,74,.2);margin:8px 0}
+  #msg{margin-top:8px;padding:7px 9px;border-radius:6px;display:none}
+  #msg.ok{display:block;background:rgba(224,168,74,.22);color:#ffe3ad}
+  #msg.bad{display:block;background:rgba(200,60,40,.32);color:#ffd6cc}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#d9b77d;font-size:14px;z-index:10;pointer-events:none}
+  @media (max-width:760px){#bar{max-width:calc(100vw - 24px)}#checklist{top:auto;bottom:12px;width:calc(100vw - 48px);max-height:40vh}}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+}}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="loading">Loading…</div>
+<div id="bar" class="panel">
+  <span class="brand">Opus 5.5</span>
+  <button id="btnPlay" title="Space">Pause</button>
+  <button id="btnReplay">Replay</button>
+  <label>Speed
+    <select id="selSpeed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+  </label>
+  <label>Camera
+    <select id="selCam"><option value="overview">Overview</option><option value="follow" selected>Follow</option><option value="orbit">Orbit</option></select>
+  </label>
+  <button id="btnSettings">Settings</button>
+  <span id="clock">t = 0.000 s</span>
+</div>
+<div id="settings" class="panel hidden">
+  <h3>Experiment settings</h3>
+  <div id="rows"></div>
+  <div class="btns"><button id="btnApply">Apply &amp; replay</button><button id="btnDefaults">Defaults</button></div>
+  <div class="hint">Changes take effect on Apply or Replay. Domino gap = spacing − 0.03 m thickness.</div>
+</div>
+<div id="checklist" class="panel">
+  <h3>Chain reaction</h3>
+  <ol id="stageList"></ol>
+  <div class="sep"></div>
+  <div class="meas"><span>Basket acceleration</span><b id="mAcc">—</b></div>
+  <div class="meas"><span>Pendulum swing time</span><b id="mSwing">—</b></div>
+  <div id="msg"></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as CANNON from 'cannon-es';
+
+// ---------------------------------------------------------------- constants
+const DT = 1 / 1000;          // fixed physics step (s)
+const MAX_STEPS = 40;         // cap on physics steps per rendered frame
+const FAIL_WAIT = 8;          // seconds without a trigger before a stage fails
+const STAGE_NAMES = ['Release gate', 'Switchback ramps', 'Dominoes', 'Lever', 'Pulley', 'Pendulum', "Newton's cradle", 'Curling stone', 'Bell'];
+const DEFS = [
+  { key: 'gravity', label: 'Gravity', unit: 'm/s²', min: 1, max: 20, step: 0.01, def: 9.81, dec: 2 },
+  { key: 'dominoSpacing', label: 'Domino spacing', unit: 'm', min: 0.075, max: 0.24, step: 0.005, def: 0.12, dec: 3 },
+  { key: 'dominoMass', label: 'Domino mass', unit: 'kg', min: 0.02, max: 0.6, step: 0.01, def: 0.15, dec: 2 },
+  { key: 'counterweightMass', label: 'Counterweight mass', unit: 'kg', min: 0.05, max: 0.5, step: 0.01, def: 0.22, dec: 2 },
+  { key: 'pendulumLength', label: 'Pendulum length', unit: 'm', min: 0.5, max: 1.4, step: 0.01, def: 1.0, dec: 2 },
+  { key: 'releaseAngle', label: 'Pendulum release angle', unit: '°', min: 20, max: 70, step: 1, def: 60, dec: 0 },
+  { key: 'leverPivot', label: 'Lever pivot from short end', unit: 'm', min: 0.18, max: 0.45, step: 0.01, def: 0.25, dec: 2 },
+  { key: 'cradleRestitution', label: 'Cradle restitution', unit: '', min: 0, max: 1, step: 0.01, def: 0.95, dec: 2 },
+];
+// fixed (non-adjustable) baseline values
+const FIXED = { ballRadius: 0.03, ballMass: 0.11, rampSlopeDeg: 20, dominoH: 0.20, dominoW: 0.10, dominoT: 0.03,
+  blockMass: 1.0, leverLength: 1.0, lightBallMass: 0.05, basketMass: 0.20, bobMass: 0.5, cradleRadius: 0.025, rampFriction: 0.3 };
+
+// ---------------------------------------------------------------- renderer / scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.getElementById('app').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1e1712);
+scene.fog = new THREE.Fog(0x1e1712, 12, 26);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.03, 60);
+camera.position.set(0.5, 3.2, 5.5);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.enabled = false;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.minDistance = 0.3;
+controls.maxDistance = 14;
+
+scene.add(new THREE.HemisphereLight(0xffe6c4, 0x2a1c12, 0.45));
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.4);
+sun.position.set(1.8, 6.5, 4.2);
+sun.target.position.set(-0.6, 0, 0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -5.4, right: 4.4, top: 4.2, bottom: -4.2, near: 0.5, far: 16 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0003;
+sun.shadow.normalBias = 0.015;
+scene.add(sun, sun.target);
+const lamp = new THREE.PointLight(0xffb468, 7, 10, 2);
+lamp.position.set(-0.4, 2.7, 0.3);
+scene.add(lamp);
+
+// ---------------------------------------------------------------- procedural textures
+function lcg(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+function woodTexture(base, grain, planks, seed = 7) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 512;
+  const g = cv.getContext('2d'); const rnd = lcg(seed);
+  g.fillStyle = base; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 160; i++) {
+    g.strokeStyle = grain; g.globalAlpha = 0.05 + rnd() * 0.16; g.lineWidth = 0.6 + rnd() * 2.6;
+    const y = rnd() * 512, amp = 2 + rnd() * 7, fr = 0.006 + rnd() * 0.02, ph = rnd() * 6.28;
+    g.beginPath();
+    for (let x = 0; x <= 512; x += 8) g.lineTo(x, y + Math.sin(x * fr + ph) * amp);
+    g.stroke();
+  }
+  if (planks) {
+    g.globalAlpha = 0.55; g.strokeStyle = '#140b05'; g.lineWidth = 2.5;
+    for (let k = 0; k <= 8; k++) { g.beginPath(); g.moveTo(0, k * 64); g.lineTo(512, k * 64); g.stroke();
+      const off = (k * 197) % 512; g.beginPath(); g.moveTo(off, k * 64); g.lineTo(off, k * 64 + 64); g.stroke(); }
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+}
+function plasterTexture() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const g = cv.getContext('2d'); const rnd = lcg(99);
+  g.fillStyle = '#8c7560'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2500; i++) { g.fillStyle = rnd() < 0.5 ? 'rgba(255,240,220,0.05)' : 'rgba(40,25,10,0.05)'; g.fillRect(rnd() * 256, rnd() * 256, 2 + rnd() * 4, 2 + rnd() * 4); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+
+// ---------------------------------------------------------------- materials
+const TEX = {
+  oak: woodTexture('#9a6a3c', '#3b220e', false, 11),
+  maple: woodTexture('#d9b483', '#7a5430', false, 23),
+  walnut: woodTexture('#5a3a22', '#1c0f06', false, 31),
+  floor: woodTexture('#6b4a2e', '#22140a', true, 5),
+};
+TEX.floor.repeat.set(7, 7);
+const MAT = {
+  steel: new THREE.MeshStandardMaterial({ color: 0xeef0f4, metalness: 1, roughness: 0.08 }),
+  chrome: new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.04 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xd9a441, metalness: 1, roughness: 0.26 }),
+  oldBrass: new THREE.MeshStandardMaterial({ color: 0xa87a34, metalness: 1, roughness: 0.42 }),
+  iron: new THREE.MeshStandardMaterial({ color: 0x3b3b40, metalness: 0.85, roughness: 0.48 }),
+  oak: new THREE.MeshStandardMaterial({ map: TEX.oak, roughness: 0.62 }),
+  maple: new THREE.MeshStandardMaterial({ map: TEX.maple, roughness: 0.5 }),
+  walnut: new THREE.MeshStandardMaterial({ map: TEX.walnut, roughness: 0.6 }),
+  rope: new THREE.MeshStandardMaterial({ color: 0xc2a576, roughness: 0.95 }),
+  string: new THREE.MeshStandardMaterial({ color: 0xe8e0d0, roughness: 0.8 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xdfefff, metalness: 0, roughness: 0.05, transparent: true, opacity: 0.22, depthWrite: false }),
+  ice: new THREE.MeshPhysicalMaterial({ color: 0xe6f6ff, roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03 }),
+  granite: new THREE.MeshStandardMaterial({ color: 0x74767c, roughness: 0.45, metalness: 0.05 }),
+  red: new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.35 }),
+  lacquer: new THREE.MeshPhysicalMaterial({ color: 0xc8342a, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1 }),
+  wicker: new THREE.MeshStandardMaterial({ map: TEX.oak, color: 0xd8b07a, roughness: 0.85 }),
+  felt: new THREE.MeshStandardMaterial({ color: 0x2f4a3a, roughness: 1 }),
+};
+MAT.bellBrass = new THREE.MeshStandardMaterial({ color: 0xe2ae4a, metalness: 1, roughness: 0.18, side: THREE.DoubleSide, emissive: 0x000000 });
+
+function mesh(geo, mat, cast = true, recv = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = recv; return m; }
+function boxMesh(sx, sy, sz, mat) { return mesh(new THREE.BoxGeometry(sx, sy, sz), mat); }
+function cylMesh(r, h, mat, seg = 20) { return mesh(new THREE.CylinderGeometry(r, r, h, seg), mat); }
+const UP = new THREE.Vector3(0, 1, 0);
+// thin cylinder spanning two points (rods, ropes, strings); call .set(a,b) to move it
+function makeRod(r, mat, parent) {
+  const m = mesh(new THREE.CylinderGeometry(r, r, 1, 8), mat, true, false);
+  parent.add(m);
+  const tmp = new THREE.Vector3();
+  m.setEnds = (a, b) => {
+    tmp.subVectors(b, a); const len = Math.max(tmp.length(), 1e-5);
+    m.position.addVectors(a, b).multiplyScalar(0.5);
+    m.scale.set(1, len, 1);
+    m.quaternion.setFromUnitVectors(UP, tmp.divideScalar(len));
+  };
+  return m;
+}
+
+// ---------------------------------------------------------------- room (decor only, never touches the chain)
+function buildRoom() {
+  const floor = mesh(new THREE.PlaneGeometry(16, 14), new THREE.MeshStandardMaterial({ map: TEX.floor, roughness: 0.72 }), false, true);
+  floor.rotation.x = -Math.PI / 2; floor.position.set(-0.75, 0, 0.6); scene.add(floor);
+  const plaster = plasterTexture(); plaster.repeat.set(5, 2);
+  const wallMat = new THREE.MeshStandardMaterial({ map: plaster, roughness: 0.95 });
+  const back = mesh(new THREE.PlaneGeometry(16, 4.6), wallMat, false, true); back.position.set(-0.75, 2.3, -3.4); scene.add(back);
+  const left = mesh(new THREE.PlaneGeometry(14, 4.6), wallMat, false, true); left.rotation.y = Math.PI / 2; left.position.set(-6.8, 2.3, 0.6); scene.add(left);
+  const right = mesh(new THREE.PlaneGeometry(14, 4.6), wallMat, false, true); right.rotation.y = -Math.PI / 2; right.position.set(5.3, 2.3, 0.6); scene.add(right);
+  // wainscot + skirting
+  const wains = boxMesh(16, 1.0, 0.04, MAT.walnut); wains.position.set(-0.75, 0.5, -3.38); scene.add(wains);
+  const rail = boxMesh(16, 0.05, 0.07, MAT.oak); rail.position.set(-0.75, 1.02, -3.36); scene.add(rail);
+  const wainsL = boxMesh(0.04, 1.0, 14, MAT.walnut); wainsL.position.set(-6.78, 0.5, 0.6); scene.add(wainsL);
+  // window with warm daylight
+  const winGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.3), new THREE.MeshBasicMaterial({ color: 0xffe2b0 }));
+  winGlow.position.set(2.6, 2.35, -3.385); scene.add(winGlow);
+  for (const [sx, sy, x, y] of [[1.95, 0.08, 2.6, 3.0], [1.95, 0.08, 2.6, 1.7], [0.08, 1.38, 1.66, 2.35], [0.08, 1.38, 3.54, 2.35], [0.05, 1.3, 2.6, 2.35], [1.8, 0.05, 2.6, 2.35]]) {
+    const f = boxMesh(sx, sy, 0.06, MAT.walnut); f.position.set(x, y, -3.36); scene.add(f);
+  }
+  const winLight = new THREE.SpotLight(0xffdcae, 10, 12, 0.7, 0.6, 1.5); winLight.position.set(2.6, 2.4, -3.1); winLight.target.position.set(0.5, 0, 0.5); scene.add(winLight, winLight.target);
+  // wall clock
+  const clockG = new THREE.Group(); clockG.position.set(-1.6, 2.75, -3.36); scene.add(clockG);
+  const ring = mesh(new THREE.TorusGeometry(0.3, 0.035, 12, 48), MAT.brass); clockG.add(ring);
+  const face = mesh(new THREE.CircleGeometry(0.29, 48), new THREE.MeshStandardMaterial({ color: 0xf2e6cc, roughness: 0.7 })); face.position.z = 0.005; clockG.add(face);
+  for (let i = 0; i < 12; i++) { const tk = boxMesh(0.015, 0.05, 0.01, MAT.iron); const a = i / 12 * Math.PI * 2; tk.position.set(Math.sin(a) * 0.24, Math.cos(a) * 0.24, 0.012); tk.rotation.z = -a; clockG.add(tk); }
+  const hand1 = boxMesh(0.016, 0.17, 0.01, MAT.iron); hand1.position.set(0.04, 0.07, 0.02); hand1.rotation.z = -0.6; clockG.add(hand1);
+  const hand2 = boxMesh(0.012, 0.24, 0.01, MAT.iron); hand2.position.set(-0.06, 0.09, 0.025); hand2.rotation.z = 0.55; clockG.add(hand2);
+  // shelf with jars on the left wall
+  const shelf = boxMesh(0.25, 0.03, 1.6, MAT.oak); shelf.position.set(-6.66, 1.7, -1.2); scene.add(shelf);
+  for (let i = 0; i < 5; i++) {
+    const jar = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.16 + (i % 2) * 0.06, 20), MAT.glass, false, false);
+    jar.position.set(-6.65, 1.8 + (i % 2) * 0.03, -1.8 + i * 0.3); scene.add(jar);
+    const lid = cylMesh(0.062, 0.02, MAT.oldBrass); lid.position.set(-6.65, 1.89 + (i % 2) * 0.06, -1.8 + i * 0.3); scene.add(lid);
+  }
+  // back workbench (decor) far from the machine
+  const bench = new THREE.Group(); bench.position.set(-4.6, 0, -2.85); scene.add(bench);
+  const top = boxMesh(1.8, 0.07, 0.7, MAT.oak); top.position.y = 0.88; bench.add(top);
+  for (const [x, z] of [[-0.8, -0.28], [0.8, -0.28], [-0.8, 0.28], [0.8, 0.28]]) { const l = boxMesh(0.07, 0.85, 0.07, MAT.walnut); l.position.set(x, 0.425, z); bench.add(l); }
+  const vise = boxMesh(0.18, 0.12, 0.14, MAT.iron); vise.position.set(0.6, 0.98, 0.2); bench.add(vise);
+  const gear = mesh(new THREE.TorusGeometry(0.12, 0.03, 8, 24), MAT.oldBrass); gear.position.set(-0.3, 0.95, 0); gear.rotation.x = Math.PI / 2; bench.add(gear);
+  const books = [[0.05, 0.28, 0x6b2a20], [0.06, 0.3, 0x2c4a6b], [0.045, 0.25, 0x5a6b2c]];
+  books.forEach(([w, h, c], i) => { const b = boxMesh(w, h, 0.2, new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 })); b.position.set(-0.75 + i * 0.07, 0.92 + h / 2, -0.15); bench.add(b); });
+  // pendant lamp
+  const shade = mesh(new THREE.ConeGeometry(0.28, 0.22, 32, 1, true), new THREE.MeshStandardMaterial({ color: 0x2c3a30, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide }), false, false);
+  shade.position.set(-0.4, 2.95, 0.3); scene.add(shade);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd89a })); bulb.position.set(-0.4, 2.86, 0.3); scene.add(bulb);
+  const cord = cylMesh(0.006, 1.6, MAT.iron); cord.position.set(-0.4, 3.85, 0.3); scene.add(cord);
+  // rug off to the side
+  const rug = mesh(new THREE.PlaneGeometry(1.6, 1.1), MAT.felt, false, true); rug.rotation.x = -Math.PI / 2; rug.position.set(3.6, 0.003, 2.4); scene.add(rug);
+}
+buildRoom();
+
+// ---------------------------------------------------------------- settings UI
+const rowsEl = document.getElementById('rows');
+const inputs = {};
+for (const d of DEFS) {
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = `<div class="lab"><span>${d.label}</span><b id="v_${d.key}"></b></div><input type="range" id="in_${d.key}" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.def}">`;
+  rowsEl.appendChild(row);
+  const inp = row.querySelector('input'); inputs[d.key] = inp;
+  const out = row.querySelector('b');
+  const show = () => { out.textContent = (+inp.value).toFixed(d.dec) + (d.unit ? ' ' + d.unit : ''); };
+  inp.addEventListener('input', show); show();
+}
+function readSettings() { const s = {}; for (const d of DEFS) s[d.key] = +inputs[d.key].value; return s; }
+function resetDefaults() { for (const d of DEFS) { inputs[d.key].value = d.def; inputs[d.key].dispatchEvent(new Event('input')); } }
+
+// ---------------------------------------------------------------- physics helpers
+// Ideal rope over a fixed pulley: (yBasket + yCounterweight) >= K. One-sided (a rope can only pull).
+// The rope pulls both bodies upward with the same tension, so its total length stays constant while taut.
+class PulleyEquation extends CANNON.Equation {
+  constructor(bodyA, bodyB, K) {
+    super(bodyA, bodyB, 0, 1e6);
+    this.K = K;
+    this.jacobianElementA.spatial.set(0, 1, 0);
+    this.jacobianElementB.spatial.set(0, 1, 0);
+  }
+  computeB(x, y, z) {
+    const h = (z !== undefined) ? z : x;
+    const g = this.bi.position.y + this.bj.position.y - this.K;
+    return -g * this.a - this.computeGW() * this.b - this.computeGiMf() * h;
+  }
+}
+class PulleyConstraint extends CANNON.Constraint {
+  constructor(bodyA, bodyB, K) { super(bodyA, bodyB, { collideConnected: true }); this.equations.push(new PulleyEquation(bodyA, bodyB, K)); }
+  update() {}
+}
+function stiffen(c) { for (const eq of c.equations) eq.setSpookParams(1e8, 3, DT); return c; }
+function setInertia(b, ix, iy, iz) {
+  b.inertia.set(ix, iy, iz); b.invInertia.set(1 / ix, 1 / iy, 1 / iz); b.updateInertiaWorld(true);
+}
+const V = (x, y, z) => new CANNON.Vec3(x, y, z);
+function qEuler(x, y, z) { const q = new CANNON.Quaternion(); q.setFromEuler(x, y, z); return q; }
+function copyQ(m, q) { m.quaternion.set(q.x, q.y, q.z, q.w); }
+
+// ---------------------------------------------------------------- machine construction
+function build(S) {
+  if (CANNON.Body.idCounter !== undefined) CANNON.Body.idCounter = 0;
+  if (CANNON.Shape.idCounter !== undefined) CANNON.Shape.idCounter = 0;
+  const world = new CANNON.World({ gravity: V(0, -S.gravity, 0) });
+  world.broadphase = new CANNON.SAPBroadphase(world);
+  world.solver.iterations = 30;
+  world.solver.tolerance = 1e-9;
+  world.allowSleep = false;
+  world.defaultContactMaterial.friction = 0.4;
+  world.defaultContactMaterial.restitution = 0.05;
+  const group = new THREE.Group();
+  const R = { S, world, group, sync: [], t: 0, steps: 0, next: 0, done: false, failed: false, failMsg: '', halted: false, endT: null,
+    st: STAGE_NAMES.map((n, i) => ({ id: i + 1, name: n, status: 'waiting', triggeredAt: null })),
+    acc: { n: 0, st: 0, sv: 0, stt: 0, stv: 0, value: null, frozen: false }, swing: { release: null, value: null }, totalTime: null, bell: { shake: 0 } };
+
+  // ---- physics materials
+  const PM = {};
+  for (const n of ['floor', 'steel', 'ramp', 'gate', 'domino', 'table', 'block', 'shelf', 'lever', 'light', 'trough', 'basket', 'cw', 'latch', 'bob', 'cradle', 'stone', 'ice', 'rail', 'striker', 'bell'])
+    PM[n] = new CANNON.Material(n);
+  const cm = (a, b, f, e, extra) => world.addContactMaterial(new CANNON.ContactMaterial(PM[a], PM[b], Object.assign({ friction: f, restitution: e }, extra || {})));
+  cm('steel', 'ramp', FIXED.rampFriction, 0.2); cm('steel', 'gate', 0.1, 0.1); cm('steel', 'domino', 0.2, 0.3); cm('steel', 'table', 0.3, 0.2);
+  cm('domino', 'domino', 0.25, 0.05); cm('domino', 'table', 0.5, 0.02); cm('domino', 'block', 0.2, 0.05); cm('domino', 'shelf', 0.4, 0.02);
+  cm('block', 'shelf', 0.0, 0.0); cm('block', 'lever', 0.5, 0.05); cm('block', 'floor', 0.5, 0.05); cm('block', 'table', 0.4, 0.05);
+  cm('light', 'lever', 0.2, 0.1); cm('light', 'trough', 0.2, 0.15); cm('light', 'basket', 0.6, 0.05); cm('light', 'ramp', 0.3, 0.2);
+  cm('basket', 'latch', 0.3, 0.0); cm('cw', 'floor', 0.5, 0.0); cm('lever', 'floor', 0.5, 0.05);
+  cm('bob', 'latch', 0.0, 0.0);
+  const hard = { contactEquationStiffness: 1e8, contactEquationRelaxation: 5 };
+  cm('bob', 'cradle', 0.0, S.cradleRestitution, hard); cm('cradle', 'cradle', 0.0, S.cradleRestitution, hard);
+  cm('cradle', 'stone', 0.05, 0.6, hard); cm('stone', 'ice', 0.03, 0.0); cm('stone', 'rail', 0.02, 0.3); cm('stone', 'striker', 0.1, 0.5);
+  cm('striker', 'bell', 0.1, 0.6);
+
+  // ---- helpers bound to this run
+  const addStatic = (size, pos, quat, pm, vm) => {
+    const b = new CANNON.Body({ mass: 0, material: pm });
+    b.addShape(new CANNON.Box(V(size[0] / 2, size[1] / 2, size[2] / 2)));
+    b.position.set(pos[0], pos[1], pos[2]); if (quat) b.quaternion.copy(quat);
+    world.addBody(b);
+    if (vm) { const m = boxMesh(size[0], size[1], size[2], vm); m.position.set(pos[0], pos[1], pos[2]); if (quat) copyQ(m, quat); group.add(m); }
+    return b;
+  };
+  const deco = (m, x, y, z) => { m.position.set(x, y, z); group.add(m); return m; };
+  const decoBox = (sx, sy, sz, mat, x, y, z) => deco(boxMesh(sx, sy, sz, mat), x, y, z);
+  const track = (b, m) => { R.sync.push({ b, m }); group.add(m); m.position.copy(b.position); copyQ(m, b.quaternion); return b; };
+  const anchor = (x, y, z) => { const b = new CANNON.Body({ mass: 0 }); b.position.set(x, y, z); world.addBody(b); return b; };
+  const hinge = (A, B, pA, pB, axis) => { const c = stiffen(new CANNON.HingeConstraint(A, B, { pivotA: pA, pivotB: pB, axisA: axis, axisB: axis, maxForce: 1e7 })); world.addConstraint(c); return c; };
+  // inclined board with two side rails; (x0,y0)->(x1,y1) is the top surface line, along x at depth zc
+  const ramp = (x0, y0, x1, y1, zc, o) => {
+    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+    let nx = -dy / len, ny = dx / len; if (ny < 0) { nx = -nx; ny = -ny; }
+    const th = 0.02, q = qEuler(0, 0, Math.atan2(dy, dx)), mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    const board = addStatic([len, th, o.w || 0.1], [mx - nx * th / 2, my - ny * th / 2, zc], q, o.pm, o.vm);
+    const rh = o.rh || 0.03, rg = o.rg || 0.045;
+    if (o.rails !== false) for (const sg of [-1, 1]) addStatic([len, rh, 0.01], [mx + nx * rh / 2, my + ny * rh / 2, zc + sg * rg], q, o.pm, o.rm || MAT.brass);
+    return board;
+  };
+
+  // ---- floor
+  const floorBody = new CANNON.Body({ mass: 0, material: PM.floor });
+  floorBody.addShape(new CANNON.Plane()); floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); world.addBody(floorBody);
+
+  // ---- master layout (metres). Lever pivot at (xp, hp, zL). Everything else is placed from settings.
+  const a = S.leverPivot, longL = FIXED.leverLength - a;
+  const xp = -0.1, hp = 0.16, zL = 0.45, Hd = 0.40, zP = zL + 0.30, xb = xp + 1.55;
+  const s = S.dominoSpacing, dT = FIXED.dominoT, dH = FIXED.dominoH, dW = FIXED.dominoW;
+  const E = { x: xp + a - 0.05, z: zL - 0.24 };          // last domino position (just before the shelf)
+  const L1 = 0.9, RA = 0.45, LA = RA * Math.PI / 2;      // domino path: straight, 90 deg arc, straight
+  const pathAt = (u) => {
+    if (u <= L1) return { x: E.x, z: E.z - u, fx: 0, fz: 1 };
+    if (u <= L1 + LA) { const p = (u - L1) / RA; return { x: E.x - RA + RA * Math.cos(p), z: E.z - L1 - RA * Math.sin(p), fx: Math.sin(p), fz: Math.cos(p) }; }
+    const d = u - L1 - LA; return { x: E.x - RA - d, z: E.z - L1 - RA, fx: 1, fz: 0 };
+  };
+  const N_DOM = 24;
+  const d0 = pathAt((N_DOM - 1) * s);
+  const zR = d0.z;
+  R.layout = { xp, hp, zL, zP, xb, Hd, E, zR };
+
+  // ---- stage 1 + 2: release gate and switchback ramp tower (all ramps 20 deg)
+  const t20 = Math.tan(FIXED.rampSlopeDeg * Math.PI / 180), SP = 0.5, EXT = 0.08, GJ = 0.13, LR = 0.15;
+  const TR = d0.x - dT / 2 - 0.008 - LR, TL = TR - SP;
+  const y4lo = Hd + 0.12, y4hi = y4lo + (SP + EXT) * t20, y4TL = y4lo + SP * t20;
+  const y3lo = y4TL + GJ, y3hi = y3lo + (SP + EXT) * t20, y3TR = y3lo + SP * t20;
+  const y2lo = y3TR + GJ, y2hi = y2lo + (SP + EXT) * t20, y2TL = y2lo + SP * t20;
+  const y1lo = y2TL + GJ, y1hi = y1lo + SP * t20;
+  const y1 = (x) => y1lo + (x - TL) * t20;
+  const rp = { pm: PM.ramp, vm: MAT.oak };
+  const padX = TR - 0.12;
+  ramp(TR, y1hi, padX, y1(padX), zR, rp);                       // start pad (part of the gate stage)
+  const ramp1 = ramp(padX, y1(padX), TL, y1lo, zR, rp);        // ramp 1  (-x)
+  ramp(TL - EXT, y2hi, TR, y2lo, zR, rp);                       // ramp 2  (+x)
+  ramp(TR + EXT, y3hi, TL, y3lo, zR, rp);                       // ramp 3  (-x)
+  ramp(TL - EXT, y4hi, TR, y4lo, zR, rp);                       // ramp 4  (+x)
+  ramp(TR, y4lo, TR + LR, y4lo, zR, rp);                        // run-out toward the first domino
+  // turn-around walls and clear side cheeks at both ends
+  const wl0 = y4hi - 0.04, wl1 = y1lo + 0.16, wr0 = y3hi - 0.04, wr1 = y1hi + 0.16;
+  addStatic([0.02, wl1 - wl0, 0.1], [TL - EXT - 0.01, (wl0 + wl1) / 2, zR], null, PM.ramp, MAT.walnut);
+  addStatic([0.02, wr1 - wr0, 0.1], [TR + EXT + 0.01, (wr0 + wr1) / 2, zR], null, PM.ramp, MAT.walnut);
+  for (const sg of [-1, 1]) {
+    addStatic([0.14, wl1 - wl0, 0.01], [TL - 0.01, (wl0 + wl1) / 2, zR + sg * 0.045], null, PM.ramp, MAT.glass);
+    addStatic([0.15, wr1 - wr0, 0.01], [TR + 0.005, (wr0 + wr1) / 2, zR + sg * 0.045], null, PM.ramp, MAT.glass);
+  }
+  // tower posts and cross beams (decor)
+  const topY = Math.max(wl1, wr1) + 0.05;
+  for (const x of [TL - EXT - 0.05, TR + EXT + 0.05]) for (const sg of [-1, 1]) decoBox(0.035, topY - Hd, 0.035, MAT.walnut, x, (topY + Hd) / 2, zR + sg * 0.075);
+  for (const [x, y] of [[TL - EXT - 0.05, y2hi - 0.03], [TL - EXT - 0.05, y4hi - 0.03], [TR + EXT + 0.05, y3hi - 0.03], [TR + EXT + 0.05, y1hi - 0.03], [TL - EXT - 0.05, topY], [TR + EXT + 0.05, topY]])
+    decoBox(0.03, 0.03, 0.19, MAT.walnut, x, y, zR);
+  decoBox(0.02, y4lo - 0.02 - Hd, 0.02, MAT.walnut, TR + LR - 0.02, (y4lo - 0.02 + Hd) / 2, zR);
+  // the gate: kinematic flap hinged above the pad; swings open at t = 1 s (the only timed event)
+  const gx = TR - 0.06, gHinge = { x: gx, y: y1(gx) + 0.075 };
+  const gate = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, material: PM.gate });
+  gate.addShape(new CANNON.Box(V(0.005, 0.035, 0.0375)));
+  gate.position.set(gx, gHinge.y - 0.035, zR); world.addBody(gate);
+  const gateM = new THREE.Group(); gateM.add(boxMesh(0.01, 0.07, 0.075, MAT.brass));
+  track(gate, gateM);
+  const pin = cylMesh(0.006, 0.1, MAT.steel); pin.rotation.x = Math.PI / 2; deco(pin, gx, gHinge.y, zR);
+  R.gate = { body: gate, hx: gHinge.x, hy: gHinge.y, z: zR };
+  // steel ball resting against the closed gate
+  const rB = FIXED.ballRadius;
+  const ball = new CANNON.Body({ mass: FIXED.ballMass, material: PM.steel, shape: new CANNON.Sphere(rB) });
+  const bx = gx + 0.005 + rB + 0.0005;
+  ball.position.set(bx, y1(bx) + rB / Math.cos(FIXED.rampSlopeDeg * Math.PI / 180) + 0.0002, zR);
+  world.addBody(ball); track(ball, mesh(new THREE.SphereGeometry(rB, 32, 20), MAT.chrome));
+
+  // ---- domino table (the L-shaped run lives on it)
+  const tx0 = TL - EXT - 0.2, tx1 = E.x + 0.2, tz0 = zR - 0.18, tz1 = zL - 0.07;
+  addStatic([tx1 - tx0, 0.04, tz1 - tz0], [(tx0 + tx1) / 2, Hd - 0.02, (tz0 + tz1) / 2], null, PM.table, MAT.oak);
+  for (const [x, z] of [[tx0 + 0.06, tz0 + 0.06], [tx1 - 0.04, tz0 + 0.06], [tx0 + 0.06, tz1 - 0.05], [tx1 - 0.04, tz1 - 0.05]])
+    decoBox(0.06, Hd - 0.04, 0.06, MAT.walnut, x, (Hd - 0.04) / 2, z);
+
+  // ---- stage 3: 24 dominoes with a 90 deg turn
+  const dominoes = [];
+  const domGeo = new THREE.BoxGeometry(dT, dH, dW);
+  const pipGeo = new THREE.BoxGeometry(dT + 0.002, 0.006, dW * 0.8);
+  for (let i = 0; i < N_DOM; i++) {
+    const p = pathAt((N_DOM - 1 - i) * s);
+    const b = new CANNON.Body({ mass: S.dominoMass, material: PM.domino });
+    b.addShape(new CANNON.Box(V(dT / 2, dH / 2, dW / 2)));          // inertia computed while unrotated
+    b.position.set(p.x, Hd + dH / 2, p.z);
+    b.quaternion.copy(qEuler(0, Math.atan2(-p.fz, p.fx), 0));
+    world.addBody(b);
+    const m = mesh(domGeo, MAT.maple); m.add(mesh(pipGeo, MAT.walnut));
+    track(b, m); dominoes.push(b);
+  }
+
+  // ---- stage 4: frictionless shelf + 1 kg block, seesaw lever, light ball in a cup at the long end
+  addStatic([0.12, 0.1, 0.06], [E.x, Hd + 0.05, zL - 0.10], null, PM.shelf, MAT.walnut);
+  const block = new CANNON.Body({ mass: FIXED.blockMass, material: PM.block, shape: new CANNON.Box(V(0.05, 0.05, 0.05)) });
+  block.position.set(E.x, Hd + 0.1 + 0.05, zL - 0.08); world.addBody(block);
+  const blockM = new THREE.Group(); blockM.add(boxMesh(0.1, 0.1, 0.1, MAT.iron));
+  const handle = mesh(new THREE.TorusGeometry(0.022, 0.006, 8, 20, Math.PI), MAT.brass); handle.position.y = 0.05; blockM.add(handle);
+  track(block, blockM);
+
+  let al = Math.asin((hp - 0.01) / longL);
+  for (let k = 0; k < 6; k++) al = Math.asin((hp - 0.01 * Math.cos(al) - 0.0005) / longL);
+  const uc = a - 0.5;                       // plank centre measured from the pivot (negative = long side)
+  const ut = -longL;                        // long tip
+  const lever = new CANNON.Body({ mass: 0.2, material: PM.lever });
+  const leverM = new THREE.Group();
+  const lshape = (hx, hy, hz, x, y, z, mat) => { lever.addShape(new CANNON.Box(V(hx, hy, hz)), V(x, y, z)); const m = boxMesh(hx * 2, hy * 2, hz * 2, mat); m.position.set(x, y, z); leverM.add(m); };
+  lshape(0.5, 0.01, 0.03, 0, 0, 0, MAT.oak);                                   // 1.0 m plank
+  lshape(0.005, 0.0175, 0.03, ut + 0.005 - uc, 0.0275, 0, MAT.brass);          // cup: outer wall
+  lshape(0.005, 0.01, 0.03, ut + 0.08 - uc, 0.02, 0, MAT.brass);               // cup: inner wall
+  for (const sg of [-1, 1]) lshape(0.04, 0.015, 0.004, ut + 0.04 - uc, 0.025, sg * 0.039, MAT.brass);
+  const u0 = Math.max(0.04, a - 0.16);
+  lshape((a - u0) / 2, 0.005, 0.1, (u0 + a) / 2 - uc, 0.015, -0.02, MAT.walnut); // catch plate at short end
+  lever.position.set(xp + uc * Math.cos(al), hp + uc * Math.sin(al), zL);
+  lever.quaternion.copy(qEuler(0, 0, al));
+  world.addBody(lever);
+  setInertia(lever, 0.0003, 0.0168, 0.0168);
+  hinge(anchor(xp, hp, zL), lever, V(0, 0, 0), V(-uc, 0, 0), V(0, 0, 1));
+  track(lever, leverM);
+  // fulcrum (decor)
+  for (const sg of [-1, 1]) { const f = mesh(new THREE.CylinderGeometry(0.0, 0.07, hp + 0.02, 3), MAT.walnut); f.rotation.y = Math.PI / 6; deco(f, xp, (hp + 0.02) / 2, zL + sg * 0.045); f.scale.z = 0.15; }
+  const lpin = cylMesh(0.007, 0.11, MAT.steel); lpin.rotation.x = Math.PI / 2; deco(lpin, xp, hp, zL);
+
+  const rL = 0.03;
+  const light = new CANNON.Body({ mass: FIXED.lightBallMass, material: PM.light, shape: new CANNON.Sphere(rL) });
+  const lu = ut + 0.04 - uc, lv = 0.01 + rL + 0.0005;
+  light.position.set(lever.position.x + lu * Math.cos(al) - lv * Math.sin(al), lever.position.y + lu * Math.sin(al) + lv * Math.cos(al), zL);
+  world.addBody(light); track(light, mesh(new THREE.SphereGeometry(rL, 28, 18), MAT.lacquer));
+
+  // ---- stage 5: catch trough -> basket on a rope over a fixed pulley -> counterweight on the floor
+  const trx0 = xp + a + 0.06, trx1 = xb - 0.05, try1 = 0.6, try0 = try1 + (trx1 - trx0) * Math.tan(6 * Math.PI / 180);
+  ramp(trx0, try0, trx1, try1, zL, { pm: PM.trough, vm: MAT.walnut, rh: 0.05, rg: 0.06, w: 0.13 });
+  addStatic([0.01, 0.06, 0.13], [trx0 - 0.005, try0 + 0.03, zL], null, PM.trough, MAT.walnut);
+  for (const x of [trx0 + 0.04, (trx0 + trx1) / 2, trx1 - 0.05]) { const ty = try0 + (x - trx0) * (try1 - try0) / (trx1 - trx0) - 0.02; decoBox(0.025, ty, 0.025, MAT.walnut, x, ty / 2, zL); }
+  addStatic([0.02, 0.98, 0.26], [xb + 0.125, 0.52 + 0.49, zL], null, PM.trough, MAT.glass);   // clear backboard
+  decoBox(0.03, 0.03, 0.3, MAT.walnut, xb + 0.125, 1.52, zL);
+  const yB0 = 0.45, yC0 = 0.04, pulleyY = 1.75, pr = 0.1;
+  const basket = new CANNON.Body({ mass: FIXED.basketMass, material: PM.basket, linearFactor: V(0, 1, 0), fixedRotation: true });
+  const basketM = new THREE.Group();
+  const bshape = (hx, hy, hz, x, y, z) => { basket.addShape(new CANNON.Box(V(hx, hy, hz)), V(x, y, z)); const m = boxMesh(hx * 2, hy * 2, hz * 2, MAT.wicker); m.position.set(x, y, z); basketM.add(m); };
+  bshape(0.11, 0.005, 0.09, 0, -0.055, 0);
+  for (const sg of [-1, 1]) { bshape(0.005, 0.055, 0.09, sg * 0.105, 0, 0); bshape(0.11, 0.055, 0.005, 0, 0, sg * 0.085); }
+  const bail = mesh(new THREE.TorusGeometry(0.085, 0.004, 6, 24, Math.PI), MAT.iron); bail.position.y = 0.055; bail.rotation.y = Math.PI / 2; basketM.add(bail);
+  basket.position.set(xb, yB0, zL); world.addBody(basket); basket.updateMassProperties(); track(basket, basketM);
+  const cw = new CANNON.Body({ mass: S.counterweightMass, material: PM.cw, shape: new CANNON.Box(V(0.04, 0.04, 0.04)), linearFactor: V(0, 1, 0), fixedRotation: true });
+  cw.position.set(xb + 2 * pr, yC0, zL); world.addBody(cw); cw.updateMassProperties();
+  const cwM = new THREE.Group(); cwM.add(boxMesh(0.08, 0.08, 0.08, MAT.oldBrass));
+  const hook = mesh(new THREE.TorusGeometry(0.014, 0.004, 6, 16), MAT.iron); hook.position.y = 0.054; cwM.add(hook);
+  track(cw, cwM);
+  world.addConstraint(stiffen(new PulleyConstraint(basket, cw, yB0 + yC0)));
+  // pulley wheel + gantry (decor)
+  const wheel = mesh(new THREE.CylinderGeometry(pr, pr, 0.03, 40), MAT.brass); wheel.rotation.x = Math.PI / 2;
+  const wheelG = new THREE.Group(); wheelG.add(wheel);
+  for (let k = 0; k < 4; k++) { const sp = boxMesh(0.012, pr * 1.8, 0.035, MAT.oldBrass); sp.rotation.z = k * Math.PI / 4; wheelG.add(sp); }
+  deco(wheelG, xb + pr, pulleyY, zL);
+  const arc = mesh(new THREE.TorusGeometry(pr, 0.004, 6, 24, Math.PI), MAT.rope); deco(arc, xb + pr, pulleyY, zL);
+  const gpx = xb + 0.36; decoBox(0.05, pulleyY + 0.15, 0.05, MAT.walnut, gpx, (pulleyY + 0.15) / 2, zL - 0.12);
+  decoBox(gpx - (xb + pr) + 0.05, 0.04, 0.04, MAT.walnut, (gpx + xb + pr) / 2, pulleyY + 0.13, zL - 0.12);
+  decoBox(0.02, 0.15, 0.02, MAT.iron, xb + pr, pulleyY + 0.06, zL - 0.06);
+  decoBox(0.02, 0.02, 0.08, MAT.iron, xb + pr, pulleyY, zL - 0.04);
+  const ropeL = makeRod(0.004, MAT.rope, group), ropeR = makeRod(0.004, MAT.rope, group);
+
+  // ---- stage 6: latch (a hinged post holding the bob up) tripped by the basket
+  const rb = 0.05, yr = 1.0, latchY = 0.25;
+  const postH = yr - rb - latchY;
+  const latch = new CANNON.Body({ mass: 0.08, material: PM.latch });
+  const latchM = new THREE.Group();
+  const lsh = (hx, hy, hz, x, y, z, mat) => { latch.addShape(new CANNON.Box(V(hx, hy, hz)), V(x, y, z)); const m = boxMesh(hx * 2, hy * 2, hz * 2, mat); m.position.set(x, y, z); latchM.add(m); };
+  lsh(0.015, postH / 2, 0.01, 0, postH / 2, 0, MAT.steel);        // post
+  lsh(0.02, 0.01, 0.16, 0, 0, -0.16, MAT.oldBrass);                // trip arm under the basket
+  lsh(0.02, 0.01, 0.04, 0, 0, 0.04, MAT.oldBrass);                 // stub resting on its stop
+  latch.position.set(xb, latchY, zP); world.addBody(latch);
+  setInertia(latch, 0.016, 0.002, 0.016);
+  hinge(anchor(xb, latchY, zP), latch, V(0, 0, 0), V(0, 0, 0), V(1, 0, 0));
+  track(latch, latchM);
+  addStatic([0.04, 0.02, 0.03], [xb, latchY - 0.02, zP + 0.065], null, PM.table, MAT.walnut);   // rest stop
+  addStatic([0.05, 0.04, 0.04], [xb, 0.16, zL], null, PM.table, MAT.walnut);                     // travel stop
+  decoBox(0.05, latchY - 0.01, 0.05, MAT.walnut, xb, (latchY - 0.01) / 2, zP + 0.035);
+  const lhp = cylMesh(0.006, 0.07, MAT.steel); lhp.rotation.z = Math.PI / 2; deco(lhp, xb, latchY, zP);
+
+  // ---- pendulum: pivot placed so that the bob meets the cradle at the bottom of its arc
+  const L = S.pendulumLength, th = S.releaseAngle * Math.PI / 180;
+  const P = { x: xb - L * Math.sin(th), y: yr + L * Math.cos(th) };
+  const bob = new CANNON.Body({ mass: FIXED.bobMass, material: PM.bob, shape: new CANNON.Sphere(rb) });
+  bob.position.set(xb, yr, zP); world.addBody(bob);
+  hinge(anchor(P.x, P.y, zP), bob, V(0, 0, 0), V(P.x - xb, P.y - yr, 0), V(0, 0, 1));
+  track(bob, mesh(new THREE.SphereGeometry(rb, 36, 24), MAT.steel));
+  const rod = makeRod(0.005, MAT.brass, group);
+  for (const sg of [-1, 1]) decoBox(0.04, P.y + 0.06, 0.04, MAT.walnut, P.x, (P.y + 0.06) / 2, zP + sg * 0.18);
+  decoBox(0.05, 0.05, 0.42, MAT.walnut, P.x, P.y + 0.06, zP);
+  const ppin = cylMesh(0.01, 0.06, MAT.brass); ppin.rotation.x = Math.PI / 2; deco(ppin, P.x, P.y, zP);
+
+  // ---- stage 7: Newton's cradle (5 steel balls on hinges, 1 mm gaps)
+  const rc = FIXED.cradleRadius, lc = 0.25, gapC = 0.001, yc = P.y - L;
+  const mC = 7800 * 4 / 3 * Math.PI * rc ** 3;
+  const x1 = P.x - (rb + rc + gapC);
+  const cradle = [], strings = [];
+  const frame = anchor(0, 0, 0);
+  for (let i = 0; i < 5; i++) {
+    const xi = x1 - i * (2 * rc + gapC);
+    const b = new CANNON.Body({ mass: mC, material: PM.cradle, shape: new CANNON.Sphere(rc) });
+    b.position.set(xi, yc, zP); world.addBody(b);
+    hinge(frame, b, V(xi, yc + lc, zP), V(0, lc, 0), V(0, 0, 1));
+    track(b, mesh(new THREE.SphereGeometry(rc, 28, 18), MAT.chrome));
+    cradle.push(b);
+    strings.push({ b, a1: new THREE.Vector3(xi, yc + lc, zP - 0.06), a2: new THREE.Vector3(xi, yc + lc, zP + 0.06), s1: makeRod(0.0012, MAT.string, group), s2: makeRod(0.0012, MAT.string, group) });
+  }
+  const x5 = x1 - 4 * (2 * rc + gapC);
+  for (const sg of [-1, 1]) {
+    decoBox(x1 - x5 + 0.12, 0.012, 0.012, MAT.brass, (x1 + x5) / 2, yc + lc, zP + sg * 0.06);
+    for (const x of [x1 + 0.06, x5 - 0.06]) decoBox(0.012, lc + 0.03, 0.012, MAT.brass, x, yc + lc / 2 - 0.01, zP + sg * 0.06);
+  }
+
+  // ---- stage 8 (own invention): curling stone slid down an ice lane by the last cradle ball
+  const yl = yc - 0.03, Rs = 0.06, Hs = 0.05;
+  const xs0 = x5 - rc - 0.03 - Rs;
+  const stone = new CANNON.Body({ mass: 0.3, material: PM.stone, shape: new CANNON.Cylinder(Rs, Rs, Hs, 24) });
+  stone.position.set(xs0, yl + Hs / 2 + 0.0003, zP); world.addBody(stone);
+  const stoneM = new THREE.Group();
+  const sp = [[0, -0.025], [0.05, -0.025], [0.058, -0.02], [0.06, -0.01], [0.06, 0.01], [0.056, 0.02], [0.045, 0.025], [0, 0.025]].map(([x, y]) => new THREE.Vector2(x, y));
+  stoneM.add(mesh(new THREE.LatheGeometry(sp, 32), MAT.granite));
+  const band = mesh(new THREE.CylinderGeometry(0.0605, 0.0605, 0.008, 32), MAT.red); stoneM.add(band);
+  const hdl = boxMesh(0.06, 0.012, 0.016, MAT.red); hdl.position.set(0.01, 0.033, 0); stoneM.add(hdl);
+  const hdl2 = boxMesh(0.012, 0.012, 0.016, MAT.red); hdl2.position.set(-0.014, 0.028, 0); stoneM.add(hdl2);
+  track(stone, stoneM);
+  const xH = xs0 - Rs - 0.3 - 0.025;                                       // striker head position
+  const laneA = x5 - 0.01, laneB = xH - 0.29;
+  addStatic([laneA - laneB, 0.02, 0.2], [(laneA + laneB) / 2, yl - 0.01, zP], null, PM.ice, MAT.ice);
+  for (const sg of [-1, 1]) addStatic([laneA - laneB, 0.03, 0.01], [(laneA + laneB) / 2, yl + 0.015, zP + sg * 0.085], null, PM.rail, MAT.walnut);
+  addStatic([0.02, 0.04, 0.16], [laneB + 0.01, yl + 0.02, zP], null, PM.rail, MAT.walnut);
+  if (yl > 0.05) for (const x of [laneA - 0.03, laneB + 0.03]) for (const sg of [-1, 1]) decoBox(0.03, yl - 0.02, 0.03, MAT.walnut, x, (yl - 0.02) / 2, zP + sg * 0.08);
+  // house rings painted under the ice near the striker
+  const house = mesh(new THREE.RingGeometry(0.03, 0.07, 32), new THREE.MeshStandardMaterial({ color: 0x2b5fa8, roughness: 0.4 }), false, true);
+  house.rotation.x = -Math.PI / 2; deco(house, xH + 0.12, yl + 0.0015, zP);
+
+  // ---- stage 9: hanging striker and a brass bell
+  const hingeY = yl + 0.33, rh = 0.025;
+  const striker = new CANNON.Body({ mass: 0.1, material: PM.striker });
+  striker.addShape(new CANNON.Sphere(rh));
+  striker.addShape(new CANNON.Box(V(0.006, 0.14, 0.006)), V(0, 0.165, 0));
+  striker.position.set(xH, yl + 0.03, zP); world.addBody(striker);
+  setInertia(striker, 4e-5, 4e-5, 4e-5);
+  hinge(anchor(xH, hingeY, zP), striker, V(0, 0, 0), V(0, hingeY - (yl + 0.03), 0), V(0, 0, 1));
+  const strikerM = new THREE.Group();
+  strikerM.add(mesh(new THREE.SphereGeometry(rh, 24, 16), MAT.iron));
+  const sarm = boxMesh(0.012, 0.28, 0.012, MAT.walnut); sarm.position.y = 0.165; strikerM.add(sarm);
+  track(striker, strikerM);
+  const bellX = xH - 0.311, bellY = yl + 0.14;
+  const bell = new CANNON.Body({ mass: 0, material: PM.bell, shape: new CANNON.Cylinder(0.05, 0.09, 0.14, 24) });
+  bell.position.set(bellX, bellY, zP); world.addBody(bell);
+  const bp = [[0.0, 0.074], [0.03, 0.073], [0.046, 0.066], [0.052, 0.05], [0.057, 0.025], [0.064, 0.0], [0.074, -0.03], [0.086, -0.058], [0.093, -0.07], [0.088, -0.072], [0.08, -0.062]].map(([x, y]) => new THREE.Vector2(x, y));
+  const bellM = mesh(new THREE.LatheGeometry(bp, 48), MAT.bellBrass);
+  deco(bellM, bellX, bellY, zP);
+  // gallows for the bell and the striker (decor)
+  const gy = Math.max(hingeY, bellY + 0.074) + 0.06;
+  decoBox(0.03, gy - yl + 0.02, 0.03, MAT.walnut, bellX - 0.13, (gy + yl) / 2 - 0.01, zP - 0.11);
+  decoBox(xH - bellX + 0.2, 0.03, 0.03, MAT.walnut, (xH + bellX) / 2 - 0.03, gy, zP - 0.11);
+  decoBox(0.012, gy - bellY - 0.074, 0.012, MAT.iron, bellX, (gy + bellY + 0.074) / 2, zP - 0.05);
+  decoBox(0.012, 0.012, 0.07, MAT.iron, bellX, gy - 0.005, zP - 0.08);
+  decoBox(0.012, gy - hingeY, 0.012, MAT.iron, xH, (gy + hingeY) / 2, zP - 0.05);
+  const shp = cylMesh(0.006, 0.06, MAT.steel); shp.rotation.x = Math.PI / 2; deco(shp, xH, hingeY, zP - 0.02);
+
+  // ---- triggers: each stage starts only on contact between a body of the previous stage and this stage
+  const S_ = (...b) => new Set(b);
+  R.trig = [null,
+    [S_(ball), S_(ramp1)],
+    [S_(ball), S_(dominoes[0])],
+    [new Set(dominoes), S_(block)],
+    [S_(light), S_(basket)],
+    [S_(basket), S_(latch)],
+    [S_(bob), S_(cradle[0])],
+    [S_(cradle[4]), S_(stone)],
+    [S_(stone), S_(striker)]];
+  R.bellPair = [S_(striker), S_(bell)];
+  Object.assign(R, { ball, dominoes, block, lever, light, basket, cw, latch, bob, cradle, stone, striker, bellBody: bell, bellM, wheelG, ropeL, ropeR, rod, strings,
+    P, theta0: th, yB0, pulleyY, pr, xH, hingeY });
+  // follow-camera focus points
+  R.focus = {
+    tower: new THREE.Vector3((TL + TR) / 2, (y4lo + y1hi) / 2, zR), lever: new THREE.Vector3(xp + 0.2, 0.45, zL),
+    basket: new THREE.Vector3(xb, 0.7, zL), cradle: new THREE.Vector3((x1 + x5) / 2, yc + 0.05, zP), bell: new THREE.Vector3((xH + bellX) / 2, yl + 0.15, zP),
+  };
+  const box = new THREE.Box3(new THREE.Vector3(Math.min(tx0, laneB - 0.1), 0, tz0), new THREE.Vector3(xb + 0.4, Math.max(topY, pulleyY + 0.2, P.y + 0.1), zP + 0.25));
+  R.bounds = box;
+  return R;
+}
+
+// ---------------------------------------------------------------- simulation step, triggers, measurements
+function gateAngle(t) { if (t < 1) return 0; const u = Math.min(1, (t - 1) / 0.35); return -1.9 * (1 - Math.cos(u * Math.PI)) / 2; }
+function stepSim(R) {
+  const g = R.gate, t = R.t;
+  const ang = gateAngle(t), w = (gateAngle(t + DT) - ang) / DT;
+  g.body.quaternion.setFromEuler(0, 0, ang);
+  g.body.position.set(g.hx + 0.035 * Math.sin(ang), g.hy - 0.035 * Math.cos(ang), g.z);
+  g.body.angularVelocity.set(0, 0, w);
+  g.body.velocity.set(w * 0.035 * Math.cos(ang), w * 0.035 * Math.sin(ang), 0);
+  R.world.step(DT);
+  R.steps++; R.t = R.steps * DT;
+  checkTriggers(R);
+  measure(R);
+}
+function pairTouch(R, A, B) {
+  const cs = R.world.contacts;
+  for (let i = 0; i < cs.length; i++) { const c = cs[i]; if ((A.has(c.bi) && B.has(c.bj)) || (A.has(c.bj) && B.has(c.bi))) return true; }
+  return false;
+}
+function trigger(R, k, t) { const s = R.st[k]; s.status = 'triggered'; s.triggeredAt = t; R.next = k + 1; R.dirty = true; }
+function fail(R, k, why) { R.st[k].status = 'failed'; R.failed = true; R.failMsg = `Stage ${k + 1} (${STAGE_NAMES[k]}) failed: ${why}`; R.endT = R.t; R.dirty = true; }
+function checkTriggers(R) {
+  if (R.failed || R.done) return;
+  const t = R.t;
+  if (R.next === 0) { if (t >= 1 - 1e-9) trigger(R, 0, 1.0); return; }      // gate opens at t = 1 s
+  if (R.next < 9) {
+    const [A, B] = R.trig[R.next];
+    if (pairTouch(R, A, B)) { trigger(R, R.next, t); return; }
+    if (t - R.st[R.next - 1].triggeredAt > FAIL_WAIT) fail(R, R.next, `nothing from stage ${R.next} reached it within ${FAIL_WAIT} s.`);
+    return;
+  }
+  // all nine triggered: wait for the striker to hit the bell
+  if (pairTouch(R, R.bellPair[0], R.bellPair[1])) { R.done = true; R.totalTime = t; R.endT = t; R.dirty = true; ringBell(); }
+  else if (t - R.st[8].triggeredAt > FAIL_WAIT) fail(R, 8, `the striker never reached the bell within ${FAIL_WAIT} s.`);
+}
+function measure(R) {
+  // basket acceleration: least-squares slope of the basket's simulated vertical velocity during its descent
+  const A = R.acc;
+  if (R.st[4].status === 'triggered' && !A.frozen) {
+    const t5 = R.st[4].triggeredAt;
+    if (R.st[5].triggeredAt !== null || R.failed) A.frozen = true;
+    else if (R.t > t5 + 0.05 && R.steps % 4 === 0) {
+      const t = R.t - t5, v = R.basket.velocity.y;
+      A.n++; A.st += t; A.sv += v; A.stt += t * t; A.stv += t * v;
+      if (A.n >= 15) { const den = A.n * A.stt - A.st * A.st; if (den > 1e-12) A.value = -(A.n * A.stv - A.st * A.sv) / den; }
+    }
+  }
+  // pendulum swing time: from the bob leaving its held angle to its impact on the first cradle ball
+  const W = R.swing;
+  if (R.st[5].status === 'triggered' && W.release === null) {
+    const phi = Math.atan2(R.bob.position.x - R.P.x, R.P.y - R.bob.position.y);
+    if (phi < R.theta0 - 0.005) W.release = R.t;
+  }
+  if (W.value === null && R.st[6].triggeredAt !== null) W.value = R.st[6].triggeredAt - (W.release !== null ? W.release : R.st[5].triggeredAt);
+}
+
+// ---------------------------------------------------------------- bell sound (Web Audio)
+let actx = null, ringPending = false;
+function getAudio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } } return actx; }
+function unlockAudio() { const c = getAudio(); if (c && c.state === 'suspended') c.resume().then(() => { if (ringPending) { ringPending = false; ringBell(); } }); }
+window.addEventListener('pointerdown', unlockAudio);
+window.addEventListener('keydown', unlockAudio);
+function ringBell() {
+  const ctx = getAudio(); if (!ctx) return;
+  if (ctx.state !== 'running') { ringPending = true; ctx.resume().catch(() => {}); return; }
+  const t0 = ctx.currentTime + 0.01, f0 = 587.3;
+  const master = ctx.createGain(); master.gain.value = 0.55; master.connect(ctx.destination);
+  const delay = ctx.createDelay(1); delay.delayTime.value = 0.11; const fb = ctx.createGain(); fb.gain.value = 0.32;
+  const wet = ctx.createGain(); wet.gain.value = 0.22; master.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(ctx.destination);
+  const partials = [[0.5, 0.35, 6.0], [1.0, 0.6, 4.8], [1.183, 0.33, 3.4], [1.506, 0.28, 2.8], [2.0, 0.38, 2.5], [2.514, 0.18, 1.7], [2.662, 0.16, 1.5], [3.011, 0.12, 1.2], [4.166, 0.08, 0.8], [5.433, 0.05, 0.5]];
+  for (const [r, amp, dec] of partials) for (const det of [0, 1.3]) {
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f0 * r + det;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(amp * 0.16, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dec);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dec + 0.05);
+  }
+  const len = Math.floor(ctx.sampleRate * 0.03), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0), rnd = lcg(4242);
+  for (let i = 0; i < len; i++) d[i] = (rnd() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const src = ctx.createBufferSource(); src.buffer = buf; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 1.2;
+  const ng = ctx.createGain(); ng.gain.value = 0.5; src.connect(bp); bp.connect(ng); ng.connect(master); src.start(t0);
+}
+
+// ---------------------------------------------------------------- visuals sync
+const tA = new THREE.Vector3(), tB = new THREE.Vector3();
+function syncVisuals(R) {
+  for (const { b, m } of R.sync) { m.position.copy(b.position); copyQ(m, b.quaternion); }
+  const { xb, zL, zP } = R.layout;
+  tA.set(R.P.x, R.P.y, zP); tB.copy(R.bob.position); R.rod.setEnds(tA, tB);
+  for (const s of R.strings) { tB.copy(s.b.position); s.s1.setEnds(s.a1, tB); s.s2.setEnds(s.a2, tB); }
+  tA.set(xb, R.basket.position.y + 0.14, zL); tB.set(xb, R.pulleyY, zL); R.ropeL.setEnds(tA, tB);
+  tA.set(xb + 2 * R.pr, R.cw.position.y + 0.068, zL); tB.set(xb + 2 * R.pr, R.pulleyY, zL); R.ropeR.setEnds(tA, tB);
+  R.wheelG.rotation.z = (R.basket.position.y - R.yB0) / R.pr;
+  if (R.done) {
+    const dt = R.t - R.totalTime, k = Math.exp(-dt * 1.2);
+    R.bellM.rotation.z = 0.05 * k * Math.sin(dt * 38);
+    MAT.bellBrass.emissive.setRGB(0.35 * k, 0.22 * k, 0.05 * k);
+  } else { R.bellM.rotation.z = 0; MAT.bellBrass.emissive.setRGB(0, 0, 0); }
+}
+
+// ---------------------------------------------------------------- camera
+let camMode = 'follow';
+const camLook = new THREE.Vector3(-0.3, 0.6, 0);
+function overviewPose(R) {
+  const c = R.bounds.getCenter(new THREE.Vector3()), sz = R.bounds.getSize(new THREE.Vector3());
+  const span = Math.max(sz.x, sz.z * 1.5, 3.5), aspect = camera.aspect;
+  const d = span * 0.92 * Math.max(1, 1.6 / aspect);
+  return { pos: new THREE.Vector3(c.x + 0.1 * span, 0.45 + d * 0.62, c.z + d), look: new THREE.Vector3(c.x, 0.4, c.z) };
+}
+function followPose(R) {
+  const last = R.next - 1; const L = R.layout;
+  let f = new THREE.Vector3(), off = new THREE.Vector3();
+  if (last <= 1) { f.copy(R.ball.position); off.set(0.75, 0.45, 1.35); }
+  else if (last === 2) {
+    let p = null; for (const d of R.dominoes) { const q = d.quaternion; if (1 - 2 * (q.x * q.x + q.z * q.z) > 0.95) { p = d.position; break; } }
+    f.copy(p || R.block.position); off.set(0.55, 0.75, 1.5);
+  }
+  else if (last === 3) { f.set((L.xp + R.light.position.x) / 2 + 0.2, Math.max(0.5, R.light.position.y * 0.6), L.zL); off.set(0.2, 0.6, 2.3); }
+  else if (last === 4) { f.set(L.xb, R.basket.position.y + 0.15, L.zL); off.set(-0.55, 0.35, 1.6); }
+  else if (last === 5) { f.copy(R.bob.position).lerp(R.focus.cradle, 0.35); off.set(0.1, 0.25, 1.9); }
+  else if (last === 6) { f.copy(R.focus.cradle); off.set(0.15, 0.2, 1.05); }
+  else if (last === 7) { f.copy(R.stone.position).lerp(R.focus.bell, 0.3); off.set(0.1, 0.25, 1.0); }
+  else { f.copy(R.focus.bell); off.set(0.15, 0.2, 0.95); }
+  return { pos: f.clone().add(off), look: f };
+}
+function snapCamera() { const p = camMode === 'overview' ? overviewPose(R) : followPose(R); camera.position.copy(p.pos); camLook.copy(p.look); camera.lookAt(camLook); }
+function updateCamera(fdt) {
+  if (camMode === 'orbit') { controls.update(); return; }
+  const p = camMode === 'overview' ? overviewPose(R) : followPose(R);
+  camera.position.lerp(p.pos, 1 - Math.exp(-fdt * 2.2));
+  camLook.lerp(p.look, 1 - Math.exp(-fdt * 3.0));
+  camera.lookAt(camLook);
+}
+
+// ---------------------------------------------------------------- UI
+const listEl = document.getElementById('stageList');
+const lis = STAGE_NAMES.map((n, i) => {
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="dot"></span><span class="num">${i + 1}</span><span>${n}</span><span class="tm">—</span>`;
+  listEl.appendChild(li); return li;
+});
+const elClock = document.getElementById('clock'), elAcc = document.getElementById('mAcc'), elSwing = document.getElementById('mSwing'), elMsg = document.getElementById('msg');
+const btnPlay = document.getElementById('btnPlay');
+function updateUI() {
+  elClock.textContent = `t = ${R.t.toFixed(3)} s`;
+  elAcc.textContent = R.acc.value === null ? '—' : `${R.acc.value.toFixed(3)} m/s²`;
+  elSwing.textContent = R.swing.value === null ? '—' : `${R.swing.value.toFixed(3)} s`;
+  if (!R.dirty) return;
+  R.dirty = false;
+  R.st.forEach((s, i) => { lis[i].className = s.status === 'waiting' ? '' : s.status; lis[i].querySelector('.tm').textContent = s.triggeredAt === null ? (s.status === 'failed' ? 'failed' : '—') : `${s.triggeredAt.toFixed(3)} s`; });
+  if (R.done) { elMsg.className = 'ok'; elMsg.textContent = `Bell rang — total chain time ${R.totalTime.toFixed(3)} s (simulation).`; }
+  else if (R.failed) { elMsg.className = 'bad'; elMsg.textContent = R.failMsg; }
+  else { elMsg.className = ''; elMsg.textContent = ''; }
+}
+
+// ---------------------------------------------------------------- run management
+let R = null, paused = false, speed = 1, accT = 0;
+function newRun() {
+  if (R) { scene.remove(R.group); R.group.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  R = build(readSettings());
+  R.dirty = true; accT = 0; ringPending = false;
+  scene.add(R.group);
+  if (camMode !== 'orbit') snapCamera();
+}
+function setPaused(p) { paused = p; btnPlay.textContent = paused ? 'Play' : 'Pause'; }
+btnPlay.addEventListener('click', () => setPaused(!paused));
+document.getElementById('btnReplay').addEventListener('click', () => newRun());
+document.getElementById('btnApply').addEventListener('click', () => newRun());
+document.getElementById('btnDefaults').addEventListener('click', () => resetDefaults());
+document.getElementById('btnSettings').addEventListener('click', () => document.getElementById('settings').classList.toggle('hidden'));
+document.getElementById('selSpeed').addEventListener('change', (e) => { speed = +e.target.value; });
+document.getElementById('selCam').addEventListener('change', (e) => {
+  camMode = e.target.value;
+  controls.enabled = camMode === 'orbit';
+  if (camMode === 'orbit') { controls.target.copy(camLook); controls.update(); }
+});
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space') return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  e.preventDefault(); setPaused(!paused);
+});
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+window.machineState = () => {
+  const r4 = (v) => (v === null || v === undefined) ? null : Math.round(v * 1e4) / 1e4;
+  return {
+    stages: R.st.map(s => ({ id: s.id, name: s.name, status: s.status, triggeredAt: r4(s.triggeredAt) })),
+    basketAcceleration: r4(R.acc.value),
+    pendulumSwingTime: r4(R.swing.value),
+    settings: Object.assign(readSettings(), { simulationSpeed: speed, camera: camMode }),
+    runSettings: Object.assign({}, R.S),
+    simTime: r4(R.t),
+    paused,
+    completed: R.done,
+    totalChainTime: r4(R.totalTime),
+    failedStage: R.failed ? (R.st.find(s => s.status === 'failed') || {}).id || null : null,
+  };
+};
+
+// ---------------------------------------------------------------- main loop
+let lastNow = performance.now();
+function loop(now) {
+  requestAnimationFrame(loop);
+  const fdt = Math.min(0.1, Math.max(0, (now - lastNow) / 1000)); lastNow = now;
+  if (!paused && !R.halted) {
+    accT += fdt * speed;
+    let n = 0;
+    while (accT >= DT && n < MAX_STEPS) {
+      stepSim(R); accT -= DT; n++;
+      if (R.endT !== null && R.t > R.endT + 3) { R.halted = true; break; }
+    }
+    if (n >= MAX_STEPS) accT = 0;            // drop time we could not simulate (keeps the result identical, only slower)
+  }
+  syncVisuals(R);
+  updateCamera(fdt);
+  updateUI();
+  renderer.render(scene, camera);
+}
+newRun();
+getAudio();
+document.getElementById('loading').remove();
+lastNow = performance.now();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

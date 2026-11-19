@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator — README</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator">← Résultats</a> · <strong>README</strong> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <a href="08-fr-order.html">08-fr-order</a> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a></nav>
+<h1 id="atelier--software-requirements-specification">Atelier — Software Requirements Specification</h1>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Document</td>
+<td>Software Requirements Specification (SRS)</td>
+</tr>
+<tr>
+<td>Product</td>
+<td>Atelier, a made-to-measure bicycle configurator</td>
+</tr>
+<tr>
+<td>Version</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Approved for implementation</td>
+</tr>
+<tr>
+<td>Structure</td>
+<td>Adapted from ISO/IEC/IEEE 29148:2018, clause 9.6 (SRS content)</td>
+</tr>
+<tr>
+<td>Requirement syntax</td>
+<td>EARS (Easy Approach to Requirements Syntax)</td>
+</tr>
+<tr>
+<td>Acceptance criteria</td>
+<td>Gherkin (Given / When / Then)</td>
+</tr>
+</tbody></table>
+<h2 id="1-how-to-read-this-specification">1. How to read this specification</h2>
+<p>Read every file in this folder before writing code. The files are ordered:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="01-product-overview.html">01-product-overview.md</a></td>
+<td>Purpose, scope, user, operating environment, constraints</td>
+</tr>
+<tr>
+<td><a href="02-catalog-and-rules.html">02-catalog-and-rules.md</a></td>
+<td>Glossary, catalog, compatibility rules, price calculation, delivery calculation, display formats, worked examples</td>
+</tr>
+<tr>
+<td><a href="03-ui-contract.html">03-ui-contract.md</a></td>
+<td>Page structure, mandatory <code>data-testid</code> values, accessible names, fixed texts, message catalog</td>
+</tr>
+<tr>
+<td><a href="04-design-system.html">04-design-system.md</a></td>
+<td>Design tokens (colors, spacing, radii, type sizes) for light and dark themes</td>
+</tr>
+<tr>
+<td><a href="05-fr-fit.html">05-fr-fit.md</a></td>
+<td>Functional requirements: rider height, frame recommendation, frame choice</td>
+</tr>
+<tr>
+<td><a href="06-fr-options.html">06-fr-options.md</a></td>
+<td>Functional requirements: option cards, compatibility, cascades, notice, bike preview</td>
+</tr>
+<tr>
+<td><a href="07-fr-pricing.html">07-fr-pricing.md</a></td>
+<td>Functional requirements: quantity, promo codes, prices, summary, delivery date</td>
+</tr>
+<tr>
+<td><a href="08-fr-order.html">08-fr-order.md</a></td>
+<td>Functional requirements: order button, confirmation, new configuration</td>
+</tr>
+<tr>
+<td><a href="09-dr-design.html">09-dr-design.md</a></td>
+<td>Design requirements: tokens in use, layout, components, states, theme, motion</td>
+</tr>
+<tr>
+<td><a href="10-non-functional.html">10-non-functional.md</a></td>
+<td>Non-functional requirements: packaging, network, dialogs, accessibility</td>
+</tr>
+</tbody></table>
+<h2 id="2-conventions">2. Conventions</h2>
+<h3 id="21-requirement-keywords">2.1 Requirement keywords</h3>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>shall</strong></td>
+<td>Mandatory.</td>
+</tr>
+<tr>
+<td><strong>shall not</strong></td>
+<td>Mandatory prohibition.</td>
+</tr>
+<tr>
+<td><strong>may</strong></td>
+<td>Permitted, left to the implementer.</td>
+</tr>
+</tbody></table>
+<p>Every requirement in this document is mandatory. There are no &quot;should&quot; requirements.</p>
+<h3 id="22-requirement-identifiers">2.2 Requirement identifiers</h3>
+<p><code>&lt;TYPE&gt;-&lt;AREA&gt;-&lt;NN&gt;</code>, for example <code>FR-FIT-03</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TYPE</td>
+<td><code>FR</code> functional, <code>DR</code> design, <code>NFR</code> non-functional</td>
+</tr>
+<tr>
+<td>AREA</td>
+<td><code>FIT</code> rider and frame, <code>OPT</code> options, <code>QTY</code> quantity, <code>PRM</code> promo code, <code>PRC</code> price, <code>SUM</code> summary, <code>DLV</code> delivery, <code>ORD</code> order, <code>TOK</code> tokens, <code>LAY</code> layout, <code>CMP</code> components, <code>STA</code> states, <code>THM</code> theme, <code>MOT</code> motion, <code>PKG</code> packaging, <code>NET</code> network, <code>DLG</code> dialogs, <code>A11Y</code> accessibility</td>
+</tr>
+<tr>
+<td>NN</td>
+<td>Two-digit sequence number inside the area</td>
+</tr>
+</tbody></table>
+<p>Messages are referenced by <code>MSG-&lt;NN&gt;</code> and defined once, in <a href="03-ui-contract.html">03-ui-contract.md</a>.</p>
+<p>Backticks mark literal values, to be used exactly as written: <code>data-testid</code> values such as <code>order-button</code> (all listed in <a href="03-ui-contract.html">03-ui-contract.md</a>), option ids and promo codes such as <code>pro</code> or <code>SPRING10</code> (defined in <a href="02-catalog-and-rules.html">02-catalog-and-rules.md</a>), tokens starting with <code>--</code> such as <code>--color-accent</code> (defined in <a href="04-design-system.html">04-design-system.md</a>), CSS selectors such as <code>[data-role=&quot;price&quot;]</code>, and exact displayed texts or CSS values such as <code>Included</code> or <code>#C8102E</code>. A backticked value is a <code>data-testid</code> only where 03-ui-contract.md lists it as one.</p>
+<h3 id="23-requirement-template">2.3 Requirement template</h3>
+<p>Each requirement has:</p>
+<ul>
+<li><strong>Statement</strong> — EARS sentences. Patterns used:<ul>
+<li>Ubiquitous: <em>The system shall …</em></li>
+<li>Event-driven: <em>When <trigger>, the system shall …</em></li>
+<li>State-driven: <em>While <state>, the system shall …</em></li>
+<li>Unwanted behavior: <em>If <condition>, then the system shall …</em></li>
+</ul>
+</li>
+<li><strong>Rationale</strong> — why the requirement exists.</li>
+<li><strong>Verification</strong> — always <code>Test</code>: executed in a browser against the delivered page.</li>
+<li><strong>Acceptance criteria</strong> — Gherkin scenarios. They illustrate the statement and are not the only cases checked. The statement is the reference.</li>
+</ul>
+<h3 id="24-precedence">2.4 Precedence</h3>
+<ol>
+<li>The requirement statement.</li>
+<li>The definitions of files 02, 03 and 04.</li>
+<li>The acceptance criteria.</li>
+</ol>
+<p>Where this specification is silent (copy not listed in the UI contract, icons, illustrations, decoration), the implementer decides. Where it is explicit, the implementation shall follow it exactly and shall not add behavior that changes it.</p>
+<p>When two statements apply to the same element in the same state, the more specific one wins; in particular FR-PRC-03 (no frame selected) replaces the frame line and the amounts of FR-SUM-01.</p>
+<h3 id="25-verification-conventions">2.5 Verification conventions</h3>
+<p>Every requirement is verified in Chromium driven by Playwright. These conventions define the words used in the acceptance criteria.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>visible</td>
+<td>The element is in the DOM, its bounding box has a non-zero width and height, and its computed <code>visibility</code> is <code>visible</code> (Playwright <code>toBeVisible</code>).</td>
+</tr>
+<tr>
+<td>not visible, hidden</td>
+<td>The element is absent, or it or an ancestor has <code>display: none</code> (for example through the <code>hidden</code> attribute), or its computed <code>visibility</code> is <code>hidden</code>. <code>opacity: 0</code>, transparent colors, clipping or off-screen positioning do <strong>not</strong> make an element not visible, and shall not be used to hide a conditional element.</td>
+</tr>
+<tr>
+<td>the user fills X with &quot;v&quot;</td>
+<td>The field&#39;s value is replaced by <code>v</code> and an <code>input</code> event is dispatched. The field keeps the focus; no <code>change</code> event is guaranteed. Every reaction to typing shall therefore run on the <code>input</code> event.</td>
+</tr>
+<tr>
+<td>the user types &quot;v&quot; in X</td>
+<td>The characters of <code>v</code> are typed one by one with the keyboard, each producing an <code>input</code> event.</td>
+</tr>
+<tr>
+<td>the user selects card X, clicks card X</td>
+<td>A pointer click at the center of the card.</td>
+</tr>
+<tr>
+<td>the user checks / unchecks &quot;name&quot;</td>
+<td>A pointer click at the center of the accessory card whose input has that accessible name, made only when the checkbox is not already in the requested state. The hidden input itself is never the click target.</td>
+</tr>
+<tr>
+<td>the user applies &quot;v&quot;</td>
+<td>The user fills <code>promo-input</code> with <code>v</code> and clicks <code>promo-apply</code>.</td>
+</tr>
+<tr>
+<td>clicking or hovering a disabled card</td>
+<td>Performed without Playwright&#39;s actionability checks (<code>force: true</code>); the check is that nothing changes.</td>
+</tr>
+<tr>
+<td>has property &quot;value&quot;</td>
+<td>The value returned by <code>getComputedStyle</code> for that property. A requirement written with a shorthand (<code>border</code>, <code>outline</code>, <code>padding</code>) is checked through its longhands (<code>border-top-width</code>, <code>border-top-style</code>, <code>border-top-color</code>, <code>outline-width</code>, <code>outline-style</code>, <code>outline-color</code>, <code>padding-top</code>…).</td>
+</tr>
+<tr>
+<td>after a change</td>
+<td>Style values are read once every transition of the element has ended.</td>
+</tr>
+<tr>
+<td>layout measurements</td>
+<td>Made in headless Chromium, where scrollbars take no width. Positions are in CSS pixels relative to the viewport, within 1 px.</td>
+</tr>
+<tr>
+<td>today is D</td>
+<td>The browser clock is set to D before the page loads (<code>page.clock</code>).</td>
+</tr>
+<tr>
+<td>the color scheme is light or dark</td>
+<td>Set with <code>emulateMedia({ colorScheme })</code>. Without that step the scheme is light.</td>
+</tr>
+<tr>
+<td>reduced motion is requested</td>
+<td>Set with <code>emulateMedia({ reducedMotion: &#39;reduce&#39; })</code>.</td>
+</tr>
+<tr>
+<td><code>&quot;29\&quot; wheels&quot;</code> in a Gherkin string</td>
+<td><code>\&quot;</code> stands for one <code>&quot;</code> character (U+0022). The text is <code>29&quot; wheels</code>.</td>
+</tr>
+<tr>
+<td>the configuration of example Pn</td>
+<td>Built through the user interface with the choices listed in row Pn of 02-catalog-and-rules, section 2.7, and a valid height (178 unless stated otherwise).</td>
+</tr>
+</tbody></table>
+<h2 id="3-requirements-index">3. Requirements index</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Title</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FR-FIT-01</td>
+<td>Height field</td>
+</tr>
+<tr>
+<td>FR-FIT-02</td>
+<td>Height validation</td>
+</tr>
+<tr>
+<td>FR-FIT-03</td>
+<td>Frame recommendation</td>
+</tr>
+<tr>
+<td>FR-FIT-04</td>
+<td>Automatic frame selection</td>
+</tr>
+<tr>
+<td>FR-FIT-05</td>
+<td>Manual frame selection</td>
+</tr>
+<tr>
+<td>FR-FIT-06</td>
+<td>Recommended badge</td>
+</tr>
+<tr>
+<td>FR-FIT-07</td>
+<td>Size gap warning</td>
+</tr>
+<tr>
+<td>FR-OPT-01</td>
+<td>Option groups and defaults</td>
+</tr>
+<tr>
+<td>FR-OPT-02</td>
+<td>Card price text</td>
+</tr>
+<tr>
+<td>FR-OPT-03</td>
+<td>29-inch wheels and frame S</td>
+</tr>
+<tr>
+<td>FR-OPT-04</td>
+<td>Wheel replacement cascade</td>
+</tr>
+<tr>
+<td>FR-OPT-05</td>
+<td>Out-of-stock color</td>
+</tr>
+<tr>
+<td>FR-OPT-06</td>
+<td>Racing Red with Pro drivetrain</td>
+</tr>
+<tr>
+<td>FR-OPT-07</td>
+<td>Rack adds mudguards</td>
+</tr>
+<tr>
+<td>FR-OPT-08</td>
+<td>Mudguards removal removes rack</td>
+</tr>
+<tr>
+<td>FR-OPT-09</td>
+<td>Notice lifetime</td>
+</tr>
+<tr>
+<td>FR-OPT-10</td>
+<td>Bike preview</td>
+</tr>
+<tr>
+<td>FR-QTY-01</td>
+<td>Quantity stepper</td>
+</tr>
+<tr>
+<td>FR-QTY-02</td>
+<td>Quantity limits</td>
+</tr>
+<tr>
+<td>FR-PRM-01</td>
+<td>Promo field and Apply button</td>
+</tr>
+<tr>
+<td>FR-PRM-02</td>
+<td>Code normalization</td>
+</tr>
+<tr>
+<td>FR-PRM-03</td>
+<td>Unknown code</td>
+</tr>
+<tr>
+<td>FR-PRM-04</td>
+<td>Applying a known code</td>
+</tr>
+<tr>
+<td>FR-PRM-05</td>
+<td>Applied code status</td>
+</tr>
+<tr>
+<td>FR-PRM-06</td>
+<td>Removing a code</td>
+</tr>
+<tr>
+<td>FR-PRC-01</td>
+<td>Price calculation</td>
+</tr>
+<tr>
+<td>FR-PRC-02</td>
+<td>Live recalculation</td>
+</tr>
+<tr>
+<td>FR-PRC-03</td>
+<td>No frame selected</td>
+</tr>
+<tr>
+<td>FR-SUM-01</td>
+<td>Summary lines</td>
+</tr>
+<tr>
+<td>FR-SUM-02</td>
+<td>Conditional summary lines</td>
+</tr>
+<tr>
+<td>FR-SUM-03</td>
+<td>Summary value formats</td>
+</tr>
+<tr>
+<td>FR-DLV-01</td>
+<td>Lead time</td>
+</tr>
+<tr>
+<td>FR-DLV-02</td>
+<td>Delivery date</td>
+</tr>
+<tr>
+<td>FR-ORD-01</td>
+<td>Order button label</td>
+</tr>
+<tr>
+<td>FR-ORD-02</td>
+<td>Order availability</td>
+</tr>
+<tr>
+<td>FR-ORD-03</td>
+<td>Order confirmation</td>
+</tr>
+<tr>
+<td>FR-ORD-04</td>
+<td>Order reference</td>
+</tr>
+<tr>
+<td>FR-ORD-05</td>
+<td>New configuration</td>
+</tr>
+<tr>
+<td>DR-TOK-01</td>
+<td>Tokens declared</td>
+</tr>
+<tr>
+<td>DR-TOK-02</td>
+<td>Page base styles</td>
+</tr>
+<tr>
+<td>DR-LAY-01</td>
+<td>Wide layout</td>
+</tr>
+<tr>
+<td>DR-LAY-02</td>
+<td>Sticky summary</td>
+</tr>
+<tr>
+<td>DR-LAY-03</td>
+<td>Narrow layout</td>
+</tr>
+<tr>
+<td>DR-LAY-04</td>
+<td>Section order and headings</td>
+</tr>
+<tr>
+<td>DR-LAY-05</td>
+<td>Card grids</td>
+</tr>
+<tr>
+<td>DR-CMP-01</td>
+<td>Section panels</td>
+</tr>
+<tr>
+<td>DR-CMP-02</td>
+<td>Option cards</td>
+</tr>
+<tr>
+<td>DR-CMP-03</td>
+<td>Color swatches</td>
+</tr>
+<tr>
+<td>DR-CMP-04</td>
+<td>Recommended badge style</td>
+</tr>
+<tr>
+<td>DR-CMP-05</td>
+<td>Primary button</td>
+</tr>
+<tr>
+<td>DR-CMP-06</td>
+<td>Secondary buttons</td>
+</tr>
+<tr>
+<td>DR-CMP-07</td>
+<td>Summary typography</td>
+</tr>
+<tr>
+<td>DR-CMP-08</td>
+<td>Field errors</td>
+</tr>
+<tr>
+<td>DR-CMP-09</td>
+<td>Promo status color</td>
+</tr>
+<tr>
+<td>DR-CMP-10</td>
+<td>Notice placement and style</td>
+</tr>
+<tr>
+<td>DR-STA-01</td>
+<td>Card hover</td>
+</tr>
+<tr>
+<td>DR-STA-02</td>
+<td>Card selected</td>
+</tr>
+<tr>
+<td>DR-STA-03</td>
+<td>Card disabled</td>
+</tr>
+<tr>
+<td>DR-STA-04</td>
+<td>Keyboard focus</td>
+</tr>
+<tr>
+<td>DR-STA-05</td>
+<td>Stable card size</td>
+</tr>
+<tr>
+<td>DR-THM-01</td>
+<td>Dark theme</td>
+</tr>
+<tr>
+<td>DR-MOT-01</td>
+<td>Transitions and reduced motion</td>
+</tr>
+<tr>
+<td>NFR-PKG-01</td>
+<td>Single file delivery</td>
+</tr>
+<tr>
+<td>NFR-NET-01</td>
+<td>No network access</td>
+</tr>
+<tr>
+<td>NFR-DLG-01</td>
+<td>No native dialogs</td>
+</tr>
+<tr>
+<td>NFR-A11Y-01</td>
+<td>Native controls and accessible names</td>
+</tr>
+<tr>
+<td>NFR-A11Y-02</td>
+<td>Live announcements</td>
+</tr>
+</tbody></table>
+
+</main>
+</body>
+</html>

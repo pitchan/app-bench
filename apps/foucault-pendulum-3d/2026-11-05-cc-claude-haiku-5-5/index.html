@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Haiku 5.5</title>
+<style>
+  :root {
+    --ink: #efe6d2;
+    --muted: #a79c86;
+    --panel: rgba(18, 16, 13, 0.84);
+    --line: rgba(239, 230, 210, 0.14);
+    --brass: #d9ad55;
+    --accent: #f0c46b;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #15130f;
+    color: var(--ink);
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .brand {
+    position: fixed; top: 14px; left: 16px; z-index: 2;
+    font-weight: 600; font-size: 15px; letter-spacing: 0.04em;
+    text-shadow: 0 1px 6px #000;
+  }
+  .panel {
+    position: fixed; z-index: 2; box-sizing: border-box;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 14px 12px; overflow: auto;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #settings { left: 16px; top: 52px; width: 290px; max-height: calc(100vh - 150px); }
+  #readout { right: 16px; top: 52px; width: 290px; max-height: calc(100vh - 150px); }
+  h2 {
+    margin: 0 0 10px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+  }
+  .field { margin-bottom: 12px; }
+  .field > label, .field > .lbl { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  output { color: var(--accent); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--brass); margin: 0; }
+  input[type=checkbox] { accent-color: var(--brass); }
+  .chips, .seg { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  button {
+    font: inherit; color: var(--ink); cursor: pointer;
+    background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line);
+    border-radius: 7px; padding: 6px 10px;
+  }
+  button:hover { background: rgba(255, 255, 255, 0.13); }
+  button.on { background: var(--brass); border-color: var(--brass); color: #1a150d; }
+  .check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .row {
+    display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+    padding: 4px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  .row span:last-child { color: var(--accent); text-align: right; }
+  .bar { height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin: 4px 0 9px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--brass); }
+  .bar.k i { background: #8fb6c9; }
+  .bar.u i { background: #b2c98a; }
+  .bar.d i { background: #c98a6b; }
+  .bar.t i { background: var(--accent); }
+  #bar {
+    position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 2;
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 16px;
+    box-sizing: border-box; max-width: calc(100vw - 32px); padding: 10px 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .group { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+  .group small { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; margin-right: 2px; }
+  .hint { color: var(--muted); font-size: 12px; }
+  @media (max-width: 820px) {
+    #settings { left: 8px; right: 8px; top: 46px; width: auto; max-height: 34vh; }
+    #readout { left: 8px; right: 8px; top: auto; bottom: 128px; width: auto; max-height: 24vh; }
+    #bar { bottom: 8px; }
+    .brand { top: 12px; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div class="brand">Claude Haiku 5.5</div>
+
+<aside id="settings" class="panel">
+  <h2>Settings</h2>
+  <div class="field">
+    <label>Latitude <output id="latOut"></output></label>
+    <input type="range" id="lat" min="-90" max="90" step="0.0001">
+    <div class="chips">
+      <button data-lat="48.8462">Paris</button>
+      <button data-lat="90">North Pole</button>
+      <button data-lat="0">Equator</button>
+      <button data-lat="-33.87">Sydney</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Wire length <output id="lenOut"></output></label>
+    <input type="range" id="len" min="10" max="100" step="0.5">
+  </div>
+  <div class="field">
+    <label>Bob mass <output id="massOut"></output></label>
+    <input type="range" id="mass" min="5" max="50" step="0.5">
+  </div>
+  <div class="field">
+    <label>Release distance <output id="distOut"></output></label>
+    <input type="range" id="dist" min="0.5" max="5" step="0.05">
+  </div>
+  <div class="field">
+    <div class="lbl">Earth rotation multiplier</div>
+    <div class="seg">
+      <button data-mult="1">×1</button>
+      <button data-mult="10">×10</button>
+      <button data-mult="100">×100</button>
+      <button data-mult="1000">×1000</button>
+    </div>
+  </div>
+  <div class="field">
+    <label class="check"><input type="checkbox" id="drag"> Air drag</label>
+  </div>
+  <div class="field">
+    <label>Gravity <output id="gravOut"></output></label>
+    <input type="range" id="grav" min="1" max="25" step="0.01">
+    <div class="chips">
+      <button data-g="9.81">Earth</button>
+      <button data-g="3.71">Mars</button>
+      <button data-g="1.62">Moon</button>
+    </div>
+  </div>
+</aside>
+
+<aside id="readout" class="panel">
+  <h2>Readout</h2>
+  <div class="row"><span>Phase</span><span id="rPhase">—</span></div>
+  <div class="row"><span>Simulated time</span><span id="rTime">—</span></div>
+  <div class="row"><span>Swings</span><span id="rSwings">—</span></div>
+  <div class="row"><span>Period, last swing</span><span id="rPeriod">—</span></div>
+  <div class="row"><span>Plane azimuth</span><span id="rAz">—</span></div>
+  <div class="row"><span>Precession</span><span id="rPrec">—</span></div>
+  <div class="row"><span>Full turn in</span><span id="rFull">—</span></div>
+  <div class="row"><span>Amplitude</span><span id="rAmp">—</span></div>
+  <div class="row"><span>Closest pass</span><span id="rMiss">—</span></div>
+  <div class="row"><span>Pins</span><span id="rPins">—</span></div>
+  <h2 style="margin-top: 14px">Energy</h2>
+  <div class="row"><span>Kinetic</span><span id="eK">—</span></div>
+  <div class="bar k"><i id="bK"></i></div>
+  <div class="row"><span>Potential</span><span id="eU">—</span></div>
+  <div class="bar u"><i id="bU"></i></div>
+  <div class="row"><span>Dissipated by drag</span><span id="eD">—</span></div>
+  <div class="bar d"><i id="bD"></i></div>
+  <div class="row"><span>Sum</span><span id="eT">—</span></div>
+  <div class="bar t"><i id="bT"></i></div>
+</aside>
+
+<nav id="bar">
+  <div class="group">
+    <button id="btnRelease">Release</button>
+    <button id="btnReset">Reset</button>
+    <button id="btnPause">Pause</button>
+  </div>
+  <div class="group">
+    <small>Speed</small>
+    <button data-speed="0.25">0.25×</button>
+    <button data-speed="1">1×</button>
+    <button data-speed="60">60×</button>
+    <button data-speed="600">600×</button>
+    <button data-speed="3600">3600×</button>
+  </div>
+  <div class="group">
+    <small>View</small>
+    <button data-cam="hall">Hall</button>
+    <button data-cam="overhead">Overhead</button>
+    <button data-cam="orbit">Orbit</button>
+  </div>
+  <label class="check"><input type="checkbox" id="trace" checked> Floor trace</label>
+  <span class="hint">L release · R reset · Space pause</span>
+</nav>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------- constants ----------
+const EARTH_RATE = 7.2921e-5;          // rad/s, sidereal rotation
+const AIR_DENSITY = 1.225;             // kg/m^3
+const DRAG_COEF = 0.47;
+const BOB_RADIUS = 0.19;               // 0.38 m diameter
+const BOB_AREA = Math.PI * BOB_RADIUS * BOB_RADIUS;
+const DT = 0.02;                       // fixed physics step, s
+const MAX_STEPS_PER_FRAME = 6000;      // 120 simulated s per frame at most
+const HOLD_TIME = 1;                   // thread burns 1 s after load
+const PIVOT_CLEAR = 0.6;               // bob centre height above the floor at rest, m
+const PIN_COUNT = 36;
+const PIN_RADIUS = 0.03;
+const PIN_HEIGHT = 0.8;
+const PIN_CONTACT = BOB_RADIUS + PIN_RADIUS;
+const DIAL_RADIUS = 7;
+const HALL_RADIUS = 110;
+const HALL_HEIGHT = 120;
+const DOME_RISE = 40;
+const DOME_TOP = HALL_HEIGHT + DOME_RISE;
+const TRACE_MAX = 12000;
+const TRACE_EVERY = 5;                 // physics steps between trace samples
+
+// ---------- settings ----------
+const cfg = { lat: 48.8462, g: 9.81, L: 67, mass: 28, d: 3, mult: 1, drag: false };
+const ui = { speed: 1, paused: false, camera: 'hall', trace: true };
+
+// Derived Earth-rotation terms in the floor frame (east, north, up), rad/s
+let omN = 0, omU = 0;
+// Drag acceleration = dragK * |v| * v
+let dragK = 0;
+
+function updateDerived() {
+  const phi = cfg.lat * Math.PI / 180;
+  const W = EARTH_RATE * cfg.mult;
+  omN = W * Math.cos(phi);
+  omU = W * Math.sin(phi);
+  dragK = cfg.drag ? 0.5 * AIR_DENSITY * DRAG_COEF * BOB_AREA / cfg.mass : 0;
+}
+
+// ---------- physics state ----------
+// q = [x east, y north, z up, vx, vy, vz], metres from the pivot, in the floor frame
+const q = new Float64Array(6);
+const k1 = new Float64Array(6), k2 = new Float64Array(6), k3 = new Float64Array(6), k4 = new Float64Array(6);
+const tmp = new Float64Array(6);
+
+let held = true, autoRelease = false, autoTimer = 0;
+let steps = 0, acc = 0;
+let eDrag = 0;
+let prevRv = 0, minDist = Infinity, lastMiss = null, lastAmp = null;
+let bottoms = [], nBottoms = 0;
+let azRaw = null, azUnwrapped = 0;
+const fit = { n: 0, st: 0, sy: 0, stt: 0, sty: 0 };
+const pinDown = new Uint8Array(PIN_COUNT);
+const pinX = new Float64Array(PIN_COUNT), pinY = new Float64Array(PIN_COUNT);
+
+// Acceleration of the bob: Coriolis + gravity + drag, plus the wire tension
+// that keeps |p| fixed (a = b - s * p_hat, with s from d²|p|²/dt² = 0).
+function derivative(s, out) {
+  const x = s[0], y = s[1], z = s[2], vx = s[3], vy = s[4], vz = s[5];
+  const r = Math.hypot(x, y, z);
+  const nx = x / r, ny = y / r, nz = z / r;
+  const v2 = vx * vx + vy * vy + vz * vz;
+  // -2 Ω × v with Ω = (0, omN, omU)
+  let bx = -2 * (omN * vz - omU * vy);
+  let by = -2 * omU * vx;
+  let bz = 2 * omN * vx - cfg.g;
+  if (dragK > 0) {
+    const kd = dragK * Math.sqrt(v2);
+    bx -= kd * vx;
+    by -= kd * vy;
+    bz -= kd * vz;
+  }
+  const sT = nx * bx + ny * by + nz * bz + v2 / r;
+  out[0] = vx; out[1] = vy; out[2] = vz;
+  out[3] = bx - sT * nx;
+  out[4] = by - sT * ny;
+  out[5] = bz - sT * nz;
+}
+
+function rk4() {
+  derivative(q, k1);
+  for (let i = 0; i < 6; i++) tmp[i] = q[i] + 0.5 * DT * k1[i];
+  derivative(tmp, k2);
+  for (let i = 0; i < 6; i++) tmp[i] = q[i] + 0.5 * DT * k2[i];
+  derivative(tmp, k3);
+  for (let i = 0; i < 6; i++) tmp[i] = q[i] + DT * k3[i];
+  derivative(tmp, k4);
+  for (let i = 0; i < 6; i++) q[i] += DT / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
+
+  // Project back onto the rigid wire: fix the length, remove the radial velocity.
+  const f = cfg.L / Math.hypot(q[0], q[1], q[2]);
+  q[0] *= f; q[1] *= f; q[2] *= f;
+  const nx = q[0] / cfg.L, ny = q[1] / cfg.L, nz = q[2] / cfg.L;
+  const vr = nx * q[3] + ny * q[4] + nz * q[5];
+  q[3] -= vr * nx; q[4] -= vr * ny; q[5] -= vr * nz;
+}
+
+function addFitSample(t, az) {
+  fit.n++;
+  fit.st += t;
+  fit.sy += az;
+  fit.stt += t * t;
+  fit.sty += t * az;
+}
+
+// Least-squares slope of unwrapped azimuth against time, deg/s.
+function fitRatePerSecond() {
+  const { n, st, sy, stt, sty } = fit;
+  if (n < 2) return null;
+  const den = n * stt - st * st;
+  if (den <= 0) return null;
+  return (n * sty - st * sy) / den;
+}
+
+function energies() {
+  const v2 = q[3] * q[3] + q[4] * q[4] + q[5] * q[5];
+  return {
+    kinetic: 0.5 * cfg.mass * v2,
+    potential: cfg.mass * cfg.g * (q[2] + cfg.L),
+    dissipated: eDrag
+  };
+}
+
+function releaseBob() {
+  if (!held) return;
+  held = false;
+  autoRelease = false;
+  steps = 0;
+  azRaw = 0;
+  azUnwrapped = 0;
+  addFitSample(0, 0);
+  lastAmp = cfg.d;
+  pushTrace(q[0], q[1]);
+}
+
+function advance() {
+  if (held) {
+    if (autoRelease) {
+      autoTimer += DT;
+      if (autoTimer >= HOLD_TIME - 1e-9) releaseBob();
+    }
+    return;
+  }
+  if (dragK > 0) {
+    const v = Math.hypot(q[3], q[4], q[5]);
+    eDrag += 0.5 * AIR_DENSITY * DRAG_COEF * BOB_AREA * v * v * v * DT;
+  }
+  rk4();
+  steps++;
+  const t = steps * DT;
+  const x = q[0], y = q[1], z = q[2];
+  const h = z + cfg.L + PIVOT_CLEAR;          // bob centre height above the floor
+
+  for (let k = 0; k < PIN_COUNT; k++) {
+    if (pinDown[k]) continue;
+    const dx = x - pinX[k], dy = y - pinY[k];
+    const dz = h - Math.min(Math.max(h, 0), PIN_HEIGHT);
+    if (dx * dx + dy * dy + dz * dz <= PIN_CONTACT * PIN_CONTACT) pinDown[k] = 1;
+  }
+
+  const dist = Math.hypot(x, y, z + cfg.L);
+  if (dist < minDist) minDist = dist;
+  if (steps % TRACE_EVERY === 0) pushTrace(x, y);
+
+  // Horizontal r·v changes sign at the lowest point (r minimum) and at the turning points (r maximum).
+  const rv = x * q[3] + y * q[4];
+  if (prevRv < 0 && rv >= 0) {
+    nBottoms++;
+    bottoms.push(t);
+    if (bottoms.length > 3) bottoms.shift();
+  } else if (prevRv > 0 && rv <= 0) {
+    const bearing = Math.atan2(x, y) * 180 / Math.PI;   // clockwise from north
+    const raw = ((bearing % 180) + 180) % 180;
+    let step = raw - azRaw;
+    if (step > 90) step -= 180;
+    else if (step < -90) step += 180;
+    azRaw = raw;
+    azUnwrapped += step;
+    addFitSample(t, azUnwrapped);
+    lastAmp = Math.hypot(x, y);
+    lastMiss = minDist;
+    minDist = Infinity;
+  }
+  prevRv = rv;
+}
+
+function resetPendulum(auto) {
+  updateDerived();
+  q.set([0, cfg.d, -Math.sqrt(cfg.L * cfg.L - cfg.d * cfg.d), 0, 0, 0]);
+  held = true;
+  autoRelease = auto;
+  autoTimer = 0;
+  steps = 0;
+  acc = 0;
+  eDrag = 0;
+  prevRv = 0;
+  minDist = Infinity;
+  lastMiss = null;
+  lastAmp = null;
+  bottoms = [];
+  nBottoms = 0;
+  azRaw = null;
+  azUnwrapped = 0;
+  Object.assign(fit, { n: 0, st: 0, sy: 0, stt: 0, sty: 0 });
+  pinDown.fill(0);
+  const R = 0.9 * cfg.d;
+  for (let k = 0; k < PIN_COUNT; k++) {
+    const a = k * Math.PI / 18;
+    pinX[k] = R * Math.sin(a);
+    pinY[k] = R * Math.cos(a);
+  }
+  clearTrace();
+}
+
+// ---------- public inspection ----------
+function pendulumState() {
+  const e = energies();
+  const perSecond = fitRatePerSecond();
+  const perHour = perSecond === null ? null : perSecond * 3600;
+  let standing = 0;
+  for (let k = 0; k < PIN_COUNT; k++) if (!pinDown[k]) standing++;
+  return {
+    bob: {
+      phase: held ? 'held' : (ui.paused ? 'paused' : 'swinging'),
+      east: q[0],
+      north: q[1],
+      up: q[2] + cfg.L,
+      speed: Math.hypot(q[3], q[4], q[5])
+    },
+    swing: {
+      count: Math.floor(nBottoms / 2),
+      period: bottoms.length === 3 ? bottoms[2] - bottoms[0] : null,
+      azimuth: azRaw,
+      precessionRate: perHour,
+      fullTurnHours: perHour === null || Math.abs(perHour) < 1e-9 ? null : 360 / Math.abs(perHour),
+      amplitude: lastAmp,
+      missDistance: lastMiss
+    },
+    time: { simulated: steps * DT },
+    energy: e,
+    pins: { standing, fallen: PIN_COUNT - standing },
+    settings: {
+      latitude: cfg.lat,
+      gravity: cfg.g,
+      wireLength: cfg.L,
+      bobMass: cfg.mass,
+      releaseDistance: cfg.d,
+      rotationMultiplier: cfg.mult,
+      airDrag: cfg.drag,
+      speed: ui.speed,
+      paused: ui.paused,
+      camera: ui.camera,
+      floorTrace: ui.trace
+    }
+  };
+}
+window.pendulumState = pendulumState;
+
+// ---------- renderer and scene ----------
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#15130f');
+scene.fog = new THREE.Fog('#15130f', 120, 340);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.05, 800);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.enabled = false;
+
+scene.add(new THREE.HemisphereLight('#dfe6ff', '#3a2f22', 0.6));
+const sun = new THREE.DirectionalLight('#fff0d6', 1.8);
+sun.position.set(20, 150, 30);
+sun.target.position.set(0, 40, 0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 400 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+
+const stone = new THREE.MeshStandardMaterial({ color: '#8f8778', roughness: 0.92 });
+const wallStone = new THREE.MeshStandardMaterial({ color: '#756e62', roughness: 0.95, side: THREE.DoubleSide });
+const floorStone = new THREE.MeshStandardMaterial({ color: '#5c554b', roughness: 0.8 });
+const brass = new THREE.MeshStandardMaterial({ color: '#c9a24a', metalness: 1, roughness: 0.28 });
+const steel = new THREE.MeshStandardMaterial({ color: '#c5cad1', metalness: 1, roughness: 0.35 });
+const pinMat = new THREE.MeshStandardMaterial({ color: '#d7d0c0', metalness: 0.9, roughness: 0.3 });
+
+// Hall: floor, walls, shallow dome
+const hallFloor = new THREE.Mesh(new THREE.CircleGeometry(HALL_RADIUS, 96).rotateX(-Math.PI / 2), floorStone);
+hallFloor.receiveShadow = true;
+scene.add(hallFloor);
+
+const walls = new THREE.Mesh(new THREE.CylinderGeometry(HALL_RADIUS, HALL_RADIUS, HALL_HEIGHT, 96, 1, true), wallStone);
+walls.position.y = HALL_HEIGHT / 2;
+walls.receiveShadow = true;
+scene.add(walls);
+
+const dome = new THREE.Mesh(
+  new THREE.SphereGeometry(HALL_RADIUS, 96, 48, 0, Math.PI * 2, 0, Math.PI / 2), wallStone);
+dome.scale.y = DOME_RISE / HALL_RADIUS;
+dome.position.y = HALL_HEIGHT;
+scene.add(dome);
+
+// Floor dial: 1° graduations, labels every 10°, compass points.
+// North is canvas-up, which maps to -z in the scene (north = -z below).
+function makeDialCanvas() {
+  const size = 2048, c = size / 2, R = c - 8;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  const g = cv.getContext('2d');
+  const ink = '#2e241a';
+  const at = (deg, r) => [c + r * Math.sin(deg * Math.PI / 180), c - r * Math.cos(deg * Math.PI / 180)];
+  g.fillStyle = '#dcd1b6';
+  g.beginPath(); g.arc(c, c, R, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = ink; g.lineWidth = 10;
+  g.beginPath(); g.arc(c, c, R - 5, 0, Math.PI * 2); g.stroke();
+  for (let deg = 0; deg < 360; deg++) {
+    const major = deg % 10 === 0;
+    const [x1, y1] = at(deg, R - 24);
+    const [x2, y2] = at(deg, R - 24 - (major ? 120 : 40));
+    g.lineWidth = major ? 7 : 2.5;
+    g.strokeStyle = ink;
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  }
+  g.fillStyle = ink;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  for (let deg = 0; deg < 360; deg += 10) {
+    const [x, y] = at(deg, R - 230);
+    if (deg % 90 === 0) {
+      g.font = 'bold 130px system-ui, sans-serif';
+      g.fillText('NESW'[deg / 90], x, y);
+    } else {
+      g.font = '56px system-ui, sans-serif';
+      g.fillText(String(deg), x, y);
+    }
+  }
+  return cv;
+}
+const dialTex = new THREE.CanvasTexture(makeDialCanvas());
+dialTex.colorSpace = THREE.SRGBColorSpace;
+dialTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const dial = new THREE.Mesh(
+  new THREE.CircleGeometry(DIAL_RADIUS, 128).rotateX(-Math.PI / 2),
+  new THREE.MeshStandardMaterial({ map: dialTex, roughness: 0.55 }));
+dial.position.y = 0.004;
+dial.receiveShadow = true;
+scene.add(dial);
+
+// Pivot, cable from the dome, wire and bob
+const pivotCap = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 16), brass);
+const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1, 12), steel);
+cable.castShadow = true;
+scene.add(pivotCap, cable);
+
+const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 8).translate(0, 0.5, 0), steel);
+wire.castShadow = true;
+scene.add(wire);
+
+const bob = new THREE.Mesh(new THREE.SphereGeometry(BOB_RADIUS, 48, 32), brass);
+bob.castShadow = true;
+scene.add(bob);
+
+// Pins: each group's origin is the hinge at floor level
+const pinGeom = new THREE.CylinderGeometry(PIN_RADIUS, PIN_RADIUS, PIN_HEIGHT, 14).translate(0, PIN_HEIGHT / 2, 0);
+const pins = [];
+for (let k = 0; k < PIN_COUNT; k++) {
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(pinGeom, pinMat);
+  m.castShadow = true;
+  g.add(m);
+  scene.add(g);
+  pins.push(g);
+}
+const UP = new THREE.Vector3(0, 1, 0);
+const radial = new THREE.Vector3();
+function syncPinVisuals() {
+  const R = 0.9 * cfg.d;
+  for (let k = 0; k < PIN_COUNT; k++) {
+    const g = pins[k];
+    if (pinDown[k]) {
+      radial.set(pinX[k], 0, -pinY[k]).normalize();
+      g.position.set(R * radial.x, PIN_RADIUS, R * radial.z);
+      g.quaternion.setFromUnitVectors(UP, radial);
+    } else {
+      g.position.set(pinX[k], 0, -pinY[k]);
+      g.quaternion.identity();
+    }
+  }
+}
+
+// Floor trace: a ring buffer of bob positions drawn as fading line segments
+const tracePos = new Float32Array(TRACE_MAX * 3);
+const traceCol = new Float32Array(TRACE_MAX * 3);
+const traceIdx = new Uint32Array(TRACE_MAX * 2);
+let traceHead = 0, traceCount = 0, traceDirty = false;
+const traceGeom = new THREE.BufferGeometry();
+traceGeom.setAttribute('position', new THREE.BufferAttribute(tracePos, 3));
+traceGeom.setAttribute('color', new THREE.BufferAttribute(traceCol, 3));
+traceGeom.setIndex(new THREE.BufferAttribute(traceIdx, 1));
+traceGeom.setDrawRange(0, 0);
+const traceLine = new THREE.LineSegments(traceGeom, new THREE.LineBasicMaterial({ vertexColors: true }));
+traceLine.frustumCulled = false;
+traceLine.visible = ui.trace;
+scene.add(traceLine);
+
+const TRACE_OLD = new THREE.Color('#4f463a');
+const TRACE_NEW = new THREE.Color('#f2c46b');
+const tmpCol = new THREE.Color();
+
+function pushTrace(x, y) {
+  const i = traceHead * 3;
+  tracePos[i] = x;
+  tracePos[i + 1] = 0.02;
+  tracePos[i + 2] = -y;
+  traceHead = (traceHead + 1) % TRACE_MAX;
+  if (traceCount < TRACE_MAX) traceCount++;
+  traceDirty = true;
+}
+
+function clearTrace() {
+  traceHead = 0;
+  traceCount = 0;
+  traceDirty = true;
+}
+
+function updateTrace() {
+  if (!traceDirty) return;
+  traceDirty = false;
+  const n = traceCount;
+  traceGeom.attributes.position.needsUpdate = true;
+  if (n < 2) {
+    traceGeom.setDrawRange(0, 0);
+    return;
+  }
+  const oldest = (traceHead - n + TRACE_MAX) % TRACE_MAX;
+  for (let k = 0; k < n; k++) {
+    const idx = (oldest + k) % TRACE_MAX;
+    tmpCol.lerpColors(TRACE_OLD, TRACE_NEW, Math.pow(k / (n - 1), 2));
+    traceCol[idx * 3] = tmpCol.r;
+    traceCol[idx * 3 + 1] = tmpCol.g;
+    traceCol[idx * 3 + 2] = tmpCol.b;
+  }
+  for (let k = 0; k < n - 1; k++) {
+    traceIdx[2 * k] = (oldest + k) % TRACE_MAX;
+    traceIdx[2 * k + 1] = (oldest + k + 1) % TRACE_MAX;
+  }
+  traceGeom.attributes.color.needsUpdate = true;
+  traceGeom.index.needsUpdate = true;
+  traceGeom.setDrawRange(0, 2 * (n - 1));
+}
+
+const wireDir = new THREE.Vector3();
+function syncScene() {
+  const pivotY = cfg.L + PIVOT_CLEAR;
+  const bx = q[0], by = pivotY + q[2], bz = -q[1];
+  bob.position.set(bx, by, bz);
+
+  // Wire from the bob up to the pivot
+  const dx = -bx, dy = pivotY - by, dz = -bz;
+  const len = Math.hypot(dx, dy, dz);
+  wire.position.copy(bob.position);
+  wire.quaternion.setFromUnitVectors(UP, wireDir.set(dx, dy, dz).divideScalar(len));
+  wire.scale.set(1, len, 1);
+
+  pivotCap.position.set(0, pivotY, 0);
+  cable.position.set(0, (DOME_TOP + pivotY) / 2, 0);
+  cable.scale.set(1, DOME_TOP - pivotY, 1);
+}
+
+// ---------- camera ----------
+function applyCamera() {
+  const H = cfg.L + PIVOT_CLEAR;
+  if (ui.camera === 'hall') {
+    const D = Math.min(100, Math.max(26, H));
+    camera.up.set(0, 1, 0);
+    camera.position.set(0.6 * D, 2, 0.8 * D);
+    camera.lookAt(0, 0.4 * H, 0);
+    controls.enabled = false;
+  } else if (ui.camera === 'overhead') {
+    camera.up.set(0, 0, -1);            // north up on screen
+    camera.position.set(0, 30, 0);
+    camera.lookAt(0, 0, 0);
+    controls.enabled = false;
+  } else {
+    camera.up.set(0, 1, 0);
+    controls.target.set(0, 0.4 * H, 0);
+    camera.position.set(30, 0.4 * H + 10, 40);
+    controls.enabled = true;
+    controls.update();
+  }
+}
+
+// ---------- readout ----------
+const el = id => document.getElementById(id);
+const PHASE_TEXT = { held: 'Held on thread', swinging: 'Swinging', paused: 'Paused' };
+const pad2 = n => String(n).padStart(2, '0');
+
+function fmtClock(t) {
+  const whole = Math.floor(t);
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const s = whole % 60;
+  return `${h} h ${pad2(m)} m ${pad2(s)} s`;
+}
+
+function fmtOr(v, digits, unit) {
+  return v === null ? '—' : v.toFixed(digits) + unit;
+}
+
+function setEnergy(id, value, scale) {
+  el('e' + id).textContent = value.toFixed(2) + ' J';
+  el('b' + id).style.width = Math.min(100, Math.max(0, value / scale * 100)) + '%';
+}
+
+function updateReadout() {
+  const s = pendulumState();
+  el('rPhase').textContent = PHASE_TEXT[s.bob.phase];
+  el('rTime').textContent = fmtClock(s.time.simulated);
+  el('rSwings').textContent = s.swing.count;
+  el('rPeriod').textContent = fmtOr(s.swing.period, 2, ' s');
+  el('rAz').textContent = fmtOr(s.swing.azimuth, 2, '°');
+  const p = s.swing.precessionRate;
+  el('rPrec').textContent = p === null ? '—' : (p >= 0 ? '+' : '') + p.toFixed(3) + '°/h';
+  el('rFull').textContent = fmtOr(s.swing.fullTurnHours, 1, ' h');
+  el('rAmp').textContent = fmtOr(s.swing.amplitude, 3, ' m');
+  el('rMiss').textContent = fmtOr(s.swing.missDistance, 4, ' m');
+  el('rPins').textContent = `${s.pins.standing} standing`;
+
+  const e = s.energy;
+  const scale = cfg.mass * cfg.g * (cfg.L - Math.sqrt(cfg.L * cfg.L - cfg.d * cfg.d));
+  setEnergy('K', e.kinetic, scale);
+  setEnergy('U', e.potential, scale);
+  setEnergy('D', e.dissipated, scale);
+  const total = e.kinetic + e.potential + e.dissipated;
+  el('eT').textContent = total.toFixed(2) + ' J';
+  el('bT').style.width = Math.min(100, Math.max(0, total / scale * 100)) + '%';
+}
+
+// ---------- controls ----------
+function showValues() {
+  el('latOut').textContent = cfg.lat.toFixed(4) + '°';
+  el('lenOut').textContent = cfg.L.toFixed(1) + ' m';
+  el('massOut').textContent = cfg.mass.toFixed(1) + ' kg';
+  el('distOut').textContent = cfg.d.toFixed(2) + ' m';
+  el('gravOut').textContent = cfg.g.toFixed(2) + ' m/s²';
+  el('drag').checked = cfg.drag;
+  el('trace').checked = ui.trace;
+  document.querySelectorAll('[data-mult]').forEach(b => b.classList.toggle('on', Number(b.dataset.mult) === cfg.mult));
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('on', Number(b.dataset.speed) === ui.speed));
+  document.querySelectorAll('[data-cam]').forEach(b => b.classList.toggle('on', b.dataset.cam === ui.camera));
+  el('btnPause').textContent = ui.paused ? 'Play' : 'Pause';
+}
+
+function syncInputs() {
+  el('lat').value = cfg.lat;
+  el('len').value = cfg.L;
+  el('mass').value = cfg.mass;
+  el('dist').value = cfg.d;
+  el('grav').value = cfg.g;
+}
+
+// Any physics setting change: reset, wait on the thread for Release
+function applySettings() {
+  resetPendulum(false);
+  if (ui.camera !== 'orbit') applyCamera();
+  showValues();
+}
+
+const sliders = [
+  ['lat', 'lat', v => v.toFixed(4) + '°'],
+  ['len', 'L', v => v.toFixed(1) + ' m'],
+  ['mass', 'mass', v => v.toFixed(1) + ' kg'],
+  ['dist', 'd', v => v.toFixed(2) + ' m'],
+  ['grav', 'g', v => v.toFixed(2) + ' m/s²']
+];
+for (const [id, key, fmt] of sliders) {
+  const s = el(id), out = el(id + 'Out');
+  s.addEventListener('input', () => { out.textContent = fmt(Number(s.value)); });
+  s.addEventListener('change', () => { cfg[key] = Number(s.value); applySettings(); });
+}
+
+document.querySelectorAll('[data-lat]').forEach(b => b.addEventListener('click', () => {
+  cfg.lat = Number(b.dataset.lat);
+  syncInputs();
+  applySettings();
+}));
+document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+  cfg.g = Number(b.dataset.g);
+  syncInputs();
+  applySettings();
+}));
+document.querySelectorAll('[data-mult]').forEach(b => b.addEventListener('click', () => {
+  cfg.mult = Number(b.dataset.mult);
+  applySettings();
+}));
+el('drag').addEventListener('change', () => {
+  cfg.drag = el('drag').checked;
+  applySettings();
+});
+
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
+  ui.speed = Number(b.dataset.speed);
+  showValues();
+}));
+document.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => {
+  ui.camera = b.dataset.cam;
+  applyCamera();
+  showValues();
+}));
+el('trace').addEventListener('change', () => {
+  ui.trace = el('trace').checked;
+  traceLine.visible = ui.trace;
+});
+
+function togglePause() {
+  ui.paused = !ui.paused;
+  showValues();
+}
+el('btnRelease').addEventListener('click', releaseBob);
+el('btnReset').addEventListener('click', () => resetPendulum(false));
+el('btnPause').addEventListener('click', togglePause);
+
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = document.activeElement ? document.activeElement.tagName : '';
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  const key = e.key.toLowerCase();
+  if (key === ' ') {
+    e.preventDefault();
+    togglePause();
+  } else if (key === 'l') {
+    releaseBob();
+  } else if (key === 'r') {
+    resetPendulum(false);
+  }
+});
+
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ---------- main loop ----------
+let lastNow = performance.now(), lastReadout = 0;
+function frame(now) {
+  const dt = Math.min(0.25, (now - lastNow) / 1000);
+  lastNow = now;
+  if (!ui.paused) {
+    acc += dt * ui.speed;
+    let n = 0;
+    while (acc >= DT && n < MAX_STEPS_PER_FRAME) {
+      advance();
+      acc -= DT;
+      n++;
+    }
+    if (acc >= DT) acc = 0;          // cannot keep up: drop the backlog, keep the physics
+  }
+  syncScene();
+  syncPinVisuals();
+  updateTrace();
+  if (controls.enabled) controls.update();
+  renderer.render(scene, camera);
+  if (now - lastReadout > 100) {
+    lastReadout = now;
+    updateReadout();
+  }
+  requestAnimationFrame(frame);
+}
+
+// ---------- start ----------
+updateDerived();
+syncInputs();
+showValues();
+applyCamera();
+resetPendulum(true);       // the thread burns after HOLD_TIME on load
+syncPinVisuals();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

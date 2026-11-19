@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17262c">
+<title>GPT-6</title>
+<style>
+:root{color-scheme:dark;--paper:#f0eee3;--muted:#a9b6b7;--orange:#f3b273;--line:#ffffff19;--panel:#17262ded;--mint:#b7d7bc}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#17262c;color:var(--paper);font:13px 'Segoe UI',system-ui,sans-serif}button,input,select{font:inherit}button,select{color:var(--paper);background:#ffffff08;border:1px solid var(--line);border-radius:7px;padding:9px 13px;cursor:pointer}button:hover,select:hover{background:#ffffff15}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--orange);outline-offset:3px}canvas.scene{display:block;width:100%;height:100%;touch-action:none}.masthead{position:absolute;left:28px;top:25px;pointer-events:none}h1{font-size:26px;font-weight:600;letter-spacing:-1px;margin:0 0 8px}.subline{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase}.live{display:flex;align-items:center;gap:8px;margin-top:23px;color:var(--orange);font-size:12px}.live i{width:6px;height:6px;border-radius:50%;background:currentColor}.panel{background:var(--panel);border:1px solid var(--line);box-shadow:0 12px 40px #0002;backdrop-filter:blur(15px);border-radius:12px}.checklist{position:absolute;right:24px;top:24px;width:236px;padding:19px 18px 12px}.eyebrow{font-size:10px;letter-spacing:1.8px;color:var(--muted);text-transform:uppercase}.checklist ol{margin:13px 0 0;padding:0;list-style:none}.checklist li{display:grid;grid-template-columns:23px 1fr auto;gap:7px;align-items:center;min-height:34px;color:#a2b1b4;font-size:12px}.number{display:grid;place-items:center;width:21px;height:21px;border:1px solid #ffffff20;border-radius:50%;font-size:10px;font-variant-numeric:tabular-nums}.triggered{color:var(--paper)!important}.triggered .number{border-color:var(--mint);background:#b7d7bc1c;color:var(--mint)}.failed{color:#ff9d8b!important}.failed .number{border-color:#ff9d8b}.stamp{font:11px ui-monospace,monospace;color:var(--mint)}.waiting .stamp{color:#ffffff30}.metrics{border-top:1px solid var(--line);margin-top:13px;padding-top:14px;display:grid;gap:12px}.metric{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.metric span{font-size:11px;color:var(--muted)}.metric output{font:12px ui-monospace,monospace;white-space:nowrap}.clock{position:absolute;left:28px;bottom:100px;font:32px ui-monospace,monospace;font-weight:300;letter-spacing:-1.5px}.clock small{font:10px 'Segoe UI',sans-serif;letter-spacing:1.4px;color:var(--muted);display:block;margin-top:5px}.controls{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:7px;padding:9px;white-space:nowrap}.controls .primary{background:var(--paper);border-color:var(--paper);color:#1a2b30;font-weight:600}.controls .divider{height:22px;width:1px;background:var(--line);margin:0 3px}.controls label{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}.controls select{font-size:12px;padding:9px 7px}.hint{position:absolute;right:26px;bottom:104px;color:#c0cbcb;font-size:10px;text-align:right;line-height:1.8}.drawer{position:absolute;left:24px;top:124px;bottom:112px;width:295px;padding:19px;overflow:auto;scrollbar-width:thin}.drawer[hidden]{display:none}.drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}.drawer-head button{padding:4px 8px}.field{margin:15px 0}.field label{display:flex;align-items:center;justify-content:space-between;font-size:12px}.field output{color:var(--orange);font:11px ui-monospace,monospace}.field input{width:100%;margin:10px 0 0;accent-color:var(--orange);cursor:pointer}.note{color:var(--muted);font-size:11px;line-height:1.6;margin:17px 0}.drawer footer{display:flex;gap:8px}.drawer footer button{flex:1}.notice{position:absolute;left:50%;top:25px;transform:translateX(-50%);padding:12px 18px;max-width:430px;text-align:center;font-size:12px;line-height:1.6}.notice[hidden]{display:none}.notice.error{border-color:#f09c8077}.audio-note{font-size:10px;color:var(--muted);max-width:112px;line-height:1.4;white-space:normal}#sound{min-width:55px}a{color:var(--mint)}
+@media(max-width:850px){.masthead{left:17px;top:18px}.checklist{right:14px;top:16px;width:205px;padding:15px 12px}.checklist li{min-height:29px;font-size:11px}.controls{bottom:13px;gap:5px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:96%}.controls button{padding:8px 10px}.controls label{gap:4px}.controls select{padding:8px 4px}.hint{display:none}.clock{left:18px;bottom:122px;font-size:26px}.drawer{left:14px;top:112px;bottom:128px;width:270px}.notice{top:auto;bottom:174px;width:80%}.audio-note{display:none}.subline{font-size:9px;letter-spacing:1.3px}}
+@media(max-width:480px){.checklist{width:176px}.metric{display:block}.metric output{display:block;margin-top:4px}.checklist li{grid-template-columns:19px 1fr auto;gap:5px}.number{width:18px;height:18px}.masthead h1{font-size:23px}.subline{max-width:130px;line-height:1.6}.clock{font-size:23px}.controls .divider{display:none}.drawer{z-index:5}.controls{gap:6px}.controls label span{display:none}}
+</style>
+</head>
+<body>
+<header class="masthead"><h1>GPT-6</h1><div class="live"><i></i><span id="status">AssemblingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</span></div></header>
+<aside class="checklist panel" aria-label="Chain progress"><div class="eyebrow">Chain reaction</div><ol id="stage-list"></ol><div class="metrics"><div class="metric"><span>Basket acceleration</span><output id="acceleration">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â m/sÃƒâ€šÃ‚Â²</output></div><div class="metric"><span>Pendulum swing</span><output id="swing">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â s</output></div></div></aside>
+<div id="notice" class="notice panel" role="status" aria-live="polite" hidden></div>
+<div class="clock"><span id="clock">0.000</span><small>SIMULATION SECONDS</small></div>
+<div class="hint">Drag to explore in Orbit<br>Space to pause Ãƒâ€šÃ‚Â· replay to rebuild</div>
+<nav class="controls panel" aria-label="Simulation controls"><button id="play" aria-label="Pause simulation">Pause</button><button id="replay" class="primary">ÃƒÂ¢Ã¢â‚¬Â Ã‚Â» Replay</button><div class="divider"></div><label><span>Speed</span><select id="speed" aria-label="Simulation speed"><option value="0.25">0.25ÃƒÆ’Ã¢â‚¬â€</option><option value="0.5">0.5ÃƒÆ’Ã¢â‚¬â€</option><option value="1" selected>1ÃƒÆ’Ã¢â‚¬â€</option></select></label><label><span>Camera</span><select id="camera" aria-label="Camera mode"><option value="follow" selected>Follow</option><option value="overview">Overview</option><option value="orbit">Orbit</option></select></label><div class="divider"></div><button id="settings-toggle" aria-expanded="false" aria-controls="settings-panel">Settings</button><button id="sound" aria-pressed="true">Sound</button><span class="audio-note" id="audio-note">Sound enabled</span></nav>
+<section class="drawer panel" id="settings-panel" aria-label="Experiment settings" hidden><div class="drawer-head"><span class="eyebrow">Experiment settings</span><button id="close-settings" aria-label="Close settings">ÃƒÆ’Ã¢â‚¬â€</button></div><div id="fields"></div><p class="note">Apply rebuilds the machine. Contact, gravity and constraints determine the outcome.</p><details class="note"><summary>Fixed apparatus</summary><p>Steel ball 0.03 m / 0.11 kg Ãƒâ€šÃ‚Â· ramp slope 20Ãƒâ€šÃ‚Â° Ãƒâ€šÃ‚Â· ramp friction 0.3.<br>24 wood dominoes, 0.20 ÃƒÆ’Ã¢â‚¬â€ 0.10 ÃƒÆ’Ã¢â‚¬â€ 0.03 m.<br>Falling block 1 kg Ãƒâ€šÃ‚Â· lever 1 m Ãƒâ€šÃ‚Â· launch ball 0.05 kg.<br>Basket 0.20 kg Ãƒâ€šÃ‚Â· pendulum bob 0.5 kg.<br>Five cradle balls, radius 0.025 m.</p></details><footer><button id="defaults">Defaults</button><button id="apply" class="primary">Apply & replay</button></footer></section>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as CANNON from 'cannon-es';
+
+const $ = id => document.getElementById(id);
+const STEP = 1 / 360;
+const MAX_STEPS = 24;
+const names = ['Release gate','Switchback ramps','Dominoes','Lever','Pulley','Pendulum','NewtonÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s cradle','Coasting cart','Bell'];
+const fieldDefinitions = [
+  ['gravity','Gravity',1,20,.01,9.81,'m/sÃƒâ€šÃ‚Â²',2],
+  ['dominoSpacing','Domino spacing',.065,.30,.001,.12,'m',3],
+  ['dominoMass','Domino mass',.05,.45,.01,.15,'kg',2],
+  ['counterweightMass','Counterweight mass',.10,.40,.005,.22,'kg',3],
+  ['pendulumLength','Pendulum length',.65,1.5,.01,1,'m',2],
+  ['pendulumAngle','Release angle',25,70,1,60,'Ãƒâ€šÃ‚Â°',0],
+  ['leverPivot','Lever pivot from short end',.12,.45,.01,.25,'m',2],
+  ['cradleRestitution','Cradle restitution',.05,1,.01,.95,'',2]
+];
+for (const [key,label,min,max,step,value,unit,digits] of fieldDefinitions) {
+  const field = document.createElement('div'); field.className = 'field';
+  field.innerHTML = `<label for="${key}">${label}<output id="${key}-value"></output></label><input type="range" id="${key}" min="${min}" max="${max}" step="${step}" value="${value}">`;
+  $('fields').append(field);
+  const update = () => { $(key+'-value').textContent = Number($(key).value).toFixed(digits) + (unit ? ' '+unit : ''); };
+  $(key).addEventListener('input',update); update();
+}
+for (let i=0;i<9;i++) {
+  const li = document.createElement('li'); li.className = 'waiting'; li.id = 'stage-'+i;
+  li.innerHTML = `<span class="number">${i+1}</span><span>${names[i]}</span><span class="stamp">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â</span>`;
+  $('stage-list').append(li);
+}
+function physicalSettings() {
+  return Object.fromEntries(fieldDefinitions.map(([key])=>[key,Number($(key).value)]));
+}
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#25373d');
+scene.fog = new THREE.Fog('#25373d',11,25);
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.domElement.className = 'scene'; renderer.domElement.setAttribute('aria-label','Three dimensional rigid-body chain reaction');
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.22;
+document.body.prepend(renderer.domElement);
+const camera = new THREE.PerspectiveCamera(40,innerWidth/innerHeight,.015,60);
+const orbit = new OrbitControls(camera,renderer.domElement);
+orbit.enableDamping = true; orbit.dampingFactor = .07; orbit.minDistance = .65; orbit.maxDistance = 17; orbit.maxPolarAngle = Math.PI*.49; orbit.enabled = false;
+const pmrem = new THREE.PMREMGenerator(renderer);
+const environmentScene = new RoomEnvironment();
+const environment = pmrem.fromScene(environmentScene,.04);
+scene.environment = environment.texture;
+environmentScene.dispose(); pmrem.dispose();
+scene.add(new THREE.HemisphereLight('#dceaf2','#3b3e2e',2));
+const sun = new THREE.DirectionalLight('#ffe2b6',4.2); sun.position.set(-3,7,3); sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-5,right:5,top:5,bottom:-5,near:.1,far:18}); sun.shadow.bias = -.00015; sun.shadow.normalBias = .012;
+scene.add(sun); scene.add(sun.target);
+const fill = new THREE.DirectionalLight('#a3d5e4',1.5); fill.position.set(3,4,-2);scene.add(fill);
+const materials = {
+  steel:new THREE.MeshStandardMaterial({color:'#b5c5ce',metalness:1,roughness:.16}),
+  brass:new THREE.MeshStandardMaterial({color:'#d0a25a',metalness:.88,roughness:.24}),
+  wood:new THREE.MeshStandardMaterial({color:'#cb9b66',roughness:.65}),
+  woodDark:new THREE.MeshStandardMaterial({color:'#815a3d',roughness:.78}),
+  ivory:new THREE.MeshStandardMaterial({color:'#e9e1c8',roughness:.48}),
+  teal:new THREE.MeshStandardMaterial({color:'#376b69',metalness:.45,roughness:.36}),
+  dark:new THREE.MeshStandardMaterial({color:'#23383e',metalness:.5,roughness:.4}),
+  ramp:new THREE.MeshStandardMaterial({color:'#759394',metalness:.7,roughness:.35}),
+  orange:new THREE.MeshStandardMaterial({color:'#eb9d62',roughness:.42,metalness:.15}),
+  rubber:new THREE.MeshStandardMaterial({color:'#2c3539',roughness:.85}),
+  rope:new THREE.MeshStandardMaterial({color:'#bcb69a',roughness:1}),
+  floor:new THREE.MeshStandardMaterial({color:'#23343b',roughness:.92}),
+  wall:new THREE.MeshStandardMaterial({color:'#30464b',roughness:1})
+};
+let apparatus,world,parts=[],wires=[],stages=[],settings,time=0,accumulator=0,paused=false,finished=false,failed=false;
+let refs={},targets=[],basketAcceleration=null,pendulumSwingTime=null,releaseTime=null,gateOpened=false,latchTouched=false;
+let velocitySamples=[],descentSamples=[],lastTrigger=0,audioContext=null,soundEnabled=true,pendingTone=false;
+let boardBounds,overviewTarget=new THREE.Vector3(),overviewPosition=new THREE.Vector3(),cameraInitialized=false;
+const aim = new THREE.Vector3();
+const tempA = new THREE.Vector3(),tempB = new THREE.Vector3();
+const vec = (x=0,y=0,z=0) => new CANNON.Vec3(x,y,z);
+function visible(geometry,material,parent=apparatus) {
+  const mesh = new THREE.Mesh(geometry,material); mesh.castShadow=true; mesh.receiveShadow=true;parent.add(mesh);return mesh;
+}
+function visualBox(size,position,material,parent=apparatus) {
+  const mesh = visible(new THREE.BoxGeometry(...size),material,parent);mesh.position.set(...position);return mesh;
+}
+function visualCylinder(radius,length,position,material,parent=apparatus) {
+  const mesh = visible(new THREE.CylinderGeometry(radius,radius,length,20),material,parent);mesh.position.set(...position);return mesh;
+}
+function visualBeam(a,b,radius,material,parent=apparatus) {
+  const av=new THREE.Vector3(...a),bv=new THREE.Vector3(...b);
+  const mesh=visible(new THREE.CylinderGeometry(radius,radius,av.distanceTo(bv),12),material,parent);
+  mesh.position.copy(av).add(bv).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),bv.sub(av).normalize());return mesh;
+}
+function physicsBody(mass,position,material,tag='') {
+  const body = new CANNON.Body({mass,material,position:vec(...position),linearDamping:.003,angularDamping:.006,allowSleep:false});
+  body.tag=tag;world.addBody(body);return body;
+}
+function bind(body,mesh) { parts.push({body,mesh}); mesh.position.copy(body.position);mesh.quaternion.copy(body.quaternion);return body; }
+function box(size,position,mass,look,tag='',physicsMaterial=refs.surface) {
+  const body=physicsBody(mass,position,physicsMaterial,tag);body.addShape(new CANNON.Box(vec(...size.map(v=>v/2))));
+  bind(body,visible(new THREE.BoxGeometry(...size),look));return body;
+}
+function ball(radius,position,mass,look,tag='',physicsMaterial=refs.metal) {
+  const body=physicsBody(mass,position,physicsMaterial,tag);body.addShape(new CANNON.Sphere(radius));
+  bind(body,visible(new THREE.SphereGeometry(radius,24,16),look));return body;
+}
+function compound(mass,position,look,tag='',physicsMaterial=refs.surface) {
+  const body=physicsBody(mass,position,physicsMaterial,tag);const group=new THREE.Group();apparatus.add(group);bind(body,group);
+  return {body,group,look};
+}
+function addBox(item,size,offset,look=item.look) {
+  item.body.addShape(new CANNON.Box(vec(...size.map(v=>v/2))),vec(...offset));visualBox(size,offset,look,item.group);
+}
+function addSphere(item,radius,offset,look=item.look) {
+  item.body.addShape(new CANNON.Sphere(radius),vec(...offset));const mesh=visible(new THREE.SphereGeometry(radius,20,14),look,item.group);mesh.position.set(...offset);
+}
+function addRod(item,a,b,radius=.008,look=item.look) {
+  const av=vec(...a),bv=vec(...b),direction=bv.vsub(av),length=direction.length();direction.normalize();
+  const q=new CANNON.Quaternion();q.setFromVectors(vec(0,1,0),direction);
+  // Box beams keep the collision geometry convex and simple.
+  item.body.addShape(new CANNON.Box(vec(radius,length/2,radius)),av.vadd(bv).scale(.5),q);
+  visualBeam(a,b,radius,look,item.group);
+}
+function anchor(position) { const body=physicsBody(0,position,refs.surface);body.collisionFilterGroup=0;body.collisionFilterMask=0;return body; }
+function hinge(body,pivot,localPivot,axis=[0,0,1]) {
+  const fixed=anchor(pivot);
+  const joint=new CANNON.HingeConstraint(body,fixed,{pivotA:vec(...localPivot),pivotB:vec(),axisA:vec(...axis),axisB:vec(...axis),maxForce:1e5,collideConnected:false});
+  world.addConstraint(joint);return joint;
+}
+function cable(body,local,pivot,color='#c5c6af') {
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color}));apparatus.add(line);wires.push({line,body,local:vec(...local),pivot:vec(...pivot)});
+}
+function stageMarker(number,position) {
+  const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#20383e';ctx.beginPath();ctx.arc(64,64,48,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#becebf';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#eee5d3';ctx.font='500 48px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(number,64,66);
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:true,transparent:true}));sprite.position.set(...position);sprite.scale.set(.14,.14,1);apparatus.add(sprite);
+}
+
+// A bilateral ideal-rope equation. The two upward Jacobians enforce yA+yB=constant.
+// Vertical slides carry lateral forces. No per-frame position or velocity correction is used.
+class RopeEquation extends CANNON.Equation {
+  constructor(a,b,sum) {super(a,b,-1e5,1e5);this.sum=sum;this.setSpookParams(1e9,4,STEP);}
+  computeB(h) {
+    this.jacobianElementA.spatial.set(0,1,0);this.jacobianElementA.rotational.setZero();
+    this.jacobianElementB.spatial.set(0,1,0);this.jacobianElementB.rotational.setZero();
+    const error=this.bi.position.y+this.bj.position.y-this.sum;
+    return -error*this.a-this.computeGW()*this.b-h*this.computeGiMf();
+  }
+}
+class PulleyConstraint extends CANNON.Constraint {
+  constructor(a,b) {super(a,b,{collideConnected:false});this.equations.push(new RopeEquation(a,b,a.position.y+b.position.y));}
+  update() {}
+}
+
+function buildRoom(left,right,back,front) {
+  const width=right-left,depth=front-back,cx=(left+right)/2,cz=(back+front)/2;
+  box([width+.08,.12,depth+.08],[cx,.39,cz],0,materials.wood,'bench');
+  visualBox([width+.12,.055,depth+.12],[cx,.327,cz],materials.dark);
+  for(const x of [left+.16,right-.16]) for(const z of [back+.16,front-.16]) {
+    visualBox([.10,.85,.10],[x,-.14,z],materials.dark);
+    visualBox([.16,.05,.16],[x,-.575,z],materials.brass);
+    visualCylinder(.013,.011,[x,.457,z],materials.brass);
+  }
+  const floor=box([30,.1,30],[0,-.65,0],0,materials.floor);
+  floor.tag='room';
+  visualBox([30,6,.12],[0,2.3,back-1.3],materials.wall);
+  // Generated workshop architecture stays clear of every collidable machine part.
+  for(let x=-6;x<8;x+=1.2) visualBox([.014,4.5,.02],[x,1.8,back-1.23],materials.dark);
+  for(let z=-6;z<10;z+=1.2) visualBox([18,.001,.008],[0,-.597,z],materials.dark);
+  for(let x=-6;x<9;x+=1.2) visualBox([.008,.001,18],[x,-.597,0],materials.dark);
+  const windowMaterial=new THREE.MeshStandardMaterial({color:'#b5c6b6',emissive:'#a9bdaf',emissiveIntensity:.35,roughness:.85});
+  visualBox([2.8,1.7,.025],[-.4,2.2,back-1.22],windowMaterial);
+  for(const x of [-1.8,-.87,.07,1]) visualBox([.035,1.76,.04],[x,2.2,back-1.19],materials.dark);
+  visualBox([2.85,.035,.04],[-.4,2.2,back-1.19],materials.dark);
+  for(let i=0;i<Math.ceil(width/.24);i++) {
+    const x=left+i*.24;
+    visualBox([.001,.001,depth-.06],[x,.451,cz],materials.woodDark);
+  }
+}
+function ramp(x0,y0,x1,y1,z) {
+  const length=Math.hypot(x1-x0,y1-y0);
+  // All ramps use a local +X uphill-independent basis.
+  const tilt=Math.atan2(y1-y0,x1-x0);
+  const body=box([length,.018,.12],[(x0+x1)/2,(y0+y1)/2-.009,z],0,materials.ramp,'ramp',refs.rampMaterial);
+  body.quaternion.setFromAxisAngle(vec(0,0,1),tilt);
+  for(const side of [-1,1]) {
+    const rail=box([length,.105,.012],[(x0+x1)/2,(y0+y1)/2+.043,z+side*.066],0,materials.dark,'rail',refs.rampMaterial);
+    rail.quaternion.copy(body.quaternion);
+  }
+  for(const x of [Math.min(x0,x1)+.13,Math.max(x0,x1)-.13]) {
+    const y=y0+(x-x0)*(y1-y0)/(x1-x0);
+    visualCylinder(.011,Math.max(.03,y-.46),[x,(y+.46)/2,z+.095],materials.brass);
+  }
+  return body;
+}
+function buildRamps() {
+  const slope=Math.tan(20*Math.PI/180),run=1.04,drop=run*slope,stepDrop=.14,z=-.90;
+  const low=.78;
+  const ramps=[];
+  for(let i=0;i<4;i++) {
+    const direction=i%2===0?-1:1;
+    const yLow=low+(3-i)*(drop+stepDrop),yHigh=yLow+drop;
+    const xHigh=direction===1?-2.04:-1.00,xLow=direction===1?-1.00:-2.04;
+    ramps.push(ramp(xHigh,yHigh,xLow,yLow,z));
+    if(i<3) {
+      const nextHigh=yLow-stepDrop;
+      box([.022,.34,.16],[xLow+direction*.125,nextHigh+.12,z],0,materials.teal,'turn wall',refs.rampMaterial);
+      // A short same-slope extension catches the ball after the wall reverses it.
+      const nextDirection=-direction;
+      ramp(xLow+direction*.12,nextHigh+.12*slope,xLow+nextDirection*.08,nextHigh-.08*slope,z);
+    }
+  }
+  const topY=low+3*(drop+stepDrop)+drop;
+  const steelX=-1.13,steelY=topY-(Math.abs(steelX+1))*slope+.039;
+  refs.steel=ball(.03,[steelX,steelY,z],.11,materials.steel,'steel ball',refs.steelMaterial);
+  const gateX=-1.215,gateTop=topY-.215*slope+.15;
+  const gate=box([.015,.14,.108],[gateX,gateTop-.07,z],.065,materials.brass,'gate',refs.metal);
+  const joint=hinge(gate,[gateX,gateTop,z],[0,.07,0]);joint.enableMotor();joint.setMotorSpeed(0);joint.setMotorMaxForce(4);
+  box([.08,.018,.15],[gateX-.07,gateTop+.015,z],0,materials.teal,'gate stop');
+  refs.gate=gate;refs.gateJoint=joint;
+  visualBeam([gateX,gateTop,z-.12],[gateX,gateTop,z+.12],.012,materials.teal);
+  targets[0]=new THREE.Vector3(steelX,steelY,z);targets[1]=new THREE.Vector3(-1.52,1.65,z);
+  stageMarker(1,[-.95,topY+.22,z]);stageMarker(2,[-2.17,1.65,z]);
+}
+function dominoPath(spacing) {
+  const points=[];
+  for(let i=0;i<12;i++) points.push({x:-.91+i*spacing,z:-.90,angle:0});
+  // An oblique first face sheds the spent driving ball sideways off the deck.
+  points[0].angle=Math.PI/10;
+  const startX=points[11].x,radius=spacing/(2*Math.sin(Math.PI/12));
+  for(let i=1;i<=3;i++) {
+    const angle=i*Math.PI/6;
+    points.push({x:startX+radius*Math.sin(angle),z:-.9+radius*(1-Math.cos(angle)),angle});
+  }
+  const turn=points[14];
+  for(let i=1;i<=9;i++) points.push({x:turn.x,z:turn.z+i*spacing,angle:Math.PI/2});
+  return points;
+}
+function buildDominoes(path) {
+  const end=path[23],turn=path[14];
+  box([turn.x+1.07,.035,.27],[(turn.x-.93)/2,.6825,-.90],0,materials.teal,'domino deck');
+  box([.27,.035,end.z+.93],[turn.x,.6825,(end.z-.90)/2],0,materials.teal,'domino deck');
+  for(let i=0;i<24;i++) {
+    const point=path[i];
+    const item=compound(settings.dominoMass,[point.x,.801,point.z],i%4===0?materials.woodDark:materials.wood,'domino-'+i,refs.wood);
+    addBox(item,[.03,.20,.10],[0,0,0]);item.body.quaternion.setFromAxisAngle(vec(0,1,0),-point.angle);
+    visualBox([.031,.008,.091],[0,.044,0],materials.ivory,item.group);
+    visualBox([.031,.002,.085],[0,-.015,0],materials.woodDark,item.group);
+    if(i===0) refs.firstDomino=item.body;
+    if(i===23) refs.lastDomino=item.body;
+  }
+  for(const p of [path[0],path[11],path[23]]) {
+    visualBox([.055,.24,.055],[p.x,.56,p.z],materials.dark);
+  }
+  refs.dominoEnd=end;
+  targets[2]=new THREE.Vector3((path[0].x+end.x)/2,.83,-.6);
+  stageMarker(3,[path[8].x,.98,-1.08]);
+}
+function buildLever(end) {
+  const x=end.x,z=end.z,pivotZ=z+.46,pivotY=.495;
+  const shelfEnd=z+.19;
+  box([.18,.03,.14],[x,.685,shelfEnd-.07],0,materials.ramp,'block shelf',refs.shelfMaterial);
+  const block=box([.10,.20,.10],[x,.801,shelfEnd-.006],1,materials.dark,'heavy block',refs.blockMaterial);
+  refs.block=block;
+  const lever=compound(.075,[x,pivotY,pivotZ+.5-settings.leverPivot],materials.orange,'lever',refs.metal);
+  addBox(lever,[.115,.035,1],[0,0,0]);
+  const localPivot=settings.leverPivot-.5;
+  hinge(lever.body,[x,pivotY,pivotZ],[0,0,localPivot],[1,0,0]);
+  refs.lever=lever.body;
+  const longZ=pivotZ+1-settings.leverPivot;
+  // The neutral long arm rests on a stop. Its upward motion is unrestricted.
+  box([.12,.04,.07],[x,pivotY-.038,longZ-.06],0,materials.dark,'lever rest');
+  visualBox([.09,.04,.15],[x,.47,pivotZ],materials.teal);
+  const axle=visualCylinder(.018,.21,[x,pivotY,pivotZ],materials.brass);axle.rotation.z=Math.PI/2;
+  const lightRadius=.035,launchZ=longZ-.055;
+  refs.lightBall=ball(lightRadius,[x,pivotY+.0175+lightRadius+.002,launchZ],.05,materials.ivory,'light ball',refs.launchMaterial);
+  // Small side lips give the resting ball a real open-topped launch pocket.
+  for(const side of [-1,1]) addBox(lever,[.012,.043,.11],[side*.063,.022,.5-.055],materials.brass);
+  addBox(lever,[.126,.035,.012],[0,.02,.5],materials.brass);
+  // A fixed angled catch hood turns the upward projectile toward the open basket.
+  const hood=box([.26,.018,.38],[x,1.015,longZ-.045],0,materials.brass,'launch hood',refs.metal);
+  hood.quaternion.setFromAxisAngle(vec(1,0,0),Math.PI/4);
+  visualBeam([x+.19,.46,longZ+.06],[x+.19,1.015,longZ+.06],.009,materials.dark);
+  visualBeam([x+.19,1.015,longZ+.06],[x,1.015,longZ-.045],.008,materials.dark);
+  targets[3]=new THREE.Vector3(x,.76,z+.45);stageMarker(4,[x-.16,.70,pivotZ]);
+}
+function buildPulley(end) {
+  const x=end.x,z=end.z+.68,basketY=.78,weightX=x+.43;
+  const basket=compound(.20,[x,basketY,z],materials.teal,'basket',refs.basketMaterial);
+  addBox(basket,[.40,.014,.65],[0,0,.055]);
+  addBox(basket,[.40,.17,.012],[0,.085,.38]);
+  // A tall catch screen receives the launched ball from the open, low front.
+  addBox(basket,[.40,1.1,.012],[0,.55,-.27]);
+  for(const side of [-1,1]) addBox(basket,[.012,.65,.65],[side*.20,.325,.055]);
+  // Visible slats and brass edges distinguish the catching basket from its frame.
+  for(let i=0;i<=8;i++) visualBox([.007,1.1,.017],[-.19+i*.0475,.55,-.27],materials.brass,basket.group);
+  for(const side of [-1,1]) visualBeam([side*.20,.65,0],[0,1.15,0],.006,materials.brass,basket.group);
+  basket.body.linearFactor.set(0,1,0);basket.body.angularFactor.setZero();
+  // Viscous guide bearings dissipate the landing impulse while allowing sustained descent.
+  basket.body.linearDamping=.96;
+  const weight=box([.10,.10,.10],[weightX,.501,z],settings.counterweightMass,materials.brass,'counterweight',refs.metal);
+  weight.linearFactor.set(0,1,0);weight.angularFactor.setZero();weight.linearDamping=.96;
+  world.addConstraint(new PulleyConstraint(basket.body,weight));
+  refs.basket=basket.body;refs.weight=weight;refs.pulleyZ=z;
+  const pulleyY=2.32,radius=(weightX-x)/2,cx=(x+weightX)/2;
+  const wheel=visible(new THREE.CylinderGeometry(radius,radius,.035,48),materials.dark);wheel.rotation.x=Math.PI/2;wheel.position.set(cx,pulleyY,z);
+  const rim=visible(new THREE.TorusGeometry(radius-.008,.009,8,64),materials.brass);rim.position.set(cx,pulleyY,z+.021);
+  for(let i=0;i<6;i++) {
+    const angle=i*Math.PI/3;
+    visualBeam([cx,pulleyY,z+.023],[cx+Math.cos(angle)*(radius-.02),pulleyY+Math.sin(angle)*(radius-.02),z+.023],.005,materials.brass);
+  }
+  visualBeam([x-.25,.46,z-.35],[x-.25,pulleyY+.08,z-.35],.018,materials.dark);
+  visualBeam([x-.25,pulleyY+.08,z-.35],[cx,pulleyY+.08,z],.018,materials.dark);
+  visualBeam([cx,pulleyY+.08,z],[cx,pulleyY,z],.014,materials.brass);
+  const ropePoints=[];
+  ropePoints.push(new THREE.Vector3(x,basketY+1.15,z));
+  for(let i=0;i<=40;i++) {
+    const angle=Math.PI-i*Math.PI/40;
+    ropePoints.push(new THREE.Vector3(cx+Math.cos(angle)*radius,pulleyY+Math.sin(angle)*radius,z));
+  }
+  ropePoints.push(new THREE.Vector3(weightX,.56,z));
+  const rope=new THREE.Line(new THREE.BufferGeometry().setFromPoints(ropePoints),new THREE.LineBasicMaterial({color:'#ddd0a1'}));apparatus.add(rope);
+  refs.rope=rope;refs.ropeBasketTop=1.15;
+  // Thin visible guide rods provide the ideal prismatic bearings' physical context.
+  for(const gx of [x-.23,x+.23]) visualBeam([gx,.46,z-.29],[gx,2.03,z-.29],.005,materials.brass);
+  visualBeam([weightX,.45,z-.07],[weightX,1.5,z-.07],.005,materials.dark);
+  targets[4]=new THREE.Vector3(x,1.2,z);stageMarker(5,[x+.35,1.80,z+.05]);
+}
+function buildPendulum(end) {
+  const bottomX=end.x-.93,bottomY=.89,z=refs.pulleyZ-.43;
+  const length=settings.pendulumLength,angle=settings.pendulumAngle*Math.PI/180;
+  const pivot=[bottomX,bottomY+length,z];
+  const bobPosition=[bottomX+length*Math.sin(angle),bottomY+length*(1-Math.cos(angle)),z];
+  const bob=ball(.045,bobPosition,.5,materials.brass,'pendulum bob',refs.pendulumMaterial);
+  bob.quaternion.setFromAxisAngle(vec(0,0,1),angle);
+  hinge(bob,pivot,[0,length,0]);
+  cable(bob,[0,0,0],pivot,'#e1ce9e');
+  visualBeam([bottomX,.46,z-.16],[bottomX,pivot[1]+.04,z-.16],.017,materials.dark);
+  visualBeam([bottomX,pivot[1]+.04,z-.16],[bottomX,pivot[1]+.04,z+.13],.014,materials.dark);
+  const axle=visualCylinder(.018,.14,pivot,materials.brass);axle.rotation.x=Math.PI/2;
+  refs.pendulum=bob;refs.initialPendulumAngle=angle;refs.pendulumPivot=vec(...pivot);
+
+  // A real bell-crank latch supports the bob against its downhill tangent.
+  // Bob load drives it into its stop. Basket load on the opposite arm withdraws the pin sideways.
+  const pin=[bobPosition[0]-.063*Math.cos(angle),bobPosition[1]-.063*Math.sin(angle),z];
+  const latchPivot=[pin[0],pin[1]-.25,z+.015];
+  const latch=compound(.012,latchPivot,materials.brass,'latch',refs.latchMaterial);
+  addSphere(latch,.018,[0,.25,-.015]);
+  addRod(latch,[0,0,0],[0,.25,-.015],.007);
+  const outerX=end.x+.28-latchPivot[0],footY=.64-latchPivot[1],footZ=refs.pulleyZ+.08-latchPivot[2];
+  addRod(latch,[0,0,0],[outerX,0,0],.007);
+  addRod(latch,[outerX,0,0],[outerX,0,footZ],.007);
+  addRod(latch,[outerX,0,footZ],[outerX,footY,footZ],.007);
+  addRod(latch,[outerX,footY,footZ],[end.x+.14-latchPivot[0],footY,footZ],.007);
+  addBox(latch,[.09,.018,.075],[end.x+.14-latchPivot[0],footY,footZ]);
+  addBox(latch,[.055,.016,.06],[-.18,0,.14]);
+  hinge(latch.body,latchPivot,[0,0,0],[1,0,0]);
+  box([.07,.025,.08],[latchPivot[0]-.18,latchPivot[1]+.021,latchPivot[2]+.14],0,materials.dark,'latch stop');
+  visualBeam([latchPivot[0],.46,latchPivot[2]],[latchPivot[0],latchPivot[1],latchPivot[2]],.012,materials.dark);
+  refs.latch=latch.body;refs.bobBottom=[bottomX,bottomY,z];
+  targets[5]=new THREE.Vector3(bottomX+.25,bottomY+.45,z);stageMarker(6,[bottomX+.24,bottomY+.48,z-.18]);
+}
+function buildCradle() {
+  const [bottomX,y,z]=refs.bobBottom,length=.30,radius=.025;
+  const firstX=bottomX-.071;
+  const bobs=[];
+  for(let i=0;i<5;i++) {
+    const x=firstX-i*.0502,pivot=[x,y+length,z];
+    const bob=ball(radius,[x,y,z],.064,materials.steel,'cradle-'+i,refs.cradleMaterial);
+    hinge(bob,pivot,[0,length,0]);
+    // Two rendered suspension threads share the same constrained planar arc.
+    cable(bob,[0,0,-.014],[x,y+length,z-.065]);
+    cable(bob,[0,0,.014],[x,y+length,z+.065]);
+    bobs.push(bob);
+  }
+  const centerX=(firstX+bobs[4].position.x)/2;
+  for(const side of [-1,1]) {
+    const frameZ=z+side*.09;
+    for(const x of [firstX+.09,bobs[4].position.x-.09]) visualBeam([x,.71,frameZ],[x,y+length+.025,frameZ],.009,materials.teal);
+    visualBeam([firstX+.10,y+length+.025,frameZ],[bobs[4].position.x-.10,y+length+.025,frameZ],.012,materials.brass);
+  }
+  visualBox([.51,.025,.25],[centerX,.6975,z],materials.dark);
+  refs.cradle=bobs;
+  targets[6]=new THREE.Vector3(centerX,y+.09,z);stageMarker(7,[centerX,1.34,z-.08]);
+}
+function buildCartAndBell() {
+  const last=refs.cradle[4],z=last.position.z,cx=last.position.x-.19,cy=.817;
+
+  box([.70,.025,.25],[cx-.20,.7375,z],0,materials.teal,'cart track',refs.trackMaterial);
+  for(const side of [-1,1]) box([.70,.035,.013],[cx-.20,.77,z+side*.122],0,materials.brass,'cart rail',refs.trackMaterial);
+  visualBox([.05,.27,.18],[cx-.43,.585,z],materials.dark);
+  const cart=compound(.012,[cx,cy,z],materials.orange,'cart',refs.cartMaterial);
+  addBox(cart,[.15,.025,.115],[0,0,0]);
+  addBox(cart,[.016,.13,.09],[.085,.055,0],materials.orange);
+  addBox(cart,[.016,.11,.085],[-.085,.052,0],materials.orange);
+  visualBox([.012,.04,.07],[.096,.069,0],materials.ivory,cart.group);
+  for(const x of [-.052,.052]) for(const side of [-1,1]) {
+    const local=[x,-.035,side*.071];
+    const wheel=ball(.032,[cx+x,cy-.035,z+side*.071],.0015,materials.rubber,'cart wheel',refs.wheelMaterial);
+    const joint=new CANNON.HingeConstraint(cart.body,wheel,{pivotA:vec(...local),pivotB:vec(),axisA:vec(0,0,1),axisB:vec(0,0,1),collideConnected:false,maxForce:1e4});world.addConstraint(joint);
+    const hub=visualCylinder(.012,.066,[0,0,0],materials.brass,parts[parts.length-1].mesh);hub.rotation.x=Math.PI/2;
+  }
+  refs.cart=cart.body;
+  const strikerX=cx-.36,hingeY=1.055;
+  const striker=compound(.012,[strikerX,hingeY-.175,z],materials.brass,'striker',refs.strikerMaterial);
+  addRod(striker,[0,0,0],[0,.175,0],.006,materials.woodDark);
+  addSphere(striker,.024,[0,0,0],materials.ivory);
+  hinge(striker.body,[strikerX,hingeY,z],[0,.175,0]);
+  const bellX=strikerX-.16,bellY=.92;
+  const bellBody=physicsBody(0,[bellX,bellY,z],refs.bellMaterial,'bell');bellBody.addShape(new CANNON.Sphere(.08));
+  const profile=[new THREE.Vector2(.102,-.065),new THREE.Vector2(.102,-.055),new THREE.Vector2(.078,-.035),new THREE.Vector2(.061,.015),new THREE.Vector2(.048,.072),new THREE.Vector2(.024,.092),new THREE.Vector2(.006,.097)];
+  const bellMesh=visible(new THREE.LatheGeometry(profile,64),materials.brass);bellMesh.position.set(bellX,bellY,z);
+  const lip=visible(new THREE.TorusGeometry(.099,.006,10,64),materials.brass);lip.rotation.x=Math.PI/2;lip.position.set(bellX,bellY-.06,z);
+  visualCylinder(.008,.13,[bellX,1.075,z],materials.brass);
+  visualBeam([bellX-.15,.46,z-.14],[bellX-.15,1.17,z-.14],.014,materials.dark);
+  visualBeam([bellX-.15,1.17,z-.14],[strikerX+.04,1.17,z-.14],.014,materials.dark);
+  visualBeam([strikerX,1.17,z-.14],[strikerX,hingeY,z],.008,materials.brass);
+  visualBox([.21,.035,.24],[bellX,.4675,z],materials.dark);
+  box([.025,.07,.20],[strikerX-.045,.79,z],0,materials.dark,'cart end stop');
+  refs.striker=striker.body;refs.bell=bellBody;
+  targets[7]=new THREE.Vector3(cx-.12,.90,z);targets[8]=new THREE.Vector3(bellX,1.0,z);
+  stageMarker(8,[cx-.12,.98,z+.20]);stageMarker(9,[bellX,1.28,z]);
+}
+function setContact(a,b,friction,restitution) {
+  world.addContactMaterial(new CANNON.ContactMaterial(a,b,{friction,restitution,contactEquationStiffness:1e8,contactEquationRelaxation:4,frictionEquationStiffness:1e8,frictionEquationRelaxation:4}));
+}
+function disposeApparatus() {
+  if(!apparatus) return;
+  const geometries=new Set(),textures=new Set(),disposableMaterials=new Set();
+  apparatus.traverse(object=>{
+    if(object.geometry) geometries.add(object.geometry);
+    if(object.material && !Object.values(materials).includes(object.material)) {
+      disposableMaterials.add(object.material);if(object.material.map) textures.add(object.material.map);
+    }
+  });
+  geometries.forEach(g=>g.dispose());textures.forEach(t=>t.dispose());disposableMaterials.forEach(m=>m.dispose());scene.remove(apparatus);
+}
+function rebuild() {
+  disposeApparatus();apparatus=new THREE.Group();scene.add(apparatus);
+  settings=physicalSettings();parts=[];wires=[];refs={};targets=[];time=0;accumulator=0;
+  basketAcceleration=null;pendulumSwingTime=null;releaseTime=null;gateOpened=false;latchTouched=false;
+  velocitySamples=[];descentSamples=[];lastTrigger=0;paused=false;finished=false;failed=false;pendingTone=false;
+  stages=names.map((name,i)=>({id:i+1,name,status:'waiting',triggeredAt:null}));
+  world=new CANNON.World({gravity:vec(0,-settings.gravity,0),allowSleep:false});
+  world.broadphase=new CANNON.SAPBroadphase(world);
+  world.solver.iterations=45;world.solver.tolerance=1e-8;world.quatNormalizeSkip=0;world.quatNormalizeFast=false;
+  world.defaultContactMaterial.friction=.25;world.defaultContactMaterial.restitution=0;
+  world.defaultContactMaterial.contactEquationStiffness=1e8;
+  for(const name of ['surface','metal','wood','rampMaterial','steelMaterial','blockMaterial','shelfMaterial','launchMaterial','basketMaterial','pendulumMaterial','cradleMaterial','latchMaterial','cartMaterial','trackMaterial','wheelMaterial','strikerMaterial','bellMaterial']) refs[name]=new CANNON.Material(name);
+  setContact(refs.steelMaterial,refs.rampMaterial,.3,.08);
+  setContact(refs.steelMaterial,refs.wood,.25,.12);
+  setContact(refs.wood,refs.wood,.35,0);
+  setContact(refs.wood,refs.surface,.42,0);
+  setContact(refs.wood,refs.blockMaterial,.22,0);
+  setContact(refs.blockMaterial,refs.shelfMaterial,.035,0);
+  setContact(refs.blockMaterial,refs.metal,.12,.05);
+  setContact(refs.launchMaterial,refs.metal,.12,.12);
+  setContact(refs.launchMaterial,refs.basketMaterial,.45,0);
+  setContact(refs.pendulumMaterial,refs.latchMaterial,0,0);
+  setContact(refs.basketMaterial,refs.latchMaterial,.05,0);
+  setContact(refs.pendulumMaterial,refs.cradleMaterial,0,settings.cradleRestitution);
+  setContact(refs.cradleMaterial,refs.cradleMaterial,0,settings.cradleRestitution);
+  setContact(refs.cradleMaterial,refs.cartMaterial,.02,.35);
+  setContact(refs.wheelMaterial,refs.trackMaterial,.45,0);
+  setContact(refs.cartMaterial,refs.strikerMaterial,.05,.1);
+  setContact(refs.strikerMaterial,refs.bellMaterial,.02,.5);
+  const path=dominoPath(settings.dominoSpacing),end=path[23];
+  boardBounds={left:-2.32,right:Math.max(1.28,end.x+.85),back:-1.22,front:Math.max(2.0,end.z+1.75)};
+  buildRoom(boardBounds.left,boardBounds.right,boardBounds.back,boardBounds.front);
+  buildRamps();buildDominoes(path);buildLever(end);buildPulley(end);buildPendulum(end);buildCradle();buildCartAndBell();
+  overviewTarget.set((boardBounds.left+boardBounds.right)/2,1.22,(boardBounds.back+boardBounds.front)/2);
+  const extent=Math.max(boardBounds.right-boardBounds.left,boardBounds.front-boardBounds.back);
+  const portraitFactor=Math.max(1,1.1/camera.aspect);
+  overviewPosition.copy(overviewTarget).add(new THREE.Vector3(extent*.88,extent*.75,extent*1.18).multiplyScalar(portraitFactor));
+  if(!cameraInitialized) {camera.position.copy(overviewPosition);aim.copy(overviewTarget);camera.lookAt(aim);orbit.target.copy(aim);cameraInitialized=true;}
+  $('notice').hidden=true;$('notice').classList.remove('error');$('status').textContent='Gate held Ãƒâ€šÃ‚Â· release at 1 s';
+  $('play').textContent='Pause';$('play').setAttribute('aria-label','Pause simulation');
+  paintUI();
+}
+function trigger(index) {
+  if(finished||failed||stages[index].status!=='waiting') return;
+  if(index>0&&stages[index-1].status!=='triggered') return;
+  stages[index].status='triggered';stages[index].triggeredAt=Number(time.toFixed(4));lastTrigger=time;
+  $('status').textContent=names[index];
+  if(index===8) {
+    finished=true;$('notice').textContent=`Bell struck Ãƒâ€šÃ‚Â· ${time.toFixed(3)} simulation seconds`;$('notice').hidden=false;
+    $('status').textContent='Chain complete';ringBell();
+  }
+}
+function pair(contact,a,b) {return (contact.bi===a&&contact.bj===b)||(contact.bi===b&&contact.bj===a);}
+function contactWith(contact,body,tag) {return contact.bi===body&&contact.bj.tag===tag||contact.bj===body&&contact.bi.tag===tag;}
+function inspectContacts() {
+  let pendulumSupported=false;
+  for(const contact of world.contacts) {
+    if(!contact.enabled) continue;
+    if(pair(contact,refs.pendulum,refs.latch)) pendulumSupported=true;
+    if(gateOpened&&contactWith(contact,refs.steel,'ramp')&&refs.steel.velocity.length()>.025) trigger(1);
+    if(pair(contact,refs.steel,refs.firstDomino)) trigger(2);
+    if(pair(contact,refs.lastDomino,refs.block)) trigger(3);
+    if(pair(contact,refs.lightBall,refs.basket)) trigger(4);
+    if(stages[4].status==='triggered'&&pair(contact,refs.basket,refs.latch)) latchTouched=true;
+    if(pair(contact,refs.pendulum,refs.cradle[0])&&releaseTime!==null) {
+      if(pendulumSwingTime===null) pendulumSwingTime=time-releaseTime;
+      trigger(6);
+    }
+    if(pair(contact,refs.cradle[4],refs.cart)) trigger(7);
+    if(pair(contact,refs.striker,refs.bell)) trigger(8);
+  }
+  if(latchTouched&&releaseTime===null) {
+    const offset=refs.pendulum.position.vsub(refs.pendulumPivot);
+    const angle=Math.atan2(offset.x,-offset.y);
+    if(!pendulumSupported&&angle<refs.initialPendulumAngle&&refs.pendulum.angularVelocity.z<-.005) {
+      releaseTime=time;trigger(5);
+    }
+  }
+}
+function measureBasket() {
+  const basket=refs.basket;
+  velocitySamples.push({t:time,v:basket.velocity.y});
+  while(velocitySamples.length>1&&time-velocitySamples[0].t>.10) velocitySamples.shift();
+  if(stages[4].status!=='triggered'||basket.velocity.y>-.02||basket.position.y<.51||time-stages[4].triggeredAt<.15) return;
+  const first=velocitySamples[0];
+  if(time-first.t<.07) return;
+  const measured=-(basket.velocity.y-first.v)/(time-first.t);
+  // Average finite-difference samples over actual free descent, excluding landing and latch impacts.
+  if(Math.abs(measured)<settings.gravity*1.5) {
+    descentSamples.push(measured);if(descentSamples.length>100) descentSamples.shift();
+    basketAcceleration=descentSamples.reduce((sum,value)=>sum+value,0)/descentSamples.length;
+  }
+}
+function physicsStep() {
+  // This is the sole time-driven physical action in the apparatus.
+  if(!gateOpened&&time>=1-1e-10) {
+    refs.gateJoint.setMotorSpeed(-3.5);gateOpened=true;time=1;
+    trigger(0);
+  }
+  world.step(STEP);time+=STEP;
+  inspectContacts();measureBasket();
+  const waiting=stages.findIndex(stage=>stage.status==='waiting');
+  if(!finished&&!failed&&waiting>=0&&time-lastTrigger>=8) {
+    stages[waiting].status='failed';failed=true;play.disabled=true;play.textContent='Stalled';
+    $('status').textContent=names[waiting]+' stalled';
+    const explanations={1:'The steel ball did not traverse the ramps.',2:'The ball did not reach the domino line.',3:'The domino wave did not move the shelf block.',4:'The launched ball did not load the basket.',5:'The basket did not release the latch.',6:'The pendulum did not strike the cradle.',7:'The last cradle ball did not drive the cart.',8:'The cart did not bring the striker to the bell.'};
+    $('notice').textContent=`${names[waiting]} failed Ãƒâ€šÃ‚Â· no new stage for 8 simulation seconds. ${explanations[waiting]||''}`;
+    $('notice').classList.add('error');$('notice').hidden=false;
+  }
+}
+function paintUI() {
+  $('clock').textContent=time.toFixed(3);
+  for(let i=0;i<stages.length;i++) {
+    const row=$('stage-'+i);row.className=stages[i].status;
+    row.querySelector('.stamp').textContent=stages[i].triggeredAt===null?(stages[i].status==='failed'?'ÃƒÆ’Ã¢â‚¬â€':'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'):stages[i].triggeredAt.toFixed(2)+' s';
+  }
+  $('acceleration').textContent=basketAcceleration===null?'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â m/sÃƒâ€šÃ‚Â²':basketAcceleration.toFixed(3)+' m/sÃƒâ€šÃ‚Â²';
+  $('swing').textContent=pendulumSwingTime===null?'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â s':pendulumSwingTime.toFixed(3)+' s';
+}
+function syncBodies() {
+  for(const {body,mesh} of parts) {mesh.position.copy(body.position);mesh.quaternion.copy(body.quaternion);}
+  for(const wire of wires) {
+    const point=wire.body.pointToWorldFrame(wire.local);const buffer=wire.line.geometry.attributes.position;
+    buffer.setXYZ(0,point.x,point.y,point.z);buffer.setXYZ(1,wire.pivot.x,wire.pivot.y,wire.pivot.z);buffer.needsUpdate=true;wire.line.geometry.computeBoundingSphere();
+  }
+  const rope=refs.rope.geometry.attributes.position;
+  rope.setXYZ(0,refs.basket.position.x,refs.basket.position.y+refs.ropeBasketTop,refs.pulleyZ);
+  rope.setXYZ(rope.count-1,refs.weight.position.x,refs.weight.position.y+.055,refs.pulleyZ);rope.needsUpdate=true;refs.rope.geometry.computeBoundingSphere();
+}
+function moveCamera(dt) {
+  const mode=$('camera').value;
+  orbit.enabled=mode==='orbit';
+  if(orbit.enabled) {orbit.update();aim.copy(orbit.target);return;}
+  let destination=overviewPosition,target=overviewTarget;
+  if(mode==='follow') {
+    let index=stages.filter(s=>s.status==='triggered').length-1;index=Math.max(0,index);
+    target=targets[index]||overviewTarget;
+    const factor=Math.max(1,.95/camera.aspect);
+    destination=tempA.copy(target).add(tempB.set(2.65,1.8,3.4).multiplyScalar(factor));
+  }
+  const blend=1-Math.exp(-dt*2);
+  camera.position.lerp(destination,blend);aim.lerp(target,blend);camera.lookAt(aim);orbit.target.copy(aim);
+}
+function setupAudio() {
+  if(!soundEnabled) return;
+  if(!window.AudioContext&&!window.webkitAudioContext) return;
+  if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioContext.state!=='running') audioContext.resume().catch(()=>{});
+  $('audio-note').textContent=audioContext.state==='running'?'Sound enabled':'Sound awaits interaction';
+  if(audioContext.state==='running'&&pendingTone) {pendingTone=false;ringBell();}
+}
+function ringBell() {
+  if(!soundEnabled) return;
+  if(!window.AudioContext&&!window.webkitAudioContext) return;
+  setupAudio();
+  if(!audioContext||audioContext.state!=='running') {pendingTone=true;$('audio-note').textContent='Bell sound awaits interaction';return;}
+  const now=audioContext.currentTime;
+  const master=audioContext.createGain();master.gain.value=.22;master.connect(audioContext.destination);
+  let remaining=5;
+  for(const [frequency,gain,decay] of [[880,.7,2.6],[1766,.32,1.9],[2376,.22,1.5],[3540,.13,.9],[4720,.06,.6]]) {
+    const oscillator=audioContext.createOscillator(),envelope=audioContext.createGain();
+    oscillator.type='sine';oscillator.frequency.value=frequency;
+    envelope.gain.setValueAtTime(.0001,now);envelope.gain.exponentialRampToValueAtTime(gain,now+.004);envelope.gain.exponentialRampToValueAtTime(.0001,now+decay);
+    oscillator.connect(envelope);envelope.connect(master);oscillator.start(now);oscillator.stop(now+decay+.04);
+    oscillator.onended=()=>{oscillator.disconnect();envelope.disconnect();if(--remaining===0) master.disconnect();};
+  }
+
+}
+function togglePause() {
+  if(finished||failed) return;
+  paused=!paused;accumulator=0;$('play').textContent=paused?'Play':'Pause';$('play').setAttribute('aria-label',paused?'Play simulation':'Pause simulation');
+  $('status').textContent=paused?'Paused':(gateOpened?names[Math.max(0,stages.filter(s=>s.status==='triggered').length-1)]:'Gate held Ãƒâ€šÃ‚Â· release at 1 s');
+}
+$('play').addEventListener('click',togglePause);
+$('replay').addEventListener('click',rebuild);
+$('apply').addEventListener('click',()=>{rebuild();setDrawer(false);});
+function setDrawer(open) {$('settings-panel').hidden=!open;$('settings-toggle').setAttribute('aria-expanded',String(open));}
+$('settings-toggle').addEventListener('click',()=>setDrawer($('settings-panel').hidden));
+$('close-settings').addEventListener('click',()=>setDrawer(false));
+$('defaults').addEventListener('click',()=>{
+  for(const [key,,,,value] of fieldDefinitions) {$(key).value=value;$(key).dispatchEvent(new Event('input'));}
+  rebuild();
+});
+$('speed').addEventListener('change',()=>{accumulator=0;});
+$('camera').addEventListener('change',()=>{if($('camera').value==='orbit') {orbit.target.copy(aim);orbit.update();}});
+$('sound').addEventListener('click',()=>{
+  soundEnabled=!soundEnabled;$('sound').setAttribute('aria-pressed',String(soundEnabled));$('sound').textContent=soundEnabled?'Sound':'Muted';
+  if(soundEnabled) setupAudio();else {$('audio-note').textContent='Sound muted';pendingTone=false;}
+});
+document.addEventListener('pointerdown',()=>{if(soundEnabled)setupAudio();},{passive:true});
+document.addEventListener('keydown',event=>{
+  if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement?.tagName)||document.activeElement?.isContentEditable) return;
+  if(event.code==='Space') {event.preventDefault();setupAudio();togglePause();}
+  if(event.code==='Escape') setDrawer(false);
+});
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+  if(boardBounds) {
+    const extent=Math.max(boardBounds.right-boardBounds.left,boardBounds.front-boardBounds.back),factor=Math.max(1,1.1/camera.aspect);
+    overviewPosition.copy(overviewTarget).add(new THREE.Vector3(extent*.88,extent*.75,extent*1.18).multiplyScalar(factor));
+  }
+});
+window.machineState=()=>({
+  stages:stages.map(stage=>({...stage})),
+  basketAcceleration:basketAcceleration===null?null:Number(basketAcceleration.toFixed(5)),
+  pendulumSwingTime:pendulumSwingTime===null?null:Number(pendulumSwingTime.toFixed(5)),
+  settings:{...physicalSettings(),speed:Number($('speed').value),camera:$('camera').value,sound:soundEnabled,paused,
+    steelBallRadius:.03,steelBallMass:.11,rampSlope:20,dominoHeight:.20,dominoWidth:.10,dominoThickness:.03,
+    heavyBlockMass:1,leverLength:1,lightBallMass:.05,basketMass:.20,pendulumBobMass:.5,cradleBallCount:5,cradleBallRadius:.025,rampFriction:.3},
+  appliedSettings:{...settings},simulationTime:Number(time.toFixed(5)),complete:finished
+});
+let previous=performance.now(),lastPaint=0;
+function frame(now) {
+  const dt=Math.min((now-previous)/1000,.066);previous=now;
+  if(!paused&&!finished&&!failed) {
+    accumulator+=dt*Number($('speed').value);
+    let steps=0;
+    while(accumulator>=STEP&&steps<MAX_STEPS&&!finished&&!failed) {physicsStep();accumulator-=STEP;steps++;}
+    // Discard excess wall time after long frames, preserving every fixed physics step.
+    if(steps===MAX_STEPS) accumulator=Math.min(accumulator,STEP);
+  }
+  syncBodies();moveCamera(dt);
+  if(now-lastPaint>60||finished||failed) {paintUI();lastPaint=now;}
+  renderer.render(scene,camera);requestAnimationFrame(frame);
+}
+try {
+  rebuild();
+  if(window.AudioContext||window.webkitAudioContext) {
+    setupAudio();
+    audioContext.addEventListener('statechange',()=>{
+      if(audioContext.state==='running'&&soundEnabled) {$('audio-note').textContent='Sound enabled';if(pendingTone){pendingTone=false;ringBell();}}
+    });
+  }
+  previous=performance.now();requestAnimationFrame(frame);
+} catch(error) {
+  $('status').textContent='Unable to initialize';$('notice').textContent=error.message;$('notice').hidden=false;$('notice').classList.add('error');console.error(error);
+}
+</script>
+</body>
+</html>

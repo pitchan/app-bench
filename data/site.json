@@ -2,6 +2,835 @@
  "genereLe": "2026-11-19",
  "essais": [
   {
+   "id": "bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2",
+   "epreuve": "bluey-house-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-10-28",
+   "dureeMs": 1052995,
+   "coutUsd": 3.1955052,
+   "coutEstime": false,
+   "jetonsTotal": 814650,
+   "jetonsSortie": 106830,
+   "tours": 9,
+   "verifie": true,
+   "repartition": {
+    "contexte": 12.8,
+    "plan": 0,
+    "implementation": 77.4,
+    "verification": 9.8
+   },
+   "app": "apps/bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2/index.html",
+   "vignette": "vignettes/bluey-house-3d/2026-10-28-cc-claude-opus-5-5-2.webp"
+  },
+  {
+   "id": "bluey-house-3d/2026-10-28-codex-gpt-6-1-sol-3",
+   "epreuve": "bluey-house-3d",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-10-28",
+   "dureeMs": 718656,
+   "coutUsd": 0.344492,
+   "coutEstime": true,
+   "jetonsTotal": 323931,
+   "jetonsSortie": 27530,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 10.5,
+    "plan": 0,
+    "implementation": 39.5,
+    "verification": 50
+   },
+   "app": "apps/bluey-house-3d/2026-10-28-codex-gpt-6-1-sol-3/index.html",
+   "vignette": "vignettes/bluey-house-3d/2026-10-28-codex-gpt-6-1-sol-3.webp"
+  },
+  {
+   "id": "roller-coaster-3d/2026-10-31-cc-claude-opus-5-5",
+   "epreuve": "roller-coaster-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-10-31",
+   "dureeMs": 1048741,
+   "coutUsd": 3.5233344000000004,
+   "coutEstime": false,
+   "jetonsTotal": 2241146,
+   "jetonsSortie": 106618,
+   "tours": 17,
+   "verifie": true,
+   "repartition": {
+    "contexte": 31,
+    "plan": 0,
+    "implementation": 41.7,
+    "verification": 27.3
+   },
+   "app": "apps/roller-coaster-3d/2026-10-31-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/roller-coaster-3d/2026-10-31-cc-claude-opus-5-5.webp"
+  },
+  {
+   "id": "roller-coaster-3d/2026-10-31-codex-gpt-6-1-sol",
+   "epreuve": "roller-coaster-3d",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-10-31",
+   "dureeMs": 520861,
+   "coutUsd": 0.389911,
+   "coutEstime": true,
+   "jetonsTotal": 369045,
+   "jetonsSortie": 25364,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 13,
+    "plan": 0,
+    "implementation": 66.6,
+    "verification": 20.4
+   },
+   "app": "apps/roller-coaster-3d/2026-10-31-codex-gpt-6-1-sol/index.html",
+   "vignette": "vignettes/roller-coaster-3d/2026-10-31-codex-gpt-6-1-sol.webp"
+  },
+  {
+   "id": "roller-coaster-3d/2026-10-31-cc-claude-haiku-5-5",
+   "epreuve": "roller-coaster-3d",
+   "modele": "claude-haiku-5-5",
+   "modeleNom": "Claude Haiku 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-10-31",
+   "dureeMs": 2354106,
+   "coutUsd": 0.4606691500000001,
+   "coutEstime": false,
+   "jetonsTotal": 1740946,
+   "jetonsSortie": 509198,
+   "tours": 15,
+   "verifie": true,
+   "repartition": {
+    "contexte": 0,
+    "plan": 0,
+    "implementation": 76,
+    "verification": 24
+   },
+   "app": "apps/roller-coaster-3d/2026-10-31-cc-claude-haiku-5-5/index.html",
+   "vignette": "vignettes/roller-coaster-3d/2026-10-31-cc-claude-haiku-5-5.webp"
+  },
+  {
+   "id": "roller-coaster-3d/2026-10-31-codex-gpt-6-luna",
+   "epreuve": "roller-coaster-3d",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-10-31",
+   "dureeMs": 90043,
+   "coutUsd": 0.010264,
+   "coutEstime": true,
+   "jetonsTotal": 127293,
+   "jetonsSortie": 9792,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 10.5,
+    "plan": 0,
+    "implementation": 78.7,
+    "verification": 10.8
+   },
+   "app": "apps/roller-coaster-3d/2026-10-31-codex-gpt-6-luna/index.html",
+   "vignette": "vignettes/roller-coaster-3d/2026-10-31-codex-gpt-6-luna.webp"
+  },
+  {
+   "id": "foucault-pendulum-3d/2026-11-05-cc-claude-opus-5-5",
+   "epreuve": "foucault-pendulum-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-05",
+   "dureeMs": 772840,
+   "coutUsd": 2.7824896,
+   "coutEstime": false,
+   "jetonsTotal": 824088,
+   "jetonsSortie": 82567,
+   "tours": 12,
+   "verifie": true,
+   "repartition": {
+    "contexte": 7.7,
+    "plan": 0,
+    "implementation": 88.2,
+    "verification": 4.1
+   },
+   "app": "apps/foucault-pendulum-3d/2026-11-05-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/foucault-pendulum-3d/2026-11-05-cc-claude-opus-5-5.webp"
+  },
+  {
+   "id": "foucault-pendulum-3d/2026-11-05-codex-gpt-6-1-sol",
+   "epreuve": "foucault-pendulum-3d",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-05",
+   "dureeMs": 449668,
+   "coutUsd": 0.266444,
+   "coutEstime": true,
+   "jetonsTotal": 396075,
+   "jetonsSortie": 17370,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 12.8,
+    "plan": 0,
+    "implementation": 13.1,
+    "verification": 74.1
+   },
+   "app": "apps/foucault-pendulum-3d/2026-11-05-codex-gpt-6-1-sol/index.html",
+   "vignette": "vignettes/foucault-pendulum-3d/2026-11-05-codex-gpt-6-1-sol.webp"
+  },
+  {
+   "id": "foucault-pendulum-3d/2026-11-05-cc-claude-haiku-5-5",
+   "epreuve": "foucault-pendulum-3d",
+   "modele": "claude-haiku-5-5",
+   "modeleNom": "Claude Haiku 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-05",
+   "dureeMs": 430309,
+   "coutUsd": 0.15817519,
+   "coutEstime": false,
+   "jetonsTotal": 284554,
+   "jetonsSortie": 101915,
+   "tours": 2,
+   "verifie": true,
+   "repartition": {
+    "contexte": 50,
+    "plan": 0,
+    "implementation": 50,
+    "verification": 0
+   },
+   "app": "apps/foucault-pendulum-3d/2026-11-05-cc-claude-haiku-5-5/index.html",
+   "vignette": "vignettes/foucault-pendulum-3d/2026-11-05-cc-claude-haiku-5-5.webp"
+  },
+  {
+   "id": "foucault-pendulum-3d/2026-11-05-codex-gpt-6-luna",
+   "epreuve": "foucault-pendulum-3d",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-05",
+   "dureeMs": 202903,
+   "coutUsd": 0.010315,
+   "coutEstime": true,
+   "jetonsTotal": 101298,
+   "jetonsSortie": 10399,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 20.7,
+    "plan": 0,
+    "implementation": 66.2,
+    "verification": 13.1
+   },
+   "app": "apps/foucault-pendulum-3d/2026-11-05-codex-gpt-6-luna/index.html",
+   "vignette": "vignettes/foucault-pendulum-3d/2026-11-05-codex-gpt-6-luna.webp"
+  },
+  {
+   "id": "rube-goldberg-3d/2026-11-11-cc-claude-fable-5-2",
+   "epreuve": "rube-goldberg-3d",
+   "modele": "claude-fable-5-2",
+   "modeleNom": "Claude Fable 5.2",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-11",
+   "dureeMs": 1910128,
+   "coutUsd": 5.8638044,
+   "coutEstime": false,
+   "jetonsTotal": 3999143,
+   "jetonsSortie": 171268,
+   "tours": 24,
+   "verifie": true,
+   "repartition": {
+    "contexte": 38.4,
+    "plan": 0,
+    "implementation": 18.6,
+    "verification": 43
+   },
+   "app": "apps/rube-goldberg-3d/2026-11-11-cc-claude-fable-5-2/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-cc-claude-fable-5-2.webp"
+  },
+  {
+   "id": "rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5",
+   "epreuve": "rube-goldberg-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-11",
+   "dureeMs": 3968638,
+   "coutUsd": 8.0865032,
+   "coutEstime": false,
+   "jetonsTotal": 2560399,
+   "jetonsSortie": 295966,
+   "tours": 18,
+   "verifie": true,
+   "repartition": {
+    "contexte": 13.1,
+    "plan": 0,
+    "implementation": 69,
+    "verification": 17.9
+   },
+   "app": "apps/rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-cc-claude-opus-5-5.webp"
+  },
+  {
+   "id": "rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol",
+   "epreuve": "rube-goldberg-3d",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-11",
+   "dureeMs": 1218638,
+   "coutUsd": 0.752182,
+   "coutEstime": true,
+   "jetonsTotal": 730911,
+   "jetonsSortie": 51135,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 25.6,
+    "plan": 0,
+    "implementation": 31.1,
+    "verification": 43.3
+   },
+   "app": "apps/rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-codex-gpt-6-1-sol.webp"
+  },
+  {
+   "id": "rube-goldberg-3d/2026-11-11-codex-gpt-6-luna",
+   "epreuve": "rube-goldberg-3d",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-11",
+   "dureeMs": 152878,
+   "coutUsd": 0.006921,
+   "coutEstime": true,
+   "jetonsTotal": 95914,
+   "jetonsSortie": 7378,
+   "tours": null,
+   "verifie": true,
+   "repartition": {
+    "contexte": 6.4,
+    "plan": 0,
+    "implementation": 73.9,
+    "verification": 19.7
+   },
+   "app": "apps/rube-goldberg-3d/2026-11-11-codex-gpt-6-luna/index.html",
+   "vignette": "vignettes/rube-goldberg-3d/2026-11-11-codex-gpt-6-luna.webp"
+  },
+  {
+   "id": "bike-configurator/2026-11-14-cc-claude-haiku-5-5",
+   "epreuve": "bike-configurator",
+   "modele": "claude-haiku-5-5",
+   "modeleNom": "Claude Haiku 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 647180,
+   "coutUsd": 0.53102497,
+   "coutEstime": false,
+   "jetonsTotal": 4106345,
+   "jetonsSortie": 153214,
+   "tours": 39,
+   "verifie": true,
+   "repartition": {
+    "contexte": 29.8,
+    "plan": 0,
+    "implementation": 46,
+    "verification": 24.2
+   },
+   "app": "apps/bike-configurator/2026-11-14-cc-claude-haiku-5-5/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-cc-claude-haiku-5-5.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 65,
+    "tests": 734,
+    "testsVerts": 729,
+    "ratees": [
+     "FR-FIT-05",
+     "DR-STA-05"
+    ]
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-cc-claude-sonnet-5-5",
+   "epreuve": "bike-configurator",
+   "modele": "claude-sonnet-5-5",
+   "modeleNom": "Claude Sonnet 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 173942,
+   "coutUsd": 0.702788,
+   "coutEstime": false,
+   "jetonsTotal": 621127,
+   "jetonsSortie": 25439,
+   "tours": 17,
+   "verifie": true,
+   "repartition": {
+    "contexte": 45,
+    "plan": 0,
+    "implementation": 24.6,
+    "verification": 30.4
+   },
+   "app": "apps/bike-configurator/2026-11-14-cc-claude-sonnet-5-5/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-cc-claude-sonnet-5-5.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 66,
+    "tests": 734,
+    "testsVerts": 733,
+    "ratees": [
+     "FR-FIT-05"
+    ]
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-codex-gpt-6-1-sol-2",
+   "epreuve": "bike-configurator",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 262938,
+   "coutUsd": 0.247715,
+   "coutEstime": true,
+   "jetonsTotal": 449167,
+   "jetonsSortie": 10815,
+   "tours": 10,
+   "verifie": true,
+   "repartition": {
+    "contexte": 28.2,
+    "plan": 0,
+    "implementation": 19.1,
+    "verification": 52.7
+   },
+   "app": "apps/bike-configurator/2026-11-14-codex-gpt-6-1-sol-2/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-1-sol-2.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 67,
+    "tests": 734,
+    "testsVerts": 734,
+    "ratees": []
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-codex-gpt-6-luna-2",
+   "epreuve": "bike-configurator",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 209504,
+   "coutUsd": 0.015548,
+   "coutEstime": true,
+   "jetonsTotal": 574022,
+   "jetonsSortie": 9786,
+   "tours": 12,
+   "verifie": true,
+   "repartition": {
+    "contexte": 60.4,
+    "plan": 0,
+    "implementation": 15.1,
+    "verification": 24.5
+   },
+   "app": "apps/bike-configurator/2026-11-14-codex-gpt-6-luna-2/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-luna-2.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 0,
+    "tests": 734,
+    "testsVerts": 0,
+    "ratees": [
+     "FR-FIT-01",
+     "FR-FIT-02",
+     "FR-FIT-03",
+     "FR-FIT-04",
+     "FR-FIT-05",
+     "FR-FIT-06",
+     "FR-FIT-07",
+     "FR-OPT-01",
+     "FR-OPT-02",
+     "FR-OPT-03",
+     "FR-OPT-04",
+     "FR-OPT-05",
+     "FR-OPT-06",
+     "FR-OPT-07",
+     "FR-OPT-08",
+     "FR-OPT-09",
+     "FR-OPT-10",
+     "FR-QTY-01",
+     "FR-QTY-02",
+     "FR-PRM-01",
+     "FR-PRM-02",
+     "FR-PRM-03",
+     "FR-PRM-04",
+     "FR-PRM-05",
+     "FR-PRM-06",
+     "FR-PRC-01",
+     "FR-PRC-02",
+     "FR-PRC-03",
+     "FR-SUM-01",
+     "FR-SUM-02",
+     "FR-SUM-03",
+     "FR-DLV-01",
+     "FR-DLV-02",
+     "FR-ORD-01",
+     "FR-ORD-02",
+     "FR-ORD-03",
+     "FR-ORD-04",
+     "FR-ORD-05",
+     "DR-TOK-01",
+     "DR-TOK-02",
+     "DR-LAY-01",
+     "DR-LAY-02",
+     "DR-LAY-03",
+     "DR-LAY-04",
+     "DR-LAY-05",
+     "DR-CMP-01",
+     "DR-CMP-02",
+     "DR-CMP-03",
+     "DR-CMP-04",
+     "DR-CMP-05",
+     "DR-CMP-06",
+     "DR-CMP-07",
+     "DR-CMP-08",
+     "DR-CMP-09",
+     "DR-CMP-10",
+     "DR-STA-01",
+     "DR-STA-02",
+     "DR-STA-03",
+     "DR-STA-04",
+     "DR-STA-05",
+     "DR-THM-01",
+     "DR-MOT-01",
+     "NFR-PKG-01",
+     "NFR-NET-01",
+     "NFR-DLG-01",
+     "NFR-A11Y-01",
+     "NFR-A11Y-02"
+    ]
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-cc-claude-fable-5-2",
+   "epreuve": "bike-configurator",
+   "modele": "claude-fable-5-2",
+   "modeleNom": "Claude Fable 5.2",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 370405,
+   "coutUsd": 2.6053159999999997,
+   "coutEstime": false,
+   "jetonsTotal": 977304,
+   "jetonsSortie": 40980,
+   "tours": 25,
+   "verifie": true,
+   "repartition": {
+    "contexte": 28.7,
+    "plan": 0,
+    "implementation": 28.6,
+    "verification": 42.7
+   },
+   "app": "apps/bike-configurator/2026-11-14-cc-claude-fable-5-2/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-cc-claude-fable-5-2.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 66,
+    "tests": 734,
+    "testsVerts": 733,
+    "ratees": [
+     "FR-FIT-05"
+    ]
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-cc-claude-opus-5-5",
+   "epreuve": "bike-configurator",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 356207,
+   "coutUsd": 1.7780675999999997,
+   "coutEstime": false,
+   "jetonsTotal": 1359183,
+   "jetonsSortie": 41416,
+   "tours": 20,
+   "verifie": true,
+   "repartition": {
+    "contexte": 27.3,
+    "plan": 0,
+    "implementation": 42.9,
+    "verification": 29.8
+   },
+   "app": "apps/bike-configurator/2026-11-14-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-cc-claude-opus-5-5.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 67,
+    "tests": 734,
+    "testsVerts": 734,
+    "ratees": []
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-14-codex-gpt-6-astra",
+   "epreuve": "bike-configurator",
+   "modele": "gpt-6-astra",
+   "modeleNom": "GPT-6 Astra",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-14",
+   "dureeMs": 204181,
+   "coutUsd": 1.046426,
+   "coutEstime": true,
+   "jetonsTotal": 307629,
+   "jetonsSortie": 8207,
+   "tours": 8,
+   "verifie": true,
+   "repartition": {
+    "contexte": 31.6,
+    "plan": 0,
+    "implementation": 32.2,
+    "verification": 36.2
+   },
+   "app": "apps/bike-configurator/2026-11-14-codex-gpt-6-astra/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-14-codex-gpt-6-astra.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 67,
+    "tests": 734,
+    "testsVerts": 734,
+    "ratees": []
+   }
+  },
+  {
+   "id": "bike-configurator/2026-11-15-codex-gpt-6-luna-2",
+   "epreuve": "bike-configurator",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "max",
+   "date": "2026-11-15",
+   "dureeMs": 1298518,
+   "coutUsd": 0.066402,
+   "coutEstime": true,
+   "jetonsTotal": 2178909,
+   "jetonsSortie": 68541,
+   "tours": 26,
+   "verifie": true,
+   "repartition": {
+    "contexte": 41,
+    "plan": 0,
+    "implementation": 12.3,
+    "verification": 46.7
+   },
+   "app": "apps/bike-configurator/2026-11-15-codex-gpt-6-luna-2/index.html",
+   "vignette": "vignettes/bike-configurator/2026-11-15-codex-gpt-6-luna-2.webp",
+   "score": {
+    "exigences": 67,
+    "exigencesTenues": 66,
+    "tests": 734,
+    "testsVerts": 733,
+    "ratees": [
+     "FR-FIT-05"
+    ]
+   }
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-cc-claude-opus-5-5",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-opus-5-5",
+   "modeleNom": "Claude Opus 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 947729,
+   "coutUsd": 3.0910951999999994,
+   "coutEstime": false,
+   "jetonsTotal": 1143221,
+   "jetonsSortie": 99675,
+   "tours": 10,
+   "verifie": true,
+   "repartition": {
+    "contexte": 28.5,
+    "plan": 0,
+    "implementation": 59.3,
+    "verification": 12.2
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-cc-claude-opus-5-5/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-cc-claude-opus-5-5.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-cc-claude-sonnet-5-5",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-sonnet-5-5",
+   "modeleNom": "Claude Sonnet 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 904156,
+   "coutUsd": 1.907278,
+   "coutEstime": false,
+   "jetonsTotal": 1692096,
+   "jetonsSortie": 120792,
+   "tours": 11,
+   "verifie": true,
+   "repartition": {
+    "contexte": 70,
+    "plan": 0,
+    "implementation": 27.5,
+    "verification": 2.5
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-cc-claude-sonnet-5-5/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-cc-claude-sonnet-5-5.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-codex-gpt-6-luna",
+   "epreuve": "rocket-landing-3d",
+   "modele": "gpt-6-luna",
+   "modeleNom": "GPT-6 Luna",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 235873,
+   "coutUsd": 0.010466,
+   "coutEstime": true,
+   "jetonsTotal": 148696,
+   "jetonsSortie": 12176,
+   "tours": 5,
+   "verifie": true,
+   "repartition": {
+    "contexte": 26.5,
+    "plan": 0,
+    "implementation": 73.5,
+    "verification": 0
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-codex-gpt-6-luna/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-codex-gpt-6-luna.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-codex-gpt-6-1-sol",
+   "epreuve": "rocket-landing-3d",
+   "modele": "gpt-6.1-sol",
+   "modeleNom": "GPT-6.1 Sol",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 783416,
+   "coutUsd": 0.43966,
+   "coutEstime": true,
+   "jetonsTotal": 540787,
+   "jetonsSortie": 31116,
+   "tours": 13,
+   "verifie": true,
+   "repartition": {
+    "contexte": 1.3,
+    "plan": 0,
+    "implementation": 66.9,
+    "verification": 31.8
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-codex-gpt-6-1-sol/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-codex-gpt-6-1-sol.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-cc-claude-haiku-5-5",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-haiku-5-5",
+   "modeleNom": "Claude Haiku 5.5",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 1626989,
+   "coutUsd": 0.36843283000000004,
+   "coutEstime": false,
+   "jetonsTotal": 1246880,
+   "jetonsSortie": 358314,
+   "tours": 16,
+   "verifie": true,
+   "repartition": {
+    "contexte": 14.9,
+    "plan": 0,
+    "implementation": 85.1,
+    "verification": 0
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-cc-claude-haiku-5-5/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-cc-claude-haiku-5-5.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-16-codex-gpt-6-astra",
+   "epreuve": "rocket-landing-3d",
+   "modele": "gpt-6-astra",
+   "modeleNom": "GPT-6 Astra",
+   "outil": "Codex",
+   "effort": "medium",
+   "date": "2026-11-16",
+   "dureeMs": 860633,
+   "coutUsd": 2.579388,
+   "coutEstime": true,
+   "jetonsTotal": 669182,
+   "jetonsSortie": 35314,
+   "tours": 14,
+   "verifie": true,
+   "repartition": {
+    "contexte": 3.9,
+    "plan": 0,
+    "implementation": 70.8,
+    "verification": 25.3
+   },
+   "app": "apps/rocket-landing-3d/2026-11-16-codex-gpt-6-astra/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-16-codex-gpt-6-astra.webp"
+  },
+  {
+   "id": "rocket-landing-3d/2026-11-17-cc-claude-fable-5-2",
+   "epreuve": "rocket-landing-3d",
+   "modele": "claude-fable-5-2",
+   "modeleNom": "Claude Fable 5.2",
+   "outil": "Claude Code",
+   "effort": "medium",
+   "date": "2026-11-17",
+   "dureeMs": 1364074,
+   "coutUsd": 6.412479599999999,
+   "coutEstime": false,
+   "jetonsTotal": 1224243,
+   "jetonsSortie": 104570,
+   "tours": 14,
+   "verifie": true,
+   "repartition": {
+    "contexte": 29.8,
+    "plan": 0,
+    "implementation": 59.7,
+    "verification": 10.5
+   },
+   "app": "apps/rocket-landing-3d/2026-11-17-cc-claude-fable-5-2/index.html",
+   "vignette": "vignettes/rocket-landing-3d/2026-11-17-cc-claude-fable-5-2.webp"
+  },
+  {
    "id": "bike-shop/2026-11-17-cc-claude-fable-5-2",
    "epreuve": "bike-shop",
    "modele": "claude-fable-5-2",
@@ -2186,6 +3015,327 @@
   }
  ],
  "epreuves": [
+  {
+   "slug": "bluey-house-3d",
+   "titre": "Bluey House 3D",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D, explorable recreation of the Heeler family home from the animated series Bluey: the house, the garden around it, and the four members of the family. The scene is still: nothing moves except the visitor's camera. The visitor walks around the garden, climbs to the veranda, enters the house, and meets the family.\n\nEverything is built in code from Three.js geometry and procedural materials. The goal is a place a fan of the show recognizes at first glance, in the show's flat, bright, rounded cartoon style.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a small help panel, and a compact location label.\n\n- The visitor starts in the garden, standing on the grass, facing the house, with the whole front of the house and at least one family member in view.\n- The visitor can walk all the way around the house, go up the stairs to the veranda, enter the house through an open doorway, and walk from room to room.\n- Nothing in the scene is animated: no idle motion, no swaying leaves, no moving clouds, no day-night cycle. Only the camera moves.\n- The location label always names where the visitor is: `Garden`, `Veranda`, or the name of the room.\n</core-experience>\n\n<the-house>\nThe house is a raised timber Queenslander, as in the show.\n\n- It stands on stilts, with an open space under the floor that the visitor can see into from the garden.\n- Timber walls, a pitched corrugated metal roof, windows on every side, and a wide veranda with railings along the front.\n- Stairs lead from the garden up to the veranda. The visitor climbs them by walking; the camera follows the steps up and down.\n- An open doorway leads from the veranda into the house.\n- Inside, at least three connected rooms the visitor can walk through: a living room with a couch and a rug, a kitchen with a bench, and the girls' bedroom with two beds. Add more rooms if you want.\n- Furnish every room so it reads as a lived-in family home: toys, cushions, pictures on the walls, kitchen objects. Pick the details yourself.\n</the-house>\n\n<the-garden>\n- A large backyard of grass that slopes gently, with the house in it. The ground is not a flat plane.\n- A big shade tree in the yard, large enough to stand under.\n- At least four other garden features of your choice that fit the show's backyard (play equipment, a fence, plants, outdoor furniture, toys left on the grass).\n- A sky and distant surroundings that close the scene: the visitor never sees the edge of the world or an empty void.\n</the-garden>\n\n<the-family>\nThe four Heelers stand or sit in the scene, each in a still pose of your choice:\n\n- Bluey: a blue heeler puppy, six years old.\n- Bingo: a red heeler puppy, four years old, smaller than Bluey.\n- Bandit: the dad, a blue heeler, the tallest of the four.\n- Chilli: the mum, a red heeler, shorter than Bandit, taller than Bluey.\n\nRules:\n\n- Each character is recognizable on its own: body colors and markings, ear shape, muzzle, tail, eyes. Use the show's colors as you remember them.\n- Characters stand upright on two legs in the show's proportions: big heads, short bodies.\n- Size order, tallest first: Bandit, Chilli, Bluey, Bingo.\n- Place at least one character outside and at least one inside the house.\n- Each character stands on a floor, a step, the grass, or furniture. No character floats or sinks into a surface.\n- When the visitor is within 1.5 m of a character and looking at it, a small label shows the character's name.\n</the-family>\n\n<navigation>\n- Walk mode (default): first-person view at a child's eye height of 1.0 m above the surface under the visitor. Mouse look with pointer lock after a click on the scene; W A S D or arrow keys to move; Shift to move faster.\n- Walking speed: 2 m/s, and 4 m/s with Shift.\n- The visitor cannot walk through walls, furniture, the tree trunk, the stilts, the railings, or the characters. Moving into one slides along it instead of stopping dead.\n- The visitor follows the height of the ground, the stairs, and the floors. No flying, no falling through the ground.\n- Orbit mode: press O to switch to an orbit camera around the whole property (drag to rotate, wheel to zoom), and O again to return to walk mode at the last walking position.\n- The help panel lists the controls and can be hidden with H.\n</navigation>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Flat, bright, cartoon colors with soft daylight: one sun with a shadow map, plus soft fill light. All characters, the house, the tree, and the furniture cast and receive shadows.\n- Indoor rooms are lit well enough to see every object.\n- No external image, model, HDR, texture, or font file. Generate any texture in code.\n- Steady frame rate on a recent laptop: merge or instance repeated geometry where it helps.\n</rendering>\n\n<inspection>\nExpose `window.sceneState()`. It returns a plain JSON object with:\n\n- `camera`: `{ mode, position: [x, y, z], yaw, pitch }`, where `mode` is `walk` or `orbit`, positions are in meters, and angles in degrees\n- `location`: the text currently shown in the location label\n- `characters`: an array of four objects `{ name, position: [x, y, z], height, location }`, where `height` is the character's standing height in meters and `location` is where it is placed (`Garden`, `Veranda`, or a room name)\n- `rooms`: the names of the rooms inside the house\n- `landmarks`: the names of the garden features you built\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the page to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 2
+  },
+  {
+   "slug": "roller-coaster-3d",
+   "titre": "Roller Coaster 3D",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D roller coaster: a train of cars climbs a chain lift, drops, runs through a vertical loop, an airtime hill, and a banked turn, then brakes back into the station.\n\nThis is a simulation, not a scripted animation. Once the train leaves the lift chain, its speed at every point must come out of forces integrated step by step along the track: gravity, and friction or air drag when they are on. Never set the speed from a formula of the height, and never move the train along a precomputed timeline.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a control bar, a settings panel, and a live readout.\n\n- On load, the train waits in the station and dispatches by itself at t = 1 s, without any click.\n- It rides the whole circuit and stops in the station, then waits.\n- Dispatch (button or D key) sends the train again with the current settings.\n- If the train cannot crest a hill, it stops on the slope and rolls back under gravity, exactly as the simulation dictates. The readout shows \"Rollback\" and the element where it happened. Reset (button or R key) returns the train to the station.\n</core-experience>\n\n<track>\nThe track is one closed circuit made of these elements, in this order. Heights are those of the track centerline above flat ground.\n\n1. Station: flat, at 2 m. Brakes hold the train while it waits.\n2. Chain lift: a straight incline. The chain pulls the train up at a constant speed and lets it go at the crest. The crest height is a setting.\n3. First drop: from the lift crest down to 2 m.\n4. Vertical loop: a teardrop loop, 26 m tall, from 2 m at the bottom to 28 m at the top. The top of the loop is a circular arc of radius 8 m. Riders are upside down at the top.\n5. Airtime hill: a camelback hill whose crest is at 30 m. The crest is a circular arc of radius 15 m in the vertical plane.\n6. Banked turn: a 180° turn of radius 20 m, flat at 6 m. Bank it so that, on the default ride, riders feel almost no sideways push.\n7. Brake run: back down to 2 m, where brakes slow the train and bring it into the station.\n\nShape the transitions between elements yourself. The track must be smooth: no kinks in direction, no sudden jumps in curvature large enough to show as a spike in the g-force readout.\n\nBuild the track from a continuous centerline curve. Draw the two running rails, the ties, and the supports down to the ground.\n</track>\n\n<train>\n- A train of cars, coupled, following each other on the track at a fixed spacing. Each loaded car weighs 500 kg.\n- Simulate the train as one body moving along the track: its state is its distance along the track and its speed. The train's reference point is its middle; the height used for the physics is the track height under that point.\n- The cars stay on the rails everywhere, including upside down and on a rollback: running wheels, side wheels, and upstop wheels hold them.\n- Riders are visible in every seat.\n</train>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation rides the same baseline circuit.\n\n- Gravity: 9.81 m/s²\n- Lift crest height: 40 m\n- Chain speed: 3 m/s\n- Cars: 6, at 500 kg each\n- Rolling friction: off. When on: friction force = 0.015 × the normal force between the wheels and the rails, opposite to the motion\n- Air drag: off. When on: air density 1.225 kg/m³, drag coefficient 0.9, frontal area 1.5 m² for the whole train, drag force ½ ρ Cd A v² opposite to the motion\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next ride. If a control is on screen, it is wired.\n\n- lift crest height, 25 to 50 m\n- chain speed, 1 to 6 m/s\n- number of cars, 1 to 8\n- rolling friction on / off\n- air drag on / off\n- gravity, with presets Earth 9.81, Mars 3.71, Moon 1.62\n\nChanging a setting rebuilds the track if needed and puts the train back in the station.\n</settings>\n\n<live-readout>\nShow these values while the train moves, measured from the simulation:\n\n- speed (m/s and km/h) and height (m)\n- vertical g-force felt by the riders: the force from the seat on a rider along the rider's own up direction, divided by the rider's weight. 1 at rest in the station, above 1 when pressed into the seat, below 0 when lifted out of it\n- lateral g-force felt by the riders, sideways in the rider's own frame\n- energy bars: kinetic, potential, and dissipated by friction and drag, and their sum\n\nAfter each ride, show: maximum speed, maximum and minimum vertical g, ride time from dispatch to stop, and \"Completed\" or \"Rollback\" with the element where it happened.\n</live-readout>\n\n<playback-and-camera>\n- Pause / Play, and simulation speed 0.25×, 0.5×, 1×. Space toggles pause unless an input is focused.\n- Cameras: Front seat (the view of a rider in the first car), Chase (follows the train from behind and above), Orbit (drag to orbit around the whole park). Default is Chase. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: painted steel track and supports, cars, riders, ground.\n- A shadow map on the sun light; the track, the supports, and the train cast shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- The park around the coaster, the colors, and the atmosphere are your choice.\n</rendering>\n\n<physics>\n- Fixed physics timestep with a cap on steps per frame.\n- No Math.random in the physical setup or the force computation.\n- The same settings give the same ride on reload and on Dispatch.\n- Slow motion changes the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.coasterState()`. It returns a plain JSON object with:\n\n- `train`: `{ phase, element, distance, speed, height, gVertical, gLateral }`, where `phase` is `station`, `lift`, `free`, `brake`, or `rollback`, `element` is the name of the track element under the train's reference point, `distance` is in meters along the track from the station\n- `energy`: `{ kinetic, potential, dissipated }` in joules, potential measured from the ground\n- `track`: `{ length, elements: [{ name, start, end }] }`, with `start` and `end` in meters along the track\n- `lastRide`: `{ maxSpeed, maxG, minG, speedAtDropBottom, speedAtLoopTop, gAtLoopTop, speedAtHillCrest, gAtHillCrest, maxLateralGInTurn, rideTime, completed, rollbackElement }` in SI units, or `null` before the first ride ends. `rollbackElement` is `null` when the ride completed\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the page to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 4
+  },
+  {
+   "slug": "foucault-pendulum-3d",
+   "titre": "Foucault Pendulum 3D",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D Foucault pendulum: a heavy bob hangs from a long wire under the dome of a great hall, swings across a graduated floor dial, and its plane of swing slowly turns because the Earth rotates under it.\n\nThis is a simulation, not a scripted animation. The bob's motion must come out of forces integrated step by step in the frame of the floor, which turns with the Earth: gravity, the wire tension, the Coriolis effect, and air drag when it is on. Never rotate the plane of swing yourself, never set it from a formula of the latitude or of the time, and never move the bob along a precomputed path.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a control bar, a settings panel, and a live readout.\n\n- On load, the bob is held to the north side of its rest point by a thread. At t = 1 s the thread burns and the bob is released, without any click.\n- The pendulum then swings on its own. The plane of swing turns over time, clockwise seen from above in the northern hemisphere, counterclockwise in the southern hemisphere, not at all at the equator, exactly as the simulation dictates.\n- Release (button or L key) releases the bob when it is held. Reset (button or R key) puts the bob back on its thread at the release point and resets the simulated time.\n- Changing a setting resets the pendulum. The bob then waits on its thread for Release.\n</core-experience>\n\n<hall-and-pendulum>\n- The pivot is fixed under the top of a dome. The wire hangs straight down from it. The wire length is a setting; the hall is tall enough for the longest wire.\n- The bob is a brass sphere, 0.38 m in diameter, at the end of the wire. Wire length is measured from the pivot to the center of the bob.\n- The wire is rigid in length and has no mass. The pivot is ideal: no friction, no preferred direction.\n- The bob moves in full 3D around the pivot: it is a spherical pendulum, not a planar one.\n- The release point is due north of the rest point, at the release distance from it measured horizontally. The bob is released at rest relative to the floor.\n- On the floor, centered under the pivot: a circular dial graduated every degree, labeled every 10°, with the four compass points. North on the dial is true north for the simulation.\n- A ring of 36 small pins stands on the dial, one every 10°, at 0.9 × the release distance from the center. A pin falls over when the bob touches it, and stays down until Reset.\n- A floor trace: the path of the bob's lowest point, drawn on the floor like a stylus in sand, fading over time, with an on / off toggle.\n</hall-and-pendulum>\n\n<earth-rotation>\n- The simulation runs in the frame of the floor, with axes east, north, and up at the pendulum's latitude.\n- In that frame, the only effect of the Earth's rotation is the Coriolis acceleration −2 Ω × v, where v is the bob's velocity and Ω is the Earth's rotation vector expressed in that frame: magnitude 7.2921 × 10⁻⁵ rad/s times the rotation multiplier, pointing toward the celestial north pole. The centrifugal effect is already included in g.\n- The rotation multiplier exaggerates the Earth's rotation for teaching. At ×1 the Earth turns at its real rate.\n</earth-rotation>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation swings the same baseline pendulum.\n\n- Latitude: 48.8462° N\n- Gravity: 9.81 m/s²\n- Wire length: 67 m\n- Bob mass: 28 kg\n- Release distance: 3 m\n- Rotation multiplier: ×1\n- Air drag: off. When on: air density 1.225 kg/m³, drag coefficient 0.47, frontal area of the 0.38 m sphere, drag force ½ ρ Cd A v² opposite to the bob's velocity relative to the floor. The wire has no drag.\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next swing. If a control is on screen, it is wired.\n\n- latitude, −90° to 90°, with presets Paris 48.8462, North Pole 90, Equator 0, Sydney −33.87\n- wire length, 10 to 100 m\n- bob mass, 5 to 50 kg\n- release distance, 0.5 to 5 m\n- rotation multiplier: ×1, ×10, ×100, ×1000\n- air drag on / off\n- gravity, with presets Earth 9.81, Mars 3.71, Moon 1.62\n</settings>\n\n<live-readout>\nShow these values while the pendulum swings, measured from the simulation:\n\n- simulated time since release, as hours, minutes, and seconds\n- number of swings, and the period measured on the last full swing\n- azimuth of the plane of swing: its direction in degrees clockwise from north, between 0 and 180\n- precession rate: how fast the plane of swing turns, in degrees per hour of simulated time, fitted on the azimuths measured since release; positive when it turns clockwise seen from above. Also show the time this rate would take for a full turn\n- current amplitude, and the closest distance between the bob and the rest point during the last pass\n- energy bars: kinetic, potential, and dissipated by drag, and their sum\n</live-readout>\n\n<playback-and-camera>\n- Pause / Play, and simulation speed 0.25×, 1×, 60×, 600×, 3600×. Space toggles pause unless an input is focused. At every speed the physics is the same.\n- Cameras: Hall (a view of the whole pendulum from the floor of the hall), Overhead (looking straight down at the dial from under the pivot, north up), Orbit (drag to orbit around the pendulum). Default is Hall. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: brass bob, steel wire, stone hall, dial, pins.\n- A shadow map on the main light; the bob, the wire, and the pins cast shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- The architecture of the hall, the colors, and the atmosphere are your choice.\n</rendering>\n\n<physics>\n- Fixed physics timestep with a cap on steps per frame. The cap must still let 3600× run in real time.\n- No Math.random in the physical setup or the force computation.\n- The same settings give the same swing on reload and on Reset then Release.\n- Slow motion and time-lapse change the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.pendulumState()`. It returns a plain JSON object with:\n\n- `bob`: `{ phase, east, north, up, speed }`, where `phase` is `held`, `swinging`, or `paused`, and `east`, `north`, `up` are in meters from the rest point\n- `swing`: `{ count, period, azimuth, precessionRate, fullTurnHours, amplitude, missDistance }`, with `period` in seconds, `azimuth` in degrees clockwise from north between 0 and 180, `precessionRate` in degrees per hour of simulated time, positive clockwise seen from above, `amplitude` and `missDistance` in meters. Fields are `null` until they can be measured\n- `time`: `{ simulated }`, in seconds since release\n- `energy`: `{ kinetic, potential, dissipated }` in joules, potential measured from the rest point\n- `pins`: `{ standing, fallen }`\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the page to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 4
+  },
+  {
+   "slug": "rube-goldberg-3d",
+   "titre": "Rube Goldberg 3D",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D Rube Goldberg machine: a chain reaction where each stage triggers the next one only through physical contact, simulated by a real 3D rigid-body engine. The chain has nine stages in a fixed order. Eight are specified below; the ninth is your own invention. Theme the machine and the room freely.\n\nThis is a simulation, not a scripted animation. If a physical parameter makes a stage fail, the chain must stop there, and the page must say which stage failed.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a compact control bar, and a stage checklist.\n\n- The machine fits on a large workbench or a room floor, about 4 m long. Stages are laid out so every one is visible from the overview camera.\n- The default run starts by itself one second after the page loads. Do not require a click before the chain starts.\n- When the bell rings, the page shows the total chain time in simulation seconds and holds on the finished machine.\n- Replay rebuilds a fresh run from the current settings. The first automatic run must use the mandatory defaults exactly.\n</core-experience>\n\n<mandatory-chain>\nThe stages run in this order. Each stage starts only when a body from the previous stage touches it. No timers, no scripted triggers, no teleporting bodies between stages.\n\n1. Release gate: a steel ball rests behind a gate at the top of a ramp. The gate swings open at t = 1 s. This is the only timed event in the whole machine.\n2. Switchback ramps: the ball rolls down a first ramp, then down three more ramps that zigzag downward, each one reversing the ball's horizontal direction. The ball must stay on the ramps by contact with side rails, not by a guiding constraint.\n3. Dominoes: the ball leaves the last ramp and hits the first of 24 dominoes. The domino line includes one 90° turn. Each domino falls because the previous one hits it.\n4. Lever: the last domino pushes a heavy block off a shelf. The block falls onto the short arm of a seesaw lever. The long arm flips up and launches a light ball.\n5. Pulley: the light ball lands in a basket hanging from a rope that runs over a fixed pulley to a counterweight. At rest, the counterweight sits on the floor, which holds the empty basket up. The loaded basket is heavier than the counterweight, so the basket goes down and the counterweight lifts off the floor. The rope keeps a constant length.\n6. Pendulum: the descending basket presses a latch that releases a pendulum held at 60° from vertical.\n7. Newton's cradle: the pendulum bob strikes the first ball of a five-ball Newton's cradle. The last ball of the cradle swings out.\n8. Your stage: the last cradle ball triggers one stage of your own invention. It must be physical, visible, and different from every other stage in this list (no second set of dominoes, no second pendulum). It must end by touching the bell's striker.\n9. Bell: a striker hits a bell. The bell rings with a sound generated by the Web Audio API, and the chain is complete.\n</mandatory-chain>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation runs the same baseline machine.\n\n- Gravity: 9.81 m/s²\n- Steel ball: radius 0.03 m, mass 0.11 kg\n- Ramp slope: 20°\n- Domino size: 0.20 m tall × 0.10 m wide × 0.03 m thick\n- Domino mass: 0.15 kg\n- Domino spacing (center to center): 0.12 m\n- Heavy block on the shelf: 1.0 kg\n- Lever: total length 1.0 m, pivot 0.25 m from the short end\n- Light ball launched by the lever: 0.05 kg\n- Empty basket: 0.20 kg\n- Counterweight: 0.22 kg\n- Pendulum: length 1.0 m, bob mass 0.5 kg, released from 60°\n- Newton's cradle: 5 steel balls, radius 0.025 m, restitution 0.95\n- Friction between ball and ramps: 0.3\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next run when the user hits Replay or Apply. If a control is on screen, it is wired.\n\nRequired live controls:\n\n- gravity\n- domino spacing\n- domino mass\n- counterweight mass\n- pendulum length and release angle\n- lever pivot position\n- Newton's cradle restitution\n\nThese settings must produce physical consequences, not scripted ones:\n\n- A gap between two dominoes (spacing minus thickness) larger than the domino height: the domino line stops.\n- Counterweight heavier than the loaded basket: the basket does not go down.\n- Changing the pendulum length moves its pivot so the bob still meets the cradle at the bottom of its arc. A longer pendulum takes longer to reach the cradle.\n- Lower cradle restitution: the cradle transfers less motion, and the chain may stop.\n</settings>\n\n<stage-checklist>\nShow a compact list of the nine stages. Each stage lights up when it triggers, with its trigger time in simulation seconds.\n\nIf no stage triggers for 8 simulation seconds after the previous one, mark the waiting stage as failed and show a short message naming it.\n\nShow these measured values, read from the simulated bodies, not computed from a formula:\n\n- the basket's acceleration during its descent, in m/s²\n- the pendulum's swing time, in seconds, from its release to its impact on the cradle\n</stage-checklist>\n\n<playback-and-camera>\n- Pause / Play, freezing physics and the clock. Space toggles pause unless an input is focused.\n- Simulation speed: 0.25×, 0.5×, 1×. The selected speed survives Replay.\n- Cameras: Overview (whole machine), Follow (moves automatically to the active stage), Orbit (drag to orbit). Default is Follow. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: metal balls with reflections, wood dominoes, rope, a brass bell.\n- A shadow map on the main light; all moving bodies cast and receive shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- Give the room and the machine a coherent theme of your choice. Decorations must not touch the chain.\n</rendering>\n\n<physics>\n- Use a real 3D rigid-body engine loaded from a CDN, such as Rapier, cannon-es, or ammo.js.\n- Fixed physics timestep with a cap on steps per frame.\n- No Math.random in the physical setup or the collision response.\n- The same settings produce the same chain on reload and on Replay.\n- Slow motion changes the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.machineState()`. It returns a plain JSON object with:\n\n- `stages`: an array of nine objects `{ id, name, status, triggeredAt }`, where `status` is `waiting`, `triggered`, or `failed` and `triggeredAt` is a simulation time in seconds or `null`\n- `basketAcceleration`: the measured value in m/s², or `null`\n- `pendulumSwingTime`: the measured value in seconds, or `null`\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the simulation to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js and the physics engine may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nSet the browser title and the primary visible title to your model name, using only identity information already available to you. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 4
+  },
+  {
+   "slug": "bike-configurator",
+   "titre": "Bike Configurator",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nThe folder `spec/` in the current working directory holds the software requirements specification of the application to build: functional behavior, page structure, texts, design tokens, layout and visual states. Read every file of `spec/`, starting with `spec/README.md`, before writing any code.\n\nImplement every requirement of the specification exactly as written: the same `data-testid` values, accessible names, texts, formats, calculations, colors, sizes, layouts and states. Where the specification is explicit, do not improvise and do not add behavior that changes it. Where it is silent, decide yourself.\n</instructions>\n\n<delivery>\n- Do not edit, move or delete the files of `spec/`.\n- You may check your page in any way you like, inside the current working directory.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, or font files. No package manager and no dev server for the delivered page. Everything is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nYour model name is exactly: GPT-6 Luna. Set the browser title and the primary visible title to that name, written exactly as given. Add nothing else to either title.\nRun the relevant checks yourself. Do not edit files outside the current working directory.",
+   "essais": 8,
+   "spec": {
+    "fichiers": [
+     "README",
+     "01-product-overview",
+     "02-catalog-and-rules",
+     "03-ui-contract",
+     "04-design-system",
+     "05-fr-fit",
+     "06-fr-options",
+     "07-fr-pricing",
+     "08-fr-order",
+     "09-dr-design",
+     "10-non-functional"
+    ],
+    "exigences": {
+     "FR-FIT-01": {
+      "titre": "Height field",
+      "page": "05-fr-fit"
+     },
+     "FR-FIT-02": {
+      "titre": "Height validation",
+      "page": "05-fr-fit"
+     },
+     "FR-FIT-03": {
+      "titre": "Frame recommendation",
+      "page": "05-fr-fit"
+     },
+     "FR-FIT-04": {
+      "titre": "Automatic frame selection",
+      "page": "05-fr-fit"
+     },
+     "FR-FIT-05": {
+      "titre": "Manual frame selection",
+      "page": "05-fr-fit"
+     },
+     "FR-FIT-06": {
+      "titre": "Recommended badge",
+      "page": "05-fr-fit"
+     },
+     "FR-FIT-07": {
+      "titre": "Size gap warning",
+      "page": "05-fr-fit"
+     },
+     "FR-OPT-01": {
+      "titre": "Option groups and defaults",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-02": {
+      "titre": "Card price text",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-03": {
+      "titre": "29-inch wheels and frame S",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-04": {
+      "titre": "Wheel replacement cascade",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-05": {
+      "titre": "Out-of-stock color",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-06": {
+      "titre": "Racing Red with Pro drivetrain",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-07": {
+      "titre": "Rack adds mudguards",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-08": {
+      "titre": "Mudguards removal removes rack",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-09": {
+      "titre": "Notice lifetime",
+      "page": "06-fr-options"
+     },
+     "FR-OPT-10": {
+      "titre": "Bike preview",
+      "page": "06-fr-options"
+     },
+     "FR-QTY-01": {
+      "titre": "Quantity stepper",
+      "page": "07-fr-pricing"
+     },
+     "FR-QTY-02": {
+      "titre": "Quantity limits",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRM-01": {
+      "titre": "Promo field and Apply button",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRM-02": {
+      "titre": "Code normalization",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRM-03": {
+      "titre": "Unknown code",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRM-04": {
+      "titre": "Applying a known code",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRM-05": {
+      "titre": "Applied code status",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRM-06": {
+      "titre": "Removing a code",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRC-01": {
+      "titre": "Price calculation",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRC-02": {
+      "titre": "Live recalculation",
+      "page": "07-fr-pricing"
+     },
+     "FR-PRC-03": {
+      "titre": "No frame selected",
+      "page": "07-fr-pricing"
+     },
+     "FR-SUM-01": {
+      "titre": "Summary lines",
+      "page": "07-fr-pricing"
+     },
+     "FR-SUM-02": {
+      "titre": "Conditional summary lines",
+      "page": "07-fr-pricing"
+     },
+     "FR-SUM-03": {
+      "titre": "Summary value formats",
+      "page": "07-fr-pricing"
+     },
+     "FR-DLV-01": {
+      "titre": "Lead time",
+      "page": "07-fr-pricing"
+     },
+     "FR-DLV-02": {
+      "titre": "Delivery date",
+      "page": "07-fr-pricing"
+     },
+     "FR-ORD-01": {
+      "titre": "Order button label",
+      "page": "08-fr-order"
+     },
+     "FR-ORD-02": {
+      "titre": "Order availability",
+      "page": "08-fr-order"
+     },
+     "FR-ORD-03": {
+      "titre": "Order confirmation",
+      "page": "08-fr-order"
+     },
+     "FR-ORD-04": {
+      "titre": "Order reference",
+      "page": "08-fr-order"
+     },
+     "FR-ORD-05": {
+      "titre": "New configuration",
+      "page": "08-fr-order"
+     },
+     "DR-TOK-01": {
+      "titre": "Tokens declared",
+      "page": "09-dr-design"
+     },
+     "DR-TOK-02": {
+      "titre": "Page base styles",
+      "page": "09-dr-design"
+     },
+     "DR-LAY-01": {
+      "titre": "Wide layout",
+      "page": "09-dr-design"
+     },
+     "DR-LAY-02": {
+      "titre": "Sticky summary",
+      "page": "09-dr-design"
+     },
+     "DR-LAY-03": {
+      "titre": "Narrow layout",
+      "page": "09-dr-design"
+     },
+     "DR-LAY-04": {
+      "titre": "Section order and headings",
+      "page": "09-dr-design"
+     },
+     "DR-LAY-05": {
+      "titre": "Card grids",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-01": {
+      "titre": "Section panels",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-02": {
+      "titre": "Option cards",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-03": {
+      "titre": "Color swatches",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-04": {
+      "titre": "Recommended badge style",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-05": {
+      "titre": "Primary button",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-06": {
+      "titre": "Secondary buttons",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-07": {
+      "titre": "Summary typography",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-08": {
+      "titre": "Field errors",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-09": {
+      "titre": "Promo status color",
+      "page": "09-dr-design"
+     },
+     "DR-CMP-10": {
+      "titre": "Notice placement and style",
+      "page": "09-dr-design"
+     },
+     "DR-STA-01": {
+      "titre": "Card hover",
+      "page": "09-dr-design"
+     },
+     "DR-STA-02": {
+      "titre": "Card selected",
+      "page": "09-dr-design"
+     },
+     "DR-STA-03": {
+      "titre": "Card disabled",
+      "page": "09-dr-design"
+     },
+     "DR-STA-04": {
+      "titre": "Keyboard focus",
+      "page": "09-dr-design"
+     },
+     "DR-STA-05": {
+      "titre": "Stable card size",
+      "page": "09-dr-design"
+     },
+     "DR-THM-01": {
+      "titre": "Dark theme",
+      "page": "09-dr-design"
+     },
+     "DR-MOT-01": {
+      "titre": "Transitions and reduced motion",
+      "page": "09-dr-design"
+     },
+     "NFR-PKG-01": {
+      "titre": "Single file delivery",
+      "page": "10-non-functional"
+     },
+     "NFR-NET-01": {
+      "titre": "No network access",
+      "page": "10-non-functional"
+     },
+     "NFR-DLG-01": {
+      "titre": "No native dialogs",
+      "page": "10-non-functional"
+     },
+     "NFR-A11Y-01": {
+      "titre": "Native controls and accessible names",
+      "page": "10-non-functional"
+     },
+     "NFR-A11Y-02": {
+      "titre": "Live announcements",
+      "page": "10-non-functional"
+     }
+    }
+   }
+  },
+  {
+   "slug": "rocket-landing-3d",
+   "titre": "Rocket Landing 3D",
+   "consigne": "<instructions>\nGenerate a single self-contained HTML file that runs directly in a browser.\n\nBuild a full-3D two-stage rocket launch: the rocket lifts off from a coastal pad, the first stage separates, the second stage flies on, and the first stage flips, flies back, brakes through the atmosphere, and lands upright on a drone barge at sea.\n\nThis is a simulation, not a scripted animation. Every body's position, velocity, and mass must come out of thrust, gravity, and air drag integrated step by step, with mass flow from the engines. Never move a stage along a precomputed path, never set a velocity from a formula, and never place the booster on the barge: it lands only if its own burns stop it there.\n</instructions>\n\n<core-experience>\nThe page is one fullscreen 3D scene, a control bar, a settings panel, a live telemetry panel, and an event log.\n\n- A launch pad on the coast, open sea downrange, and the drone barge out at sea.\n- On load, the engines ignite by themselves at t = 1 s, without any click. The mission clock starts at ignition (T+0).\n- The camera follows the flight through separation, then the booster all the way down to the barge.\n- Launch (button or L key) resets everything with the current settings and flies again.\n- At the end of the booster's flight, the page shows \"Landed\" or \"Crashed\". A crashed booster must look crashed (it falls over, breaks, or explodes).\n</core-experience>\n\n<vehicle>\nThe flight takes place in one vertical plane: x is the horizontal distance downrange from the pad, y is the altitude above flat ground and sea level. The ground is flat and gravity is uniform and vertical.\n\n- Stage 1 (the booster): dry mass 25 t, propellant 300 t, 9 engines, diameter 3.7 m, about 45 m tall, 4 landing legs and 4 grid fins stowed against the body.\n- Stage 2: dry mass 5 t, propellant 90 t, 1 engine of 1000 kN, specific impulse 345 s, with the payload under a fairing on top.\n- Each engine has a constant thrust and a constant specific impulse, whatever the altitude. Mass flow of an engine = thrust / (specific impulse × 9.80665), and the stage's mass drops by that flow while the engine burns.\n- Air drag on every flying body: ½ ρ Cd A v² opposite to its velocity, with Cd = 0.5 and A = 10.75 m² for the full rocket, for the booster, and for stage 2 alike. Air density ρ = ρ₀ × exp(−altitude / H).\n- Model each flying body as a point mass for the physics. Its visible attitude follows its thrust direction while an engine burns, and its velocity otherwise.\n</vehicle>\n\n<flight-sequence>\n1. Ignition at T+0, all 9 booster engines at full thrust. The pad holds the rocket until thrust exceeds weight. If thrust has not exceeded weight 5 s after ignition, the engines shut down and the flight ends with \"No liftoff\".\n2. Ascent. The thrust points straight up for the first 10 s after liftoff. Then it tilts downrange from the vertical at the pitch rate, until it is 60° from the vertical, and stays there.\n3. MECO (main engine cut-off): the booster engines stop when the booster's remaining propellant falls to the landing reserve.\n4. Separation 2 s after MECO. Stage 2 ignites 3 s after separation, follows the same pitch program on the mission clock, and burns until its propellant is gone (SECO).\n5. Flip: the booster coasts 10 s after separation while it turns around.\n6. Boostback burn: 3 booster engines at full thrust, pushing horizontally back toward the pad, until the booster's horizontal velocity is zero.\n7. Coast up to apogee and back down.\n8. Entry burn: when the booster descends through 60 km, 3 engines at full thrust push straight up until its speed falls to 500 m/s. The grid fins deploy for the rest of the descent.\n9. Landing burn: 1 engine pushing straight up, throttle 40 % to 100 % of its thrust. Ignition time and throttle are your guidance design. The legs deploy before touchdown.\n10. Touchdown on the barge deck, at sea level. Landed if the vertical speed is at most 2 m/s, the horizontal speed at most 1 m/s, and the booster is within 20 m of the deck center, with propellant left. Anything else is \"Crashed\", including a booster that runs out of propellant or hits the sea.\n\nThe drone barge (about 90 × 50 m) is stationed where the boostback burn will end. Before each liftoff, the page finds that spot by running the same deterministic simulation ahead, then places the barge there. If the rocket crashes into the ground during ascent, the flight ends with \"Vehicle lost\".\n</flight-sequence>\n\n<default-experiment-values>\nThese defaults are mandatory. They must be the initial values on first load so every implementation flies the same baseline mission.\n\n- Gravity: 9.81 m/s², Earth atmosphere: ρ₀ = 1.225 kg/m³, H = 8500 m\n- Booster engine thrust: 900 kN each, specific impulse 300 s\n- Payload: 10 t\n- Landing reserve: 50 t of booster propellant\n- Pitch rate: 0.6 °/s\n- Air drag: on\n</default-experiment-values>\n\n<settings>\nA settings panel is required. Every visible control must change the next flight. If a control is on screen, it is wired.\n\n- payload mass, 0 to 30 t\n- booster engine thrust, 400 to 1000 kN per engine\n- landing reserve, 20 to 80 t\n- pitch rate, 0.2 to 1.0 °/s\n- air drag on / off\n- world, with presets Earth (9.81 m/s², ρ₀ 1.225 kg/m³, H 8500 m), Mars (3.71 m/s², ρ₀ 0.020 kg/m³, H 11100 m), Moon (1.62 m/s², no atmosphere)\n\nChanging a setting resets the rocket on the pad and moves the barge to its new spot.\n</settings>\n\n<live-readout>\nShow these values live, measured from the simulation, for the stack before separation and then for the stage the camera follows:\n\n- mission clock (T+ s) and current phase\n- altitude (km), speed (m/s), vertical speed (m/s), downrange distance (km)\n- mass (t), remaining propellant (t), engines lit, throttle (%)\n- dynamic pressure ½ ρ v² (kPa) and acceleration felt by the vehicle (g)\n- stage 1 delta-v: the ideal value from the rocket equation, specific impulse × 9.80665 × ln(initial mass / current mass), next to the integral of thrust / mass over time\n\nKeep an event log with the mission time of each event: liftoff, max Q (peak dynamic pressure), MECO, separation, stage 2 ignition, boostback start and end, booster apogee, entry burn start and end, landing burn start, touchdown or crash, SECO.\n\nAfter touchdown, show: outcome, vertical and horizontal speed at touchdown, distance from the deck center, and propellant left in the booster.\n\nDraw both trajectories as trails that stay visible until the next launch.\n</live-readout>\n\n<playback-and-camera>\n- Pause / Play, and simulation speed 0.25×, 1×, 4×, 16×. Space toggles pause unless an input is focused.\n- Cameras: Booster (chases the stack, then the booster after separation), Upper stage (chases stage 2), Tracking (a fixed camera on the coast that turns to follow the booster), Orbit (drag to orbit around the followed body). Default is Booster. Switching does not reset physics.\n</playback-and-camera>\n\n<rendering>\n- Three.js, loaded from a pinned CDN version. three/addons from that same version are allowed.\n- Physically based materials: painted rocket body, metal engine bells, landing legs, grid fins, the steel barge deck, the concrete pad, the sea.\n- A shadow map on the sun light; the rocket, the pad tower, and the barge cast shadows.\n- Generate the environment in code or with Three.js RoomEnvironment. No external HDR, model, or texture file.\n- Engine plumes whose size follows the thrust, smoke at liftoff, the sky darkening with altitude. These effects must not change the physical result.\n- The coast, the time of day, the colors, and the atmosphere are your choice.\n</rendering>\n\n<physics>\n- Fixed physics timestep with a cap on steps per frame.\n- No Math.random in the physical setup or the force computation.\n- The same settings give the same flight on reload and on Launch.\n- Slow motion and fast forward change the clock, not the physical result.\n</physics>\n\n<inspection>\nExpose `window.rocketState()`. It returns a plain JSON object with:\n\n- `t`: mission time in s, and `phase`: the name of the current phase\n- `booster` and `upperStage`: `{ x, altitude, vx, vy, mass, propellant, enginesLit, throttle }` in SI units, `throttle` between 0 and 1, `vy` positive upward\n- `barge`: `{ x }` in meters downrange\n- `deltaV`: `{ stage1Ideal, stage1Integrated }` in m/s\n- `events`: `{ liftoff, maxQ, meco, separation, stage2Ignition, boostbackStart, boostbackEnd, boosterApogee, entryBurnStart, entryBurnEnd, landingBurnStart, touchdown, seco }`, each `null` until it happens, then `{ t, x, altitude, speed, propellant }` for the stage concerned, with `q` (Pa) added to `maxQ`\n- `lastFlight`: `{ outcome, liftoffThrustToWeight, touchdownVerticalSpeed, touchdownHorizontalSpeed, bargeOffset, propellantAtTouchdown }` in SI units, where `outcome` is `landed`, `crashed`, `noLiftoff`, or `vehicleLost`, or `null` before the first flight ends\n- `settings`: the current values of every control\n</inspection>\n\n<delivery>\nUse a walking-skeleton approach: start by writing a minimal end-to-end version of index.html, then grow it in small increments until the page is complete.\n\n- Do not open a browser.\n- Do not click the page.\n- Do not run the page to visually test it.\n- Do not iterate after a preview.\n</delivery>\n\n<output-format>\nOne HTML file only. No extra JS, CSS, images, models, or texture files. No package manager and no dev server. Three.js may load from a CDN. Everything else is inline.\n\nThe file must start with `<!DOCTYPE html>` and end with `</html>`.\n</output-format>\n\n<important>\n- You MUST write the result directly into a file named \"index.html\" in the current working directory.\n- The page `<title>` must be your model name.\n- The only visible title or brand in the page must also be your model name. Add nothing else to either title.\n- Do not ask clarifying questions. Make the design and engineering decisions yourself.\n</important>\n\nWork only inside the current working directory. Do not read, list, search, or edit files outside the current working directory. Treat it as a standalone project root.\n\nUse pnpm exclusively if dependency installation or package scripts are needed. Do not use npm.\nYour model name is exactly: Claude Fable 5.2. Set the browser title and the primary visible title to that name, written exactly as given. Add nothing else to either title.\nDo not edit files outside the current working directory.",
+   "essais": 7
+  },
   {
    "slug": "bike-shop",
    "titre": "Bike Shop",

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator — 05-fr-fit</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <strong>05-fr-fit</strong> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <a href="08-fr-order.html">08-fr-order</a> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a></nav>
+<h1 id="5-functional-requirements--rider-and-frame">5. Functional requirements — Rider and frame</h1>
+<h3 id="FR-FIT-01">FR-FIT-01 Height field</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall display <code>height-input</code> empty when the page loads, with no error, no recommendation, and no frame selected.</li>
+<li><strong>Rationale:</strong> The frame size depends on the rider; nothing is assumed before the customer says how tall they are.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Initial state
+  When the page loads
+  Then height-input is empty
+  And height-error and height-recommendation are not visible
+  And no frame radio is checked
+</code></pre>
+<h3 id="FR-FIT-02">FR-FIT-02 Height validation</h3>
+<ul>
+<li><strong>Statement:</strong> On every <code>input</code> event of <code>height-input</code> (each keystroke, deletion or paste, without waiting for the field to lose focus), the system shall remove leading and trailing whitespace and consider the height valid only if the result consists of digits only and its value is from 150 to 200 inclusive. While that trimmed content is not empty and the height is not valid, the system shall show <code>height-error</code> with MSG-01. While the trimmed content is empty (for example <code>&quot;&quot;</code> or <code>&quot;   &quot;</code>), no error shall be shown and the height is not valid.</li>
+<li><strong>Rationale:</strong> The frame table covers 150 to 200 cm; anything else cannot be fitted.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario Outline: Height values
+  When the user fills height-input with &quot;&lt;input&gt;&quot;
+  Then the height is &quot;&lt;state&gt;&quot;
+
+  Examples:
+    | input                         | state                                          |
+    | 150                           | valid                                          |
+    | 200                           | valid                                          |
+    | 180 with one space on each side | valid                                        |
+    | 149                           | error &quot;Enter a height between 150 and 200 cm.&quot; |
+    | 201                           | error &quot;Enter a height between 150 and 200 cm.&quot; |
+    | 17a                           | error &quot;Enter a height between 150 and 200 cm.&quot; |
+    | 175.5                         | error &quot;Enter a height between 150 and 200 cm.&quot; |
+    | empty string                  | not valid, no error shown                      |
+    | three spaces                  | not valid, no error shown                      |
+</code></pre>
+<h3 id="FR-FIT-03">FR-FIT-03 Frame recommendation</h3>
+<ul>
+<li><strong>Statement:</strong> While the height is valid, the system shall show <code>height-recommendation</code> with MSG-02 naming the recommended frame (02-catalog-and-rules, 2.3). While the height is not valid, <code>height-recommendation</code> shall not be visible.</li>
+<li><strong>Rationale:</strong> The customer sees which size fits before choosing.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario Outline: Range boundaries
+  When the user fills height-input with &quot;&lt;height&gt;&quot;
+  Then height-recommendation shows &quot;Recommended frame: &lt;size&gt;&quot;
+
+  Examples:
+    | height | size |
+    | 164    | S    |
+    | 165    | M    |
+    | 174    | M    |
+    | 175    | L    |
+    | 185    | XL   |
+</code></pre>
+<h3 id="FR-FIT-04">FR-FIT-04 Automatic frame selection</h3>
+<ul>
+<li><strong>Statement:</strong> While automatic frame mode is on, when the height becomes valid or changes to another valid value, the system shall select the recommended frame and apply the resulting cascades (FR-OPT-04). While the height is not valid, the system shall leave the frame selection unchanged.</li>
+<li><strong>Rationale:</strong> Most customers take the recommended size; they should not have to pick it themselves.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Frame follows the height
+  When the user fills height-input with &quot;178&quot;
+  Then the radio &quot;Frame L&quot; is checked
+  When the user fills height-input with &quot;160&quot;
+  Then the radio &quot;Frame S&quot; is checked
+
+Scenario: Invalid height keeps the frame
+  Given the user filled height-input with &quot;178&quot;
+  When the user fills height-input with &quot;17&quot;
+  Then the radio &quot;Frame L&quot; is still checked
+</code></pre>
+<h3 id="FR-FIT-05">FR-FIT-05 Manual frame selection</h3>
+<ul>
+<li><strong>Statement:</strong> When the user selects a frame card, the system shall select that frame and end automatic frame mode; afterwards, height changes shall not change the selected frame. Activating the card of the frame that is already selected (click, tap, or Space on its focused radio) is a manual frame choice and also ends automatic frame mode. A frame may be selected before any height is entered.</li>
+<li><strong>Rationale:</strong> A customer who chose a size on purpose keeps it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Manual choice is kept
+  Given the user filled height-input with &quot;178&quot;
+  When the user selects the card card-frame-XL
+  And the user fills height-input with &quot;160&quot;
+  Then the radio &quot;Frame XL&quot; is checked
+
+Scenario: Confirming the recommended frame is a manual choice
+  Given the user filled height-input with &quot;178&quot;
+  When the user selects the card card-frame-L
+  And the user fills height-input with &quot;160&quot;
+  Then the radio &quot;Frame L&quot; is checked
+</code></pre>
+<h3 id="FR-FIT-06">FR-FIT-06 Recommended badge</h3>
+<ul>
+<li><strong>Statement:</strong> While the height is valid, the system shall show the <code>[data-role=&quot;badge&quot;]</code> element with the text <code>Recommended</code> in the card of the recommended frame only, whether automatic frame mode is on or not. While the height is not valid, no badge shall be visible.</li>
+<li><strong>Rationale:</strong> The recommendation stays visible after a manual choice.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Badge after a manual choice
+  Given the user selected card-frame-XL
+  When the user fills height-input with &quot;160&quot;
+  Then the badge of card-frame-S is visible with the text &quot;Recommended&quot;
+  And the badges of card-frame-M, card-frame-L and card-frame-XL are not visible
+</code></pre>
+<h3 id="FR-FIT-07">FR-FIT-07 Size gap warning</h3>
+<ul>
+<li><strong>Statement:</strong> While the height is valid, a frame is selected, and the size gap between the selected frame and the recommended frame is 2 or more, the system shall show <code>frame-warning</code> with MSG-03, using <code>larger</code> when the selected frame comes after the recommended frame in size order and <code>smaller</code> otherwise. In every other state <code>frame-warning</code> shall not be visible.</li>
+<li><strong>Rationale:</strong> A frame two sizes off is almost always a mistake, but the customer may still order it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Three sizes larger
+  Given the user selected card-frame-XL
+  When the user fills height-input with &quot;160&quot;
+  Then frame-warning shows &quot;Frame XL is 3 sizes larger than recommended.&quot;
+
+Scenario: One size off is not warned
+  Given the user selected card-frame-XL
+  When the user fills height-input with &quot;180&quot;
+  Then frame-warning is not visible
+
+Scenario: Two sizes smaller
+  Given the user selected card-frame-S
+  When the user fills height-input with &quot;176&quot;
+  Then frame-warning shows &quot;Frame S is 2 sizes smaller than recommended.&quot;
+</code></pre>
+
+</main>
+</body>
+</html>
