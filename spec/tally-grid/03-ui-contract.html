@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Grid — 03-ui-contract</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-grid">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <strong>03-ui-contract</strong> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="3-user-interface-contract">3. User interface contract</h1>
+<h2 id="31-page-structure">3.1 Page structure</h2>
+<pre><code>app-header                      brand title (see 01-product-overview, 1.6)
+main
+├── toolbar                     undo-button, redo-button, copy-button, cut-button, paste-button,
+│                               clear-button, insert-row, delete-row, insert-col, delete-col,
+│                               format-select
+├── formula bar                 name-box, formula-input
+├── grid                        column headers, row headers, 96 cells
+└── selection-summary
+</code></pre>
+<p>The elements are listed in reading order. Placement, sizes and styles are free (08-rendering sets the limits). <code>main</code> and <code>formula bar</code> only name groups of this outline: no element and no <code>data-testid</code> is required for them. The reading order is not checked. No element carries a positive <code>tabindex</code>, and the page does not handle the Tab key outside <code>formula-input</code>.</p>
+<h2 id="32-element-identifiers">3.2 Element identifiers</h2>
+<p>Each element below shall carry the attribute <code>data-testid</code> with exactly the given value, unique in the page.</p>
+<p><strong>Presence:</strong></p>
+<ul>
+<li><em>Permanent</em>: present and visible at all times.</li>
+<li><em>Conditional</em>: visible only in the situation the requirements describe; otherwise absent or not visible.</li>
+</ul>
+<p>&quot;Visible&quot; and &quot;not visible&quot; have the meanings of README, section 2.5.</p>
+<h3 id="structure">Structure</h3>
+<table>
+<thead>
+<tr>
+<th><code>data-testid</code></th>
+<th>Element</th>
+<th>Presence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>app-header</code></td>
+<td><code>&lt;header&gt;</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>toolbar</code></td>
+<td>container of the toolbar controls</td>
+<td>Permanent</td>
+</tr>
+</tbody></table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th><code>data-testid</code></th>
+<th>Element</th>
+<th>Accessible name / text</th>
+<th>Presence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>undo-button</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Undo</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>redo-button</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Redo</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>copy-button</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Copy</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>cut-button</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Cut</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>paste-button</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Paste</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>clear-button</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Clear</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>insert-row</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Insert row</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>delete-row</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Delete row</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>insert-col</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Insert column</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>delete-col</code></td>
+<td><code>&lt;button&gt;</code></td>
+<td>Text <code>Delete column</code></td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>format-select</code></td>
+<td><code>&lt;select&gt;</code></td>
+<td>Label <code>Number format</code></td>
+<td>Permanent</td>
+</tr>
+</tbody></table>
+<p><code>format-select</code> has exactly three <code>&lt;option&gt;</code> elements, in this order:</p>
+<table>
+<thead>
+<tr>
+<th><code>value</code></th>
+<th>Text</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>general</code></td>
+<td><code>General</code></td>
+</tr>
+<tr>
+<td><code>fixed2</code></td>
+<td><code>1,234.50</code></td>
+</tr>
+<tr>
+<td><code>percent1</code></td>
+<td><code>12.5%</code></td>
+</tr>
+</tbody></table>
+<p>The ten buttons and <code>format-select</code> are the <strong>toolbar controls</strong>. A toolbar control that a requirement declares disabled carries the <code>disabled</code> attribute; otherwise it does not.</p>
+<h3 id="formula-bar">Formula bar</h3>
+<table>
+<thead>
+<tr>
+<th><code>data-testid</code></th>
+<th>Element</th>
+<th>Accessible name / text</th>
+<th>Presence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>name-box</code></td>
+<td>any element that is not a form control</td>
+<td>FR-SEL-04</td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>formula-input</code></td>
+<td><code>&lt;input type=&quot;text&quot;&gt;</code></td>
+<td>Label <code>Cell content</code>; attribute <code>data-editing</code> (FR-EDT-02)</td>
+<td>Permanent</td>
+</tr>
+</tbody></table>
+<h3 id="grid">Grid</h3>
+<table>
+<thead>
+<tr>
+<th><code>data-testid</code></th>
+<th>Element</th>
+<th>Content / attributes</th>
+<th>Presence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>grid</code></td>
+<td>any element with <code>role=&quot;grid&quot;</code>, <code>aria-label=&quot;Sheet&quot;</code> and <code>tabindex=&quot;0&quot;</code></td>
+<td>contains the headers and the cells</td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>col-header-&lt;column&gt;</code></td>
+<td>any element with <code>role=&quot;columnheader&quot;</code>, one per column, <code>col-header-A</code> to <code>col-header-H</code></td>
+<td>Text: the column letter</td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>row-header-&lt;row&gt;</code></td>
+<td>any element with <code>role=&quot;rowheader&quot;</code>, one per row, <code>row-header-1</code> to <code>row-header-12</code></td>
+<td>Text: the row number</td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>cell-&lt;address&gt;</code></td>
+<td>any element with <code>role=&quot;gridcell&quot;</code>, one per cell, <code>cell-A1</code> to <code>cell-H12</code></td>
+<td>Text: FR-GRD-02. Attributes below.</td>
+<td>Permanent</td>
+</tr>
+</tbody></table>
+<p>The headers and the cells of one row of the sheet are inside one element with <code>role=&quot;row&quot;</code>; the column headers are inside one element with <code>role=&quot;row&quot;</code> too. Each of these roles is set with an explicit <code>role</code> attribute on the element, native table elements included (<code>&lt;tr role=&quot;row&quot;&gt;</code>, <code>&lt;th role=&quot;columnheader&quot;&gt;</code>, <code>&lt;td role=&quot;gridcell&quot;&gt;</code>). A <code>&lt;table&gt;</code> built this way is one way to do it. The row of column headers may contain one extra corner element before <code>col-header-A</code>: it carries <code>role=&quot;presentation&quot;</code> and no <code>data-testid</code>, and it is none of the column headers, row headers or cells. No other element inside <code>grid</code> carries an explicit or implicit role <code>row</code>, <code>columnheader</code>, <code>rowheader</code> or <code>gridcell</code>.</p>
+<p>A cell stays present and takes part in the layout whatever its content: an empty cell has an empty text and keeps a non-zero width and height.</p>
+<p>Attributes of every <code>cell-&lt;address&gt;</code> element, kept up to date at all times:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data-kind</code></td>
+<td>The type of the value of the cell: <code>empty</code>, <code>number</code>, <code>text</code>, <code>logical</code> or <code>error</code>. <code>empty</code> only for an empty cell.</td>
+</tr>
+<tr>
+<td><code>aria-selected</code></td>
+<td><code>&quot;true&quot;</code> on the active cell, <code>&quot;false&quot;</code> on every other cell.</td>
+</tr>
+<tr>
+<td><code>data-in-selection</code></td>
+<td><code>&quot;true&quot;</code> on every cell of the selection (the active cell included), <code>&quot;false&quot;</code> on every other cell.</td>
+</tr>
+</tbody></table>
+<p>The text content of a cell element is the text shown (02, section 2.5), with nothing added: no marker, no hidden text, no formula.</p>
+<h3 id="selection-summary">Selection summary</h3>
+<table>
+<thead>
+<tr>
+<th><code>data-testid</code></th>
+<th>Element</th>
+<th>Accessible name / text</th>
+<th>Presence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>selection-summary</code></td>
+<td>any</td>
+<td>FR-SEL-05</td>
+<td>Conditional</td>
+</tr>
+</tbody></table>
+<h2 id="33-keys">3.3 Keys</h2>
+<p>Keys handled while the <code>grid</code> element has the focus:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ArrowUp</code>, <code>ArrowDown</code>, <code>ArrowLeft</code>, <code>ArrowRight</code></td>
+<td>FR-SEL-02</td>
+</tr>
+<tr>
+<td>the same with Shift held</td>
+<td>FR-SEL-03</td>
+</tr>
+<tr>
+<td><code>Delete</code>, <code>Backspace</code></td>
+<td>FR-EDT-06</td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>FR-EDT-01</td>
+</tr>
+<tr>
+<td><code>Control+Z</code></td>
+<td>FR-HIS-02</td>
+</tr>
+<tr>
+<td><code>Control+Y</code></td>
+<td>FR-HIS-03</td>
+</tr>
+</tbody></table>
+<p>While in the editing state, these keys have no effect other than <code>preventDefault()</code>, except <code>Enter</code>, which still gives the focus to <code>formula-input</code> (FR-EDT-02).</p>
+<p>Keys handled while <code>formula-input</code> has the focus:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Enter</code>, <code>Tab</code></td>
+<td>FR-EDT-03</td>
+</tr>
+<tr>
+<td><code>Escape</code></td>
+<td>FR-EDT-04</td>
+</tr>
+</tbody></table>
+<p><code>Tab</code> with Shift held is not handled in <code>formula-input</code>: the browser keeps its default action and moves the focus backwards.</p>
+<p>For each key listed above, the system shall call <code>preventDefault()</code> on its <code>keydown</code> event: once the event has been dispatched, its <code>defaultPrevented</code> is <code>true</code> (the page does not scroll on an arrow key, and <code>Tab</code> without Shift in <code>formula-input</code> does not move the focus). This is verified under the requirement listed for that key. No other key is required. Letter keys are compared without regard to their case.</p>
+<h2 id="34-fixed-texts">3.4 Fixed texts</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Text</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TXT-01</td>
+<td>`Sum: {s}</td>
+</tr>
+</tbody></table>
+
+</main>
+</body>
+</html>

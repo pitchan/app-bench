@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Sonnet 5.5</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#fff;color:#14213d;font:15px/1.4 system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+[hidden]{display:none!important}
+header{background:#14213d;color:#fff;padding:10px 16px}
+h1{margin:0;font-size:20px;font-weight:700}
+main{max-width:1040px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.panel{border:1px solid #b8c0d0;border-radius:8px;padding:10px;background:#f4f6fa;display:flex;flex-direction:column;gap:8px}
+.panel .bar{align-items:center}
+button{font:inherit;color:#14213d;background:#eef1f6;border:1px solid #6f7b93;border-radius:6px;padding:5px 10px;min-height:34px;cursor:pointer}
+button:disabled{color:#566074;background:#f1f2f5;border-color:#cfd4de;cursor:not-allowed}
+input[type=text],select,textarea{font:inherit;color:#111;background:#fff;border:1px solid #6f7b93;border-radius:6px;padding:5px 8px;min-height:34px;max-width:100%}
+input[type=text]:disabled,textarea:disabled,select:disabled{color:#566074;background:#f1f2f5}
+input[type=checkbox]{width:18px;height:18px;margin:0}
+label,.lbl{color:#14213d}
+:focus-visible{outline:3px solid #1d4ed8;outline-offset:2px}
+.fbar{display:flex;gap:8px;align-items:center}
+#name-box{min-width:84px;padding:6px 8px;background:#e6e9f1;border:1px solid #6f7b93;border-radius:6px;font-weight:700;color:#14213d;text-align:center}
+#formula-input{flex:1;min-width:0}
+.fbar label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#grid{border:1px solid #6f7b93;border-radius:6px;overflow-x:auto;overflow-y:hidden;background:#fff;max-width:100%}
+.row{display:grid;grid-template-columns:44px repeat(8,minmax(80px,1fr));min-width:700px}
+.row>div{height:30px;line-height:29px;padding:0 6px;border-right:1px solid #d3d8e3;border-bottom:1px solid #d3d8e3;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#111;background:#fff}
+.row>.hd{background:#e6e9f1;color:#14213d;font-weight:600;text-align:center;padding:0}
+.row>.cell[data-kind=number]{text-align:right}
+.row>.cell[data-kind=error]{color:#8a1010}
+.row>.cell[data-in-selection=true]{background:#d6e6ff}
+.row>.cell[aria-selected=true]{background:#b3d1ff;box-shadow:inset 0 0 0 2px #1d4ed8}
+#selection-summary{padding:6px 10px;background:#e6e9f1;border-radius:6px;color:#14213d;font-weight:600;overflow-wrap:anywhere}
+#sheet-tabs{display:flex;flex-wrap:wrap;gap:4px}
+#sheet-tabs button[aria-selected=true]{background:#14213d;color:#fff;border-color:#14213d}
+.msg{color:#7a1010;font-weight:600;overflow-wrap:anywhere;padding:2px 0}
+#find-status.msg,#csv-message.msg{color:#14213d}
+#name-list{display:flex;flex-direction:column;gap:4px}
+#name-list>div{padding:4px 8px;background:#fff;border:1px solid #b8c0d0;border-radius:6px;color:#14213d;overflow-wrap:anywhere}
+.chk{display:inline-flex;align-items:center;gap:6px}
+#csv-text{width:100%;min-height:90px;font-family:ui-monospace,Consolas,monospace}
+.grow{flex:1 1 140px;min-width:0}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Sonnet 5.5</h1></header>
+<main>
+  <div class="bar" data-testid="toolbar" id="toolbar">
+    <button type="button" data-testid="undo-button">Undo</button>
+    <button type="button" data-testid="redo-button">Redo</button>
+    <button type="button" data-testid="copy-button">Copy</button>
+    <button type="button" data-testid="cut-button">Cut</button>
+    <button type="button" data-testid="paste-button">Paste</button>
+    <button type="button" data-testid="clear-button">Clear</button>
+    <button type="button" data-testid="insert-row">Insert row</button>
+    <button type="button" data-testid="delete-row">Delete row</button>
+    <button type="button" data-testid="insert-col">Insert column</button>
+    <button type="button" data-testid="delete-col">Delete column</button>
+    <button type="button" data-testid="sort-asc">Sort ascending</button>
+    <button type="button" data-testid="sort-desc">Sort descending</button>
+    <button type="button" data-testid="fill-down">Fill down</button>
+    <button type="button" data-testid="fill-right">Fill right</button>
+    <button type="button" data-testid="fill-series">Fill series</button>
+    <label for="format-select">Number format</label>
+    <select id="format-select" data-testid="format-select">
+      <option value="general">General</option>
+      <option value="fixed2">1,234.50</option>
+      <option value="percent1">12.5%</option>
+      <option value="date">2024-12-31</option>
+    </select>
+  </div>
+  <div class="fbar">
+    <div id="name-box" data-testid="name-box">A1</div>
+    <label for="formula-input">Cell content</label>
+    <input type="text" id="formula-input" data-testid="formula-input" data-editing="false" autocomplete="off" spellcheck="false">
+  </div>
+  <div id="grid" role="grid" aria-label="Sheet" tabindex="0" data-testid="grid"></div>
+  <div id="selection-summary" data-testid="selection-summary" hidden></div>
+  <div class="panel" data-testid="sheet-bar">
+    <div class="bar">
+      <div id="sheet-tabs" role="tablist" aria-label="Sheets" data-testid="sheet-tabs"></div>
+      <button type="button" data-testid="add-sheet">Add sheet</button>
+    </div>
+    <div class="bar">
+      <label for="sheet-name-input">Sheet name</label>
+      <input type="text" id="sheet-name-input" class="grow" data-testid="sheet-name-input" autocomplete="off" spellcheck="false">
+      <button type="button" data-testid="rename-sheet">Rename sheet</button>
+      <button type="button" data-testid="delete-sheet">Delete sheet</button>
+    </div>
+    <div class="msg" data-testid="sheet-message" hidden></div>
+  </div>
+  <div class="panel" data-testid="names-panel">
+    <div class="bar">
+      <label for="name-input">Name</label>
+      <input type="text" id="name-input" class="grow" data-testid="name-input" autocomplete="off" spellcheck="false">
+      <button type="button" data-testid="define-name">Define name</button>
+      <button type="button" data-testid="delete-name">Delete name</button>
+    </div>
+    <div class="msg" data-testid="name-message" hidden></div>
+    <div id="name-list" role="list" aria-label="Names" data-testid="name-list"></div>
+  </div>
+  <div class="panel" data-testid="find-panel">
+    <div class="bar">
+      <label for="find-input">Find</label>
+      <input type="text" id="find-input" class="grow" data-testid="find-input" autocomplete="off" spellcheck="false">
+      <label for="replace-input">Replace with</label>
+      <input type="text" id="replace-input" class="grow" data-testid="replace-input" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="bar">
+      <span class="chk"><input type="checkbox" id="find-case" data-testid="find-case" autocomplete="off"><label for="find-case">Match case</label></span>
+      <span class="chk"><input type="checkbox" id="find-whole" data-testid="find-whole" autocomplete="off"><label for="find-whole">Whole cell</label></span>
+      <button type="button" data-testid="find-next">Find next</button>
+      <button type="button" data-testid="replace-all">Replace all</button>
+    </div>
+    <div class="msg" data-testid="find-status" id="find-status" hidden></div>
+  </div>
+  <div class="panel" data-testid="csv-panel">
+    <div class="bar">
+      <span class="chk"><input type="checkbox" id="csv-raw" data-testid="csv-raw" autocomplete="off"><label for="csv-raw">Raw contents</label></span>
+      <button type="button" data-testid="csv-export">Export CSV</button>
+      <button type="button" data-testid="csv-import">Import CSV</button>
+    </div>
+    <label for="csv-text">CSV</label>
+    <textarea id="csv-text" data-testid="csv-text" autocomplete="off" spellcheck="false"></textarea>
+    <div class="msg" data-testid="csv-message" id="csv-message" hidden></div>
+  </div>
+</main>
+<script>
+var TB=(function(){
+'use strict';
+class Err{constructor(c){this.c=c}}
+const mk=c=>new Err(c);
+const SYNTAX=mk('#SYNTAX!'),NAME=mk('#NAME?'),ARGS=mk('#ARGS!'),REF=mk('#REF!'),VALUE=mk('#VALUE!'),DIV0=mk('#DIV/0!'),NUM=mk('#NUM!'),NA=mk('#N/A'),CYCLE=mk('#CYCLE!');
+const isErr=v=>v instanceof Err;
+
+/* ---------- numbers ---------- */
+function N(x){if(!isFinite(x))return x;const y=Number(x.toPrecision(12));return y===0?0:y}
+function nr(x){if(!isFinite(x))return NUM;const y=N(x);return Math.abs(y)>=1e15?NUM:y}
+function plain(x){
+  let s=x.toPrecision(12),neg=false;
+  if(s[0]==='-'){neg=true;s=s.slice(1)}
+  const m=/^(\d)(?:\.(\d+))?e([+-]\d+)$/.exec(s);
+  if(m){
+    const dg=m[1]+(m[2]||''),e=parseInt(m[3],10);
+    if(e>=0){const ip=dg.length>e+1?dg.slice(0,e+1):dg.padEnd(e+1,'0');const fp=dg.slice(e+1);s=ip+(fp?'.'+fp:'')}
+    else s='0.'+'0'.repeat(-e-1)+dg;
+  }
+  return{neg,s};
+}
+function rdec(x,d,mode){
+  const{neg,s}=plain(x);const dot=s.indexOf('.');
+  const ip=dot<0?s:s.slice(0,dot),fp=dot<0?'':s.slice(dot+1);
+  const all=ip+fp,keep=ip.length+d;
+  let kept,dropped;
+  if(keep>=all.length){kept=all+'0'.repeat(keep-all.length);dropped=''}
+  else if(keep<0){kept='';dropped=all}
+  else{kept=all.slice(0,keep);dropped=all.slice(keep)}
+  let m=BigInt(kept||'0');
+  let inc=false;
+  if(mode==='half')inc=keep>=0&&dropped!==''&&dropped[0]>='5';
+  else if(mode==='up')inc=/[1-9]/.test(dropped);
+  if(inc)m+=1n;
+  return{neg:neg&&m!==0n,m,d};
+}
+const rdNum=rd=>Number((rd.neg?'-':'')+rd.m.toString()+'e'+(-rd.d));
+function fixedStr(rd,grp){
+  let s=rd.m.toString(),ip=s,fp='';
+  if(rd.d>0){s=s.padStart(rd.d+1,'0');ip=s.slice(0,-rd.d);fp=s.slice(-rd.d)}
+  if(grp)ip=ip.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return(rd.neg?'-':'')+ip+(fp?'.'+fp:'');
+}
+function trimZ(t){return t.includes('.')?t.replace(/0+$/,'').replace(/\.$/,''):t}
+const G=x=>trimZ(fixedStr(rdec(x,6,'half'),false));
+function P(x){const{neg,s}=plain(x);return(neg?'-':'')+trimZ(s)}
+
+/* ---------- dates ---------- */
+function daysFromCivil(y,m,d){
+  y-=m<=2?1:0;
+  const era=Math.floor(y/400),yoe=y-era*400;
+  const doy=Math.floor((153*(m+(m>2?-3:9))+2)/5)+d-1;
+  const doe=yoe*365+Math.floor(yoe/4)-Math.floor(yoe/100)+doy;
+  return era*146097+doe-719468;
+}
+const EPOCH=daysFromCivil(1900,1,1)-1;
+const serialOf=(y,m,d)=>daysFromCivil(y,m,d)-EPOCH;
+function civilFromDays(z){
+  z+=719468;
+  const era=Math.floor(z/146097),doe=z-era*146097;
+  const yoe=Math.floor((doe-Math.floor(doe/1460)+Math.floor(doe/36524)-Math.floor(doe/146096))/365);
+  const y=yoe+era*400;
+  const doy=doe-(365*yoe+Math.floor(yoe/4)-Math.floor(yoe/100));
+  const mp=Math.floor((5*doy+2)/153);
+  const d=doy-Math.floor((153*mp+2)/5)+1;
+  const m=mp<10?mp+3:mp-9;
+  return[y+(m<=2?1:0),m,d];
+}
+const fromSerial=s=>civilFromDays(s+EPOCH);
+const isLeap=y=>(y%4===0&&y%100!==0)||y%400===0;
+const dim=(y,m)=>[31,isLeap(y)?29:28,31,30,31,30,31,31,30,31,30,31][m-1];
+const validSerial=s=>Number.isInteger(s)&&s>=1&&s<=2958464;
+const p2=n=>String(n).padStart(2,'0');
+function dateStr(s){const[y,m,d]=fromSerial(s);return String(y).padStart(4,'0')+'-'+p2(m)+'-'+p2(d)}
+function dateEntry(t){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return null;
+  const y=+t.slice(0,4),m=+t.slice(5,7),d=+t.slice(8,10);
+  if(y<1900||m<1||m>12||d<1||d>dim(y,m))return null;
+  return serialOf(y,m,d);
+}
+function entryNumber(t){
+  if(!/^[+-]?(\d+(\.\d+)?|\.\d+)%?$/.test(t))return null;
+  const pct=t[t.length-1]==='%';
+  let x=parseFloat(pct?t.slice(0,-1):t);
+  if(pct)x=x/100;
+  const y=N(x);
+  return Math.abs(y)>=1e15?null:y;
+}
+function classify(raw){
+  if(raw==='')return{k:'empty'};
+  if(raw[0]==="'")return{k:'text',v:raw.slice(1)};
+  const t=raw.replace(/^ +| +$/g,'');
+  const ds=dateEntry(t);if(ds!==null)return{k:'number',v:ds,date:true};
+  const n=entryNumber(t);if(n!==null)return{k:'number',v:n};
+  const u=t.toUpperCase();
+  if(u==='TRUE'||u==='FALSE')return{k:'logical',v:u==='TRUE'};
+  return{k:'text',v:raw};
+}
+
+/* ---------- parser ---------- */
+const colNum=s=>{let a=0;for(const ch of s)a=a*26+ch.charCodeAt(0)-64;return a};
+const colLetter=n=>String.fromCharCode(64+n);
+const REFRE=/^(\$?)([A-Za-z]+)(\$?)(\d+)$/;
+function mkRef(w){
+  const m=REFRE.exec(w);
+  const colStr=m[2].toUpperCase(),rowStr=m[4].replace(/^0+(?=\d)/,'');
+  return{k:'ref',prefix:null,cabs:!!m[1],colStr,col:colNum(colStr),rabs:!!m[3],rowStr,row:Number(rowStr)};
+}
+const inGrid=r=>r.col>=1&&r.col<=8&&r.row>=1&&r.row<=12;
+function tokenize(src){
+  const toks=[];let i=0;const n=src.length;
+  while(i<n){
+    const ch=src[i];
+    if(ch===' '){i++;continue}
+    if(/\d/.test(ch)||(ch==='.'&&/\d/.test(src[i+1]||''))){
+      const m=/^(\d+(\.\d+)?|\.\d+)/.exec(src.slice(i));toks.push({t:'num',s:m[0]});i+=m[0].length;continue;
+    }
+    if(ch==='"'){
+      let j=i+1,v='';
+      for(;;){
+        if(j>=n)return null;
+        if(src[j]==='"'){if(src[j+1]==='"'){v+='"';j+=2;continue}break}
+        v+=src[j++];
+      }
+      toks.push({t:'str',v});i=j+1;continue;
+    }
+    if(ch==="'"){
+      let j=i+1,v='';
+      for(;;){
+        if(j>=n)return null;
+        if(src[j]==="'"){if(src[j+1]==="'"){v+="'";j+=2;continue}break}
+        v+=src[j++];
+      }
+      if(v===''||src[j+1]!=='!')return null;
+      toks.push({t:'prefix',name:v});i=j+2;continue;
+    }
+    if(/[A-Za-z_$]/.test(ch)){
+      const m=/^[A-Za-z0-9_$]+/.exec(src.slice(i));const w=m[0];i+=w.length;
+      if(src[i]==='!'){if(w.includes('$'))return null;toks.push({t:'prefix',name:w});i++;continue}
+      const u=w.toUpperCase();
+      if(u==='TRUE'||u==='FALSE')toks.push({t:'bool',v:u==='TRUE'});
+      else if(REFRE.test(w))toks.push({t:'ref',w});
+      else if(/^[A-Za-z0-9_]+$/.test(w))toks.push({t:'name',name:w});
+      else return null;
+      continue;
+    }
+    if(ch==='#'){
+      if(src.substr(i,5).toUpperCase()==='#REF!'){toks.push({t:'referr'});i+=5;continue}
+      return null;
+    }
+    const two=src.substr(i,2);
+    if(two==='<>'||two==='<='||two==='>='){toks.push({t:'op',s:two});i+=2;continue}
+    if('+-*/^&%=<>'.includes(ch)){toks.push({t:'op',s:ch});i++;continue}
+    if('(),:'.includes(ch)){toks.push({t:'p',s:ch});i++;continue}
+    return null;
+  }
+  return toks;
+}
+function parse(src){
+  try{
+    const toks=tokenize(src);if(!toks)return null;
+    let p=0;
+    const FAIL={};
+    const isOp=(...o)=>p<toks.length&&toks[p].t==='op'&&o.includes(toks[p].s);
+    const isP=s=>p<toks.length&&toks[p].t==='p'&&toks[p].s===s;
+    function cmpE(){let l=cat();while(isOp('=','<>','<','<=','>','>=')){const op=toks[p++].s;l={k:'bin',op,l,r:cat()}}return l}
+    function cat(){let l=sum();while(isOp('&')){p++;l={k:'bin',op:'&',l,r:sum()}}return l}
+    function sum(){let l=prod();while(isOp('+','-')){const op=toks[p++].s;l={k:'bin',op,l,r:prod()}}return l}
+    function prod(){let l=signed();while(isOp('*','/')){const op=toks[p++].s;l={k:'bin',op,l,r:signed()}}return l}
+    function signed(){if(isOp('-','+')){const op=toks[p++].s;return{k:'un',op,e:signed()}}return power()}
+    function power(){const b=pct();if(isOp('^')){p++;return{k:'bin',op:'^',l:b,r:signed()}}return b}
+    function pct(){let e=primary();while(isOp('%')){p++;e={k:'pct',e}}return e}
+    function refOrRange(prefix){
+      if(p>=toks.length||toks[p].t!=='ref')throw FAIL;
+      const a=mkRef(toks[p++].w);
+      if(p<toks.length&&toks[p].t==='p'&&toks[p].s==='('){throw FAIL}
+      if(isP(':')){
+        p++;
+        if(p>=toks.length||toks[p].t!=='ref')throw FAIL;
+        const b=mkRef(toks[p++].w);
+        return{k:'range',prefix,a,b};
+      }
+      a.prefix=prefix;return a;
+    }
+    function primary(){
+      if(p>=toks.length)throw FAIL;
+      const t=toks[p];
+      switch(t.t){
+        case 'num':p++;return{k:'num',s:t.s};
+        case 'str':p++;return{k:'str',v:t.v};
+        case 'bool':p++;if(isP('('))throw FAIL;return{k:'bool',v:t.v};
+        case 'referr':p++;return{k:'referr'};
+        case 'prefix':p++;return refOrRange(t.name);
+        case 'ref':return refOrRange(null);
+        case 'name':{
+          p++;
+          if(isP('(')){
+            p++;const args=[];
+            if(isP(')')){p++}
+            else{for(;;){args.push(cmpE());if(isP(',')){p++;continue}if(isP(')')){p++;break}throw FAIL}}
+            return{k:'call',name:t.name,args};
+          }
+          return{k:'name',name:t.name};
+        }
+        case 'p':
+          if(t.s==='('){p++;const e=cmpE();if(!isP(')'))throw FAIL;p++;return{k:'paren',e}}
+          throw FAIL;
+        default:throw FAIL;
+      }
+    }
+    const e=cmpE();
+    if(p!==toks.length)return null;
+    return e;
+  }catch(e){return null}
+}
+const astCache=new Map();
+function getAst(raw){
+  if(astCache.has(raw))return astCache.get(raw);
+  const a=parse(raw.slice(1));
+  if(astCache.size>5000)astCache.clear();
+  astCache.set(raw,a);return a;
+}
+const qname=n=>/^[A-Za-z_][A-Za-z0-9_]*$/.test(n)?n:"'"+n.replace(/'/g,"''")+"'";
+const pfx=p=>p===null?'':qname(p)+'!';
+const refStr=r=>(r.cabs?'$':'')+r.colStr+(r.rabs?'$':'')+r.rowStr;
+function rangeStr(n){
+  const a=n.a,b=n.b;
+  const swapC=a.col>b.col,swapR=a.row>b.row;
+  const c0=swapC?b:a,c1=swapC?a:b,r0=swapR?b:a,r1=swapR?a:b;
+  const f=(c,r)=>(c.cabs?'$':'')+c.colStr+(r.rabs?'$':'')+r.rowStr;
+  return f(c0,r0)+':'+f(c1,r1);
+}
+function wr(n){
+  switch(n.k){
+    case 'num':return n.s;
+    case 'str':return'"'+n.v.replace(/"/g,'""')+'"';
+    case 'bool':return n.v?'TRUE':'FALSE';
+    case 'referr':return'#REF!';
+    case 'ref':return pfx(n.prefix)+refStr(n);
+    case 'range':return pfx(n.prefix)+rangeStr(n);
+    case 'name':return n.name.toUpperCase();
+    case 'call':return n.name.toUpperCase()+'('+n.args.map(wr).join(',')+')';
+    case 'un':return n.op+wr(n.e);
+    case 'pct':return wr(n.e)+'%';
+    case 'paren':return'('+wr(n.e)+')';
+    case 'bin':return wr(n.l)+n.op+wr(n.r);
+  }
+}
+function mapRefs(n,f){
+  switch(n.k){
+    case 'ref':case 'range':return f(n);
+    case 'call':return{...n,args:n.args.map(a=>mapRefs(a,f))};
+    case 'un':case 'pct':case 'paren':return{...n,e:mapRefs(n.e,f)};
+    case 'bin':return{...n,l:mapRefs(n.l,f),r:mapRefs(n.r,f)};
+    default:return n;
+  }
+}
+function walk(n,f){
+  f(n);
+  switch(n.k){
+    case 'call':n.args.forEach(a=>walk(a,f));break;
+    case 'un':case 'pct':case 'paren':walk(n.e,f);break;
+    case 'bin':walk(n.l,f);walk(n.r,f);break;
+  }
+}
+const REFN={k:'referr'};
+
+/* ---------- workbook ---------- */
+let wb=null,nextId=1;
+const FMTS=['general','fixed2','percent1','date'];
+const blank=()=>({raw:'',fmt:'general'});
+const ix=(c,r)=>(r-1)*8+c-1;
+const addr=(c,r)=>colLetter(c)+r;
+function mkSheet(name){return{id:nextId++,name,cells:Array.from({length:96},blank),an:[1,1],ac:[1,1]}}
+function newWorkbook(){wb={sheets:[mkSheet('Sheet1')],names:[],active:0};wb.active=wb.sheets[0].id}
+const sheetById=id=>wb.sheets.find(s=>s.id===id);
+const findSheet=name=>{const u=name.toUpperCase();return wb.sheets.find(s=>s.name.toUpperCase()===u)};
+const curSheet=()=>sheetById(wb.active);
+const findName=nm=>{const u=nm.toUpperCase();return wb.names.find(d=>d.name.toUpperCase()===u)};
+function snap(){
+  return JSON.stringify({sheets:wb.sheets.map(s=>({id:s.id,name:s.name,cells:s.cells.map(c=>[c.raw,c.fmt]),an:s.an,ac:s.ac})),names:wb.names,active:wb.active});
+}
+function load(o){
+  wb={sheets:o.sheets.map(s=>({id:s.id,name:s.name,cells:s.cells.map(c=>({raw:c[0],fmt:c[1]})),an:s.an.slice(),ac:s.ac.slice()})),
+      names:o.names.map(n=>({name:n.name,target:{...n.target}})),active:o.active};
+  nextId=Math.max(nextId,...wb.sheets.map(s=>s.id+1));
+}
+const restore=str=>load(JSON.parse(str));
+const FUNCS=['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','ROUND','ROUNDUP','ROUNDDOWN','ABS','INT','MOD','IF','AND','OR','NOT','IFERROR','ISERROR','ISBLANK','CHOOSE','LEN','UPPER','LOWER','TRIM','LEFT','RIGHT','MID','CONCAT','REPT','FIND','SUBSTITUTE','TEXT','MATCH','INDEX','VLOOKUP','COUNTIF','COUNTIFS','SUMIF','SUMIFS','AVERAGEIF','DATE','YEAR','MONTH','DAY','WEEKDAY','EDATE','DAYS'];
+function validSheetName(s){return typeof s==='string'&&s.length>=1&&s.length<=20&&/^[A-Za-z0-9 _.\-']+$/.test(s)&&s[0]!==' '&&s[s.length-1]!==' '}
+function validName(s){
+  if(typeof s!=='string'||!/^[A-Za-z_][A-Za-z0-9_]{0,19}$/.test(s))return false;
+  const u=s.toUpperCase();
+  if(u==='TRUE'||u==='FALSE'||FUNCS.includes(u))return false;
+  return!/^[A-Za-z]+[0-9]+$/.test(s);
+}
+function validState(o){
+  try{
+    if(!o||typeof o!=='object'||!Array.isArray(o.sheets)||o.sheets.length<1||o.sheets.length>5)return false;
+    const ids=new Set(),nms=new Set();
+    const okPt=a=>Array.isArray(a)&&a.length===2&&Number.isInteger(a[0])&&Number.isInteger(a[1])&&a[0]>=1&&a[0]<=8&&a[1]>=1&&a[1]<=12;
+    for(const s of o.sheets){
+      if(!s||!Number.isInteger(s.id)||s.id<1||ids.has(s.id)||!validSheetName(s.name))return false;
+      ids.add(s.id);const u=s.name.toUpperCase();if(nms.has(u))return false;nms.add(u);
+      if(!Array.isArray(s.cells)||s.cells.length!==96)return false;
+      for(const c of s.cells)if(!Array.isArray(c)||c.length!==2||typeof c[0]!=='string'||!FMTS.includes(c[1]))return false;
+      if(!okPt(s.an)||!okPt(s.ac))return false;
+    }
+    if(!ids.has(o.active))return false;
+    if(!Array.isArray(o.names)||o.names.length>10)return false;
+    const nn=new Set();
+    for(const n of o.names){
+      if(!n||!validName(n.name)||nn.has(n.name.toUpperCase()))return false;
+      nn.add(n.name.toUpperCase());
+      const t=n.target;if(!t||typeof t!=='object')return false;
+      if(t.kind==='removed')continue;
+      if(t.kind!=='cell'&&t.kind!=='range')return false;
+      if(!ids.has(t.sheet))return false;
+      for(const k of['c1','c2','r1','r2'])if(!Number.isInteger(t[k]))return false;
+      if(t.c1<1||t.c2>8||t.r1<1||t.r2>12||t.c1>t.c2||t.r1>t.r2)return false;
+    }
+    return true;
+  }catch(e){return false}
+}
+
+/* ---------- evaluation ---------- */
+let memo=new Map(),pending=new Set(),circ=new Set();
+const key=(sh,c,r)=>sh.id*1000+ix(c,r);
+function rectOfTarget(t){return{c1:t.c1,r1:t.r1,c2:t.c2,r2:t.r2}}
+function precs(ast,sh){
+  const out=[];
+  walk(ast,n=>{
+    if(n.k==='ref'||n.k==='range'){
+      const t=n.prefix!==null?findSheet(n.prefix):sh;if(!t)return;
+      if(n.k==='ref'){if(inGrid(n))out.push(key(t,n.col,n.row))}
+      else if(inGrid(n.a)&&inGrid(n.b)){
+        const c1=Math.min(n.a.col,n.b.col),c2=Math.max(n.a.col,n.b.col),r1=Math.min(n.a.row,n.b.row),r2=Math.max(n.a.row,n.b.row);
+        for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++)out.push(key(t,c,r));
+      }
+    }else if(n.k==='name'){
+      const d=findName(n.name);
+      if(d&&d.target.kind!=='removed'){
+        const t=sheetById(d.target.sheet);
+        if(t)for(let r=d.target.r1;r<=d.target.r2;r++)for(let c=d.target.c1;c<=d.target.c2;c++)out.push(key(t,c,r));
+      }
+    }
+  });
+  return out;
+}
+function recalc(){
+  memo=new Map();pending=new Set();circ=new Set();
+  const nodes=new Map();
+  for(const sh of wb.sheets)for(let i=0;i<96;i++){
+    const raw=sh.cells[i].raw;
+    if(raw[0]!=='=')continue;
+    const ast=getAst(raw);if(!ast)continue;
+    nodes.set(sh.id*1000+i,precs(ast,sh));
+  }
+  let index=0;const st=[],idx=new Map(),low=new Map(),on=new Set();
+  function sc(v){
+    idx.set(v,index);low.set(v,index);index++;st.push(v);on.add(v);
+    for(const w of nodes.get(v)){
+      if(!nodes.has(w))continue;
+      if(!idx.has(w)){sc(w);low.set(v,Math.min(low.get(v),low.get(w)))}
+      else if(on.has(w))low.set(v,Math.min(low.get(v),idx.get(w)));
+    }
+    if(low.get(v)===idx.get(v)){
+      const comp=[];let w;
+      do{w=st.pop();on.delete(w);comp.push(w)}while(w!==v);
+      if(comp.length>1||nodes.get(v).includes(v))comp.forEach(x=>circ.add(x));
+    }
+  }
+  for(const v of nodes.keys())if(!idx.has(v))sc(v);
+}
+function cellVal(sh,c,r){
+  const i=ix(c,r),raw=sh.cells[i].raw;
+  if(raw==='')return null;
+  if(raw[0]!=='='){return classify(raw).v}
+  const k=sh.id*1000+i;
+  if(memo.has(k))return memo.get(k);
+  let v;
+  const ast=getAst(raw);
+  if(!ast)v=SYNTAX;
+  else if(circ.has(k)||pending.has(k))v=CYCLE;
+  else{
+    pending.add(k);
+    try{v=ev(ast,sh);if(v===null||v===undefined)v=0}catch(e){v=VALUE}
+    pending.delete(k);
+  }
+  memo.set(k,v);return v;
+}
+const toNum=v=>typeof v==='number'?v:typeof v==='boolean'?(v?1:0):(v===null||v===undefined)?0:typeof v==='string'?VALUE:v;
+const toTxt=v=>typeof v==='number'?G(v):typeof v==='boolean'?(v?'TRUE':'FALSE'):(v===null||v===undefined)?'':v;
+const toBool=v=>typeof v==='number'?v!==0:typeof v==='boolean'?v:(v===null||v===undefined)?false:typeof v==='string'?VALUE:v;
+const trank=v=>typeof v==='number'?0:typeof v==='string'?1:2;
+function cmp(a,b){
+  const ra=trank(a),rb=trank(b);
+  if(ra!==rb)return ra<rb?-1:1;
+  if(ra===1){a=a.toUpperCase();b=b.toUpperCase();return a<b?-1:a>b?1:0}
+  if(ra===2)return(a?1:0)-(b?1:0);
+  return a<b?-1:a>b?1:0;
+}
+function refVal(n,sh){
+  let t=sh;
+  if(n.prefix!==null){t=findSheet(n.prefix);if(!t)return REF}
+  if(!inGrid(n))return REF;
+  return cellVal(t,n.col,n.row);
+}
+function ev(n,sh){
+  switch(n.k){
+    case 'num':return nr(parseFloat(n.s));
+    case 'str':return n.v;
+    case 'bool':return n.v;
+    case 'referr':return REF;
+    case 'ref':return refVal(n,sh);
+    case 'range':return VALUE;
+    case 'paren':return ev(n.e,sh);
+    case 'name':{
+      const d=findName(n.name);if(!d)return NAME;
+      const t=d.target;
+      if(t.kind==='removed')return REF;
+      const s=sheetById(t.sheet);if(!s)return REF;
+      if(t.kind==='cell')return cellVal(s,t.c1,t.r1);
+      return VALUE;
+    }
+    case 'un':{
+      const v=ev(n.e,sh);if(isErr(v))return v;
+      const x=toNum(v);if(isErr(x))return x;
+      return nr(n.op==='-'?-x:x);
+    }
+    case 'pct':{
+      const v=ev(n.e,sh);if(isErr(v))return v;
+      const x=toNum(v);if(isErr(x))return x;
+      return nr(x/100);
+    }
+    case 'bin':{
+      const l=ev(n.l,sh);if(isErr(l))return l;
+      const r=ev(n.r,sh);if(isErr(r))return r;
+      return binop(n.op,l,r);
+    }
+    case 'call':return call(n,sh);
+  }
+  return VALUE;
+}
+function binop(op,l,r){
+  if(op==='&')return toTxt(l)+toTxt(r);
+  if(op==='='||op==='<>'||op==='<'||op==='<='||op==='>'||op==='>='){
+    let a=l,b=r;
+    if(a===null||a===undefined)a=(b===null||b===undefined||typeof b==='number')?0:typeof b==='string'?'':false;
+    if(b===null||b===undefined)b=(typeof a==='number')?0:typeof a==='string'?'':false;
+    const c=cmp(a,b);
+    switch(op){case '=':return c===0;case '<>':return c!==0;case '<':return c<0;case '<=':return c<=0;case '>':return c>0;default:return c>=0}
+  }
+  const a=toNum(l);if(isErr(a))return a;
+  const b=toNum(r);if(isErr(b))return b;
+  switch(op){
+    case '+':return nr(a+b);
+    case '-':return nr(a-b);
+    case '*':return nr(a*b);
+    case '/':return b===0?DIV0:nr(a/b);
+    case '^':
+      if(a===0&&b===0)return NUM;
+      if(a===0&&b<0)return DIV0;
+      if(a<0&&!Number.isInteger(b))return NUM;
+      return nr(Math.pow(a,b));
+  }
+  return VALUE;
+}
+const isRangeArg=a=>a.k==='ref'||a.k==='range'||a.k==='referr'||a.k==='name';
+function getRange(a,sh){
+  if(a.k==='referr')return{err:REF};
+  if(a.k==='name'){
+    const d=findName(a.name);if(!d)return{err:NAME};
+    const t=d.target;if(t.kind==='removed')return{err:REF};
+    const s=sheetById(t.sheet);if(!s)return{err:REF};
+    return mkRect(s,t.c1,t.r1,t.c2,t.r2,t.kind==='range');
+  }
+  let s=sh;
+  if(a.prefix!==null){s=findSheet(a.prefix);if(!s)return{err:REF}}
+  if(a.k==='ref'){if(!inGrid(a))return{err:REF};return mkRect(s,a.col,a.row,a.col,a.row,false)}
+  if(!inGrid(a.a)||!inGrid(a.b))return{err:REF};
+  return mkRect(s,Math.min(a.a.col,a.b.col),Math.min(a.a.row,a.b.row),Math.max(a.a.col,a.b.col),Math.max(a.a.row,a.b.row),true);
+}
+function mkRect(s,c1,r1,c2,r2,multi){return{sheet:s,c1,r1,c2,r2,cols:c2-c1+1,rows:r2-r1+1,multi}}
+function cells(g){
+  const out=[];
+  for(let r=g.r1;r<=g.r2;r++)for(let c=g.c1;c<=g.c2;c++)out.push({empty:g.sheet.cells[ix(c,r)].raw==='',v:cellVal(g.sheet,c,r)});
+  return out;
+}
+function conv(sh,args,kinds){
+  const out=[];
+  for(let i=0;i<kinds.length&&i<args.length;i++){
+    const v=ev(args[i],sh);if(isErr(v))return v;
+    let x;
+    switch(kinds[i]){
+      case 'n':case 's':x=toNum(v);break;
+      case 'i':x=toNum(v);if(!isErr(x))x=Math.trunc(x);break;
+      case 't':x=toTxt(v);break;
+      case 'b':x=toBool(v);break;
+    }
+    if(isErr(x))return x;
+    out.push(x);
+  }
+  return out;
+}
+const ARITY={SUM:[1,1e9],AVERAGE:[1,1e9],MIN:[1,1e9],MAX:[1,1e9],COUNT:[1,1e9],COUNTA:[1,1e9],ROUND:[2,2],ROUNDUP:[2,2],ROUNDDOWN:[2,2],ABS:[1,1],INT:[1,1],MOD:[2,2],IF:[3,3],AND:[1,1e9],OR:[1,1e9],NOT:[1,1],IFERROR:[2,2],ISERROR:[1,1],ISBLANK:[1,1],CHOOSE:[2,1e9],LEN:[1,1],UPPER:[1,1],LOWER:[1,1],TRIM:[1,1],LEFT:[2,2],RIGHT:[2,2],MID:[3,3],CONCAT:[1,1e9],REPT:[2,2],FIND:[2,3],SUBSTITUTE:[3,4],TEXT:[2,2],MATCH:[2,3],INDEX:[2,3],VLOOKUP:[3,4],COUNTIF:[2,2],COUNTIFS:[2,1e9,2],SUMIF:[3,3],SUMIFS:[3,1e9,1],AVERAGEIF:[2,3],DATE:[3,3],YEAR:[1,1],MONTH:[1,1],DAY:[1,1],WEEKDAY:[1,2],EDATE:[2,2],DAYS:[2,2]};
+function aggr(name,A,sh){
+  let sum=0,cnt=0,mn=Infinity,mx=-Infinity,count=0;
+  const contrib=x=>{sum+=x;cnt++;if(x<mn)mn=x;if(x>mx)mx=x};
+  for(const a of A){
+    if(isRangeArg(a)){
+      const g=getRange(a,sh);if(g.err)return g.err;
+      for(const it of cells(g)){
+        if(isErr(it.v))return it.v;
+        if(name==='COUNTA'){if(!it.empty)count++}
+        else if(name==='COUNT'){if(typeof it.v==='number')count++}
+        else if(typeof it.v==='number')contrib(it.v);
+      }
+    }else{
+      const v=ev(a,sh);if(isErr(v))return v;
+      if(name==='COUNTA'){count++}
+      else if(name==='COUNT'){if(typeof v==='number')count++}
+      else{const x=toNum(v);if(isErr(x))return x;contrib(x)}
+    }
+  }
+  switch(name){
+    case 'COUNT':case 'COUNTA':return count;
+    case 'SUM':return nr(sum);
+    case 'AVERAGE':return cnt===0?DIV0:nr(sum/cnt);
+    case 'MIN':return cnt?nr(mn):0;
+    default:return cnt?nr(mx):0;
+  }
+}
+function lookup(items,keyv,mode){
+  let best=-1;
+  for(let i=0;i<items.length;i++){
+    const it=items[i],v=it.v;
+    if(isErr(v))return v;
+    if(it.empty)continue;
+    if(trank(v)!==trank(keyv))continue;
+    const c=cmp(v,keyv);
+    if(mode==='exact'){if(c===0)return i}
+    else if(mode==='most'){if(c<=0&&(best<0||cmp(v,items[best].v)>=0))best=i}
+    else{if(c>=0&&(best<0||cmp(v,items[best].v)<=0))best=i}
+  }
+  return best;
+}
+function parseCrit(v){
+  if(v===null||v===undefined)return{op:'=',x:''};
+  if(typeof v!=='string')return{op:'=',x:v};
+  const m=/^(>=|<=|<>|>|<|=)/.exec(v);
+  if(!m)return{op:'=',x:v};
+  const rest=v.slice(m[0].length);
+  const n=entryNumber(rest);
+  if(n!==null)return{op:m[0],x:n};
+  const u=rest.toUpperCase();
+  if(u==='TRUE'||u==='FALSE')return{op:m[0],x:u==='TRUE'};
+  return{op:m[0],x:rest};
+}
+function meets(v,cr){
+  if(trank(v)!==trank(cr.x))return cr.op==='<>'?false:false;
+  const c=cmp(v,cr.x);
+  switch(cr.op){case '=':return c===0;case '<>':return c!==0;case '<':return c<0;case '<=':return c<=0;case '>':return c>0;default:return c>=0}
+}
+function condAgg(name,A,sh){
+  const k=A.length;
+  let rIdx,cIdx,mPos,sPos=null;
+  if(name==='COUNTIF'){rIdx=[0];cIdx=[1];mPos=[0]}
+  else if(name==='COUNTIFS'){rIdx=[];cIdx=[];mPos=[];for(let i=0;i<k;i+=2){mPos.push(rIdx.length);rIdx.push(i);cIdx.push(i+1)}}
+  else if(name==='SUMIF'){rIdx=[0,2];cIdx=[1];mPos=[0];sPos=1}
+  else if(name==='SUMIFS'){rIdx=[0];cIdx=[];mPos=[];sPos=0;for(let i=1;i<k;i+=2){mPos.push(rIdx.length);rIdx.push(i);cIdx.push(i+1)}}
+  else{if(k===3){rIdx=[0,2];sPos=1}else{rIdx=[0];sPos=0}cIdx=[1];mPos=[0]}
+  for(const i of rIdx)if(!isRangeArg(A[i]))return VALUE;
+  const gs=[];
+  for(const i of rIdx){const g=getRange(A[i],sh);if(g.err)return g.err;gs.push(g)}
+  for(const g of gs)if(g.rows!==gs[0].rows||g.cols!==gs[0].cols)return VALUE;
+  const crits=[];
+  const cIdxSorted=cIdx.slice().sort((a,b)=>a-b);
+  for(const i of cIdxSorted){const v=ev(A[i],sh);if(isErr(v))return v;crits.push(parseCrit(v))}
+  const items=gs.map(cells);
+  const len=items[0].length;
+  let count=0,sum=0,cnt=0;
+  for(let p=0;p<len;p++){
+    let ok=true;
+    for(let j=0;j<crits.length;j++){
+      const it=items[mPos[j]][p];
+      if(isErr(it.v))return it.v;
+      if(it.empty||!meets(it.v,crits[j])){ok=false;break}
+    }
+    if(!ok)continue;
+    count++;
+    if(sPos!==null){
+      const it=items[sPos][p];
+      if(isErr(it.v))return it.v;
+      if(typeof it.v==='number'){sum+=it.v;cnt++}
+    }
+  }
+  if(name==='COUNTIF'||name==='COUNTIFS')return count;
+  if(name==='AVERAGEIF')return cnt===0?DIV0:nr(sum/cnt);
+  return nr(sum);
+}
+function call(n,sh){
+  const name=n.name.toUpperCase(),ar=ARITY[name];
+  if(!ar)return NAME;
+  const A=n.args,k=A.length;
+  if(k<ar[0]||k>ar[1]||(ar[2]===2&&k%2!==0)||(ar[2]===1&&k%2!==1))return ARGS;
+  const arr=a=>Array.isArray(a);
+  switch(name){
+    case 'SUM':case 'AVERAGE':case 'MIN':case 'MAX':case 'COUNT':case 'COUNTA':return aggr(name,A,sh);
+    case 'ROUND':case 'ROUNDUP':case 'ROUNDDOWN':{
+      const a=conv(sh,A,'ni');if(!arr(a))return a;
+      const[x,d]=a;if(d<-9||d>9)return NUM;
+      return nr(rdNum(rdec(x,d,name==='ROUND'?'half':name==='ROUNDUP'?'up':'down')));
+    }
+    case 'ABS':{const a=conv(sh,A,'n');if(!arr(a))return a;return nr(Math.abs(a[0]))}
+    case 'INT':{const a=conv(sh,A,'n');if(!arr(a))return a;return nr(Math.floor(a[0]))}
+    case 'MOD':{const a=conv(sh,A,'nn');if(!arr(a))return a;if(a[1]===0)return DIV0;return nr(a[0]-a[1]*Math.floor(a[0]/a[1]))}
+    case 'IF':{
+      const c=ev(A[0],sh);if(isErr(c))return c;
+      const b=toBool(c);if(isErr(b))return b;
+      return ev(b?A[1]:A[2],sh);
+    }
+    case 'AND':case 'OR':{
+      let res=name==='AND';
+      for(const a of A){
+        const v=ev(a,sh);if(isErr(v))return v;
+        const b=toBool(v);if(isErr(b))return b;
+        res=name==='AND'?(res&&b):(res||b);
+      }
+      return res;
+    }
+    case 'NOT':{const a=conv(sh,A,'b');if(!arr(a))return a;return!a[0]}
+    case 'IFERROR':{const v=ev(A[0],sh);return isErr(v)?ev(A[1],sh):v}
+    case 'ISERROR':return isErr(ev(A[0],sh));
+    case 'ISBLANK':{
+      const a=A[0];
+      if(isRangeArg(a)){
+        const g=getRange(a,sh);if(g.err)return g.err;
+        if(g.multi)return VALUE;
+        return g.sheet.cells[ix(g.c1,g.r1)].raw==='';
+      }
+      const v=ev(a,sh);return isErr(v)?v:false;
+    }
+    case 'CHOOSE':{
+      const a=conv(sh,A,'i');if(!arr(a))return a;
+      const i=a[0];if(i<1||i>k-1)return VALUE;
+      return ev(A[i],sh);
+    }
+    case 'LEN':{const a=conv(sh,A,'t');if(!arr(a))return a;return nr(a[0].length)}
+    case 'UPPER':{const a=conv(sh,A,'t');if(!arr(a))return a;return a[0].toUpperCase()}
+    case 'LOWER':{const a=conv(sh,A,'t');if(!arr(a))return a;return a[0].toLowerCase()}
+    case 'TRIM':{const a=conv(sh,A,'t');if(!arr(a))return a;return a[0].replace(/ {2,}/g,' ').replace(/^ +| +$/g,'')}
+    case 'LEFT':{const a=conv(sh,A,'ti');if(!arr(a))return a;if(a[1]<0)return VALUE;return a[0].slice(0,a[1])}
+    case 'RIGHT':{const a=conv(sh,A,'ti');if(!arr(a))return a;if(a[1]<0)return VALUE;return a[1]===0?'':a[0].slice(Math.max(0,a[0].length-a[1]))}
+    case 'MID':{const a=conv(sh,A,'tii');if(!arr(a))return a;if(a[1]<1||a[2]<0)return VALUE;return a[0].substr(a[1]-1,a[2])}
+    case 'CONCAT':{
+      let out='';
+      for(const a of A){
+        if(isRangeArg(a)){
+          const g=getRange(a,sh);if(g.err)return g.err;
+          for(const it of cells(g)){if(isErr(it.v))return it.v;out+=toTxt(it.v)}
+        }else{const v=ev(a,sh);if(isErr(v))return v;out+=toTxt(v)}
+      }
+      return out;
+    }
+    case 'REPT':{
+      const a=conv(sh,A,'ti');if(!arr(a))return a;
+      if(a[1]<0||a[0].length*a[1]>255)return VALUE;
+      return a[0].repeat(a[1]);
+    }
+    case 'FIND':{
+      const a=conv(sh,A,'tti');if(!arr(a))return a;
+      const st=k===3?a[2]:1;
+      if(st<1||st>a[1].length+1)return VALUE;
+      const i=a[1].indexOf(a[0],st-1);
+      return i<0?VALUE:i+1;
+    }
+    case 'SUBSTITUTE':{
+      const a=conv(sh,A,'ttti');if(!arr(a))return a;
+      const[t,old,nw]=a;
+      if(k===4&&a[3]<1)return VALUE;
+      if(old==='')return t;
+      let out='',i=0,occ=0;
+      for(;;){
+        const j=t.indexOf(old,i);
+        if(j<0){out+=t.slice(i);break}
+        occ++;
+        out+=t.slice(i,j)+((k===3||occ===a[3])?nw:old);
+        i=j+old.length;
+      }
+      return out;
+    }
+    case 'TEXT':{
+      const a=conv(sh,A,'nt');if(!arr(a))return a;
+      const[x,p]=a;
+      if(p==='yyyy-mm-dd'){const d=Math.floor(x);if(!validSerial(d))return NUM;return dateStr(d)}
+      const m=/^(#,##)?0(\.(0{1,6}))?(%)?$/.exec(p);
+      if(!m)return VALUE;
+      const kk=m[3]?m[3].length:0;
+      let y=x;
+      if(m[4]){y=N(x*100);if(!isFinite(y)||Math.abs(y)>=1e15)return NUM}
+      return fixedStr(rdec(y,kk,'half'),!!m[1])+(m[4]?'%':'');
+    }
+    case 'MATCH':{
+      if(!isRangeArg(A[1]))return VALUE;
+      const g=getRange(A[1],sh);if(g.err)return g.err;
+      if(g.rows>1&&g.cols>1)return VALUE;
+      let kv=ev(A[0],sh);if(isErr(kv))return kv;
+      if(kv===null)kv=0;
+      let t=1;
+      if(k===3){const a=conv(sh,[A[2]],'i');if(!arr(a))return a;t=a[0];if(t!==-1&&t!==0&&t!==1)return VALUE}
+      const r=lookup(cells(g),kv,t===0?'exact':t===1?'most':'least');
+      if(isErr(r))return r;
+      return r<0?NA:r+1;
+    }
+    case 'VLOOKUP':{
+      if(!isRangeArg(A[1]))return VALUE;
+      const g=getRange(A[1],sh);if(g.err)return g.err;
+      let kv=ev(A[0],sh);if(isErr(kv))return kv;
+      if(kv===null)kv=0;
+      const ca=conv(sh,[A[2]],'i');if(!arr(ca))return ca;
+      const col=ca[0];
+      if(col<1)return VALUE;
+      if(col>g.cols)return REF;
+      let ap=false;
+      if(k===4){const b=conv(sh,[A[3]],'b');if(!arr(b))return b;ap=b[0]}
+      const its=cells(g),first=[];
+      for(let r=0;r<g.rows;r++)first.push(its[r*g.cols]);
+      const i=lookup(first,kv,ap?'most':'exact');
+      if(isErr(i))return i;
+      if(i<0)return NA;
+      return its[i*g.cols+col-1].v;
+    }
+    case 'INDEX':{
+      if(!isRangeArg(A[0]))return VALUE;
+      const g=getRange(A[0],sh);if(g.err)return g.err;
+      const a=conv(sh,A.slice(1),'ii');if(!arr(a))return a;
+      const its=cells(g);
+      if(k===2){if(a[0]<1)return VALUE;if(a[0]>its.length)return REF;return its[a[0]-1].v}
+      if(a[0]<1||a[1]<1)return VALUE;
+      if(a[0]>g.rows||a[1]>g.cols)return REF;
+      return its[(a[0]-1)*g.cols+a[1]-1].v;
+    }
+    case 'COUNTIF':case 'COUNTIFS':case 'SUMIF':case 'SUMIFS':case 'AVERAGEIF':return condAgg(name,A,sh);
+    case 'DATE':{
+      const a=conv(sh,A,'iii');if(!arr(a))return a;
+      const[y,m,d]=a;
+      if(y<1900||y>9999)return NUM;
+      const yy=y+Math.floor((m-1)/12),mm=(((m-1)%12)+12)%12+1;
+      const s=serialOf(yy,mm,1)+d-1;
+      return validSerial(s)?s:NUM;
+    }
+    case 'YEAR':case 'MONTH':case 'DAY':{
+      const a=conv(sh,A,'s');if(!arr(a))return a;
+      const s=Math.floor(a[0]);if(!validSerial(s))return NUM;
+      const c=fromSerial(s);
+      return name==='YEAR'?c[0]:name==='MONTH'?c[1]:c[2];
+    }
+    case 'WEEKDAY':{
+      const a=conv(sh,A,'si');if(!arr(a))return a;
+      const s=Math.floor(a[0]);if(!validSerial(s))return NUM;
+      const t=k===2?a[1]:1;
+      if(t!==1&&t!==2&&t!==3)return NUM;
+      const i=(s-1)%7;
+      return t===1?((i+1)%7)+1:t===2?i+1:i;
+    }
+    case 'EDATE':{
+      const a=conv(sh,A,'si');if(!arr(a))return a;
+      const s=Math.floor(a[0]);if(!validSerial(s))return NUM;
+      const[y,m,d]=fromSerial(s);
+      const total=y*12+(m-1)+a[1],ny=Math.floor(total/12),nm=total-ny*12+1;
+      if(ny<1900||ny>9999)return NUM;
+      return serialOf(ny,nm,Math.min(d,dim(ny,nm)));
+    }
+    case 'DAYS':{
+      const a=conv(sh,A,'ss');if(!arr(a))return a;
+      const e=Math.floor(a[0]),s=Math.floor(a[1]);
+      if(!validSerial(e)||!validSerial(s))return NUM;
+      return e-s;
+    }
+  }
+  return NAME;
+}
+
+/* ---------- display ---------- */
+function fmtNum(x,fmt){
+  switch(fmt){
+    case 'fixed2':return fixedStr(rdec(x,2,'half'),true);
+    case 'percent1':return fixedStr(rdec(N(x*100),1,'half'),false)+'%';
+    case 'date':{const d=Math.floor(x);return validSerial(d)?dateStr(d):G(x)}
+    default:return G(x);
+  }
+}
+function show(v,fmt){
+  if(v===null||v===undefined)return'';
+  if(isErr(v))return v.c;
+  if(typeof v==='string')return v;
+  if(typeof v==='boolean')return v?'TRUE':'FALSE';
+  return fmtNum(v,fmt);
+}
+function kindOf(v){
+  if(v===null||v===undefined)return'empty';
+  if(isErr(v))return'error';
+  return typeof v==='string'?'text':typeof v==='boolean'?'logical':'number';
+}
+function cellInfo(sh,c,r){
+  const cell=sh.cells[ix(c,r)];
+  if(cell.raw==='')return{text:'',kind:'empty',v:null};
+  const v=cellVal(sh,c,r);
+  return{text:show(v,cell.fmt),kind:kindOf(v),v};
+}
+
+/* ---------- selection helpers ---------- */
+function selRect(s){return[Math.min(s.an[0],s.ac[0]),Math.min(s.an[1],s.ac[1]),Math.max(s.an[0],s.ac[0]),Math.max(s.an[1],s.ac[1])]}
+function selSummary(s){
+  const[c1,r1,c2,r2]=selRect(s);
+  let sum=0,n=0;
+  for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++){
+    if(s.cells[ix(c,r)].raw==='')continue;
+    const v=cellVal(s,c,r);
+    if(typeof v==='number'){sum+=v;n++}
+  }
+  if(!n)return null;
+  const f=x=>{const y=N(x);return Math.abs(y)>=1e15?'#NUM!':G(y)};
+  return'Sum: '+f(sum)+' | Average: '+f(sum/n)+' | Count: '+n;
+}
+
+/* ---------- committing ---------- */
+function canonical(str){
+  const ast=parse(str.slice(1));
+  if(!ast)return str;
+  const fixed=mapRefs(ast,n=>{if(n.prefix===null)return n;const s=findSheet(n.prefix);return s?{...n,prefix:s.name}:n});
+  return'='+wr(fixed);
+}
+function commitStr(s,i,str,force){
+  let raw,date=false;
+  if(str==='')raw='';
+  else if(str[0]==='=')raw=canonical(str);
+  else{raw=str;date=!!classify(str).date}
+  const cell=s.cells[i];
+  if(raw===cell.raw&&!force)return false;
+  const ch=raw!==cell.raw;
+  cell.raw=raw;
+  if(date&&cell.fmt==='general'){cell.fmt='date';return true}
+  return ch;
+}
+
+/* ---------- rewriting ---------- */
+function rewriteFormulas(fn){
+  for(const sh of wb.sheets)for(const cell of sh.cells){
+    if(cell.raw[0]!=='=')continue;
+    const ast=getAst(cell.raw);if(!ast)continue;
+    const na='='+wr(mapRefs(ast,n=>fn(n,sh)));
+    if(na!==cell.raw)cell.raw=na;
+  }
+}
+function span(lo,hi,x,ins,lim){
+  if(ins){
+    const t=lo<x?lo:lo+1,b=hi<x?hi:hi+1;
+    if(t>lim)return null;
+    return[t,Math.min(b,lim)];
+  }
+  if(x>hi)return[lo,hi];
+  if(x<lo)return[lo-1,hi-1];
+  if(lo===hi)return null;
+  return[lo,hi-1];
+}
+const setAx=(r,ax,v)=>ax==='row'?{...r,row:v,rowStr:String(v)}:{...r,col:v,colStr:colLetter(v)};
+function structOp(ax,ins){
+  const S=curSheet(),x=ax==='row'?S.ac[1]:S.ac[0],lim=ax==='row'?12:8;
+  const val=r=>ax==='row'?r.row:r.col;
+  rewriteFormulas((n,holder)=>{
+    const t=n.prefix!==null?findSheet(n.prefix):holder;
+    if(t!==S)return n;
+    if(n.k==='ref'){
+      if(!inGrid(n))return n;
+      const v=val(n),res=span(v,v,x,ins,lim);
+      return res?setAx(n,ax,res[0]):REFN;
+    }
+    if(!inGrid(n.a)||!inGrid(n.b))return n;
+    const va=val(n.a),vb=val(n.b);
+    const res=span(Math.min(va,vb),Math.max(va,vb),x,ins,lim);
+    if(!res)return REFN;
+    const aLow=va<=vb;
+    return{...n,a:setAx(n.a,ax,aLow?res[0]:res[1]),b:setAx(n.b,ax,aLow?res[1]:res[0])};
+  });
+  for(const d of wb.names){
+    const t=d.target;
+    if(t.kind==='removed'||t.sheet!==S.id)continue;
+    const lo=ax==='row'?t.r1:t.c1,hi=ax==='row'?t.r2:t.c2;
+    const res=span(lo,hi,x,ins,lim);
+    if(!res){d.target={kind:'removed'};continue}
+    if(ax==='row'){t.r1=res[0];t.r2=res[1]}else{t.c1=res[0];t.c2=res[1]}
+  }
+  const old=S.cells.slice(),nc=new Array(96);
+  for(let r=1;r<=12;r++)for(let c=1;c<=8;c++){
+    let src=null;
+    if(ax==='row'){
+      if(ins){if(r<x)src=[c,r];else if(r>x)src=[c,r-1]}
+      else{if(r<x)src=[c,r];else if(r<12)src=[c,r+1]}
+    }else{
+      if(ins){if(c<x)src=[c,r];else if(c>x)src=[c-1,r]}
+      else{if(c<x)src=[c,r];else if(c<8)src=[c+1,r]}
+    }
+    nc[ix(c,r)]=src?old[ix(src[0],src[1])]:blank();
+  }
+  S.cells=nc;
+}
+const adjHandler=(dc,dr)=>n=>{
+  const one=r=>{
+    const c=r.cabs?r.col:r.col+dc,rw=r.rabs?r.row:r.row+dr;
+    if(c<1||c>8||rw<1||rw>12)return null;
+    return{...r,col:c,colStr:colLetter(c),row:rw,rowStr:String(rw)};
+  };
+  if(n.k==='ref'){if(!inGrid(n))return n;return one(n)||REFN}
+  if(!inGrid(n.a)||!inGrid(n.b))return n;
+  const a=one(n.a),b=one(n.b);
+  if(!a||!b)return REFN;
+  return{...n,a,b};
+};
+function adjustRaw(raw,dc,dr){
+  if(raw[0]!=='=')return raw;
+  const ast=getAst(raw);if(!ast)return raw;
+  return'='+wr(mapRefs(ast,adjHandler(dc,dr)));
+}
+
+/* ---------- actions ---------- */
+function clearSel(){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);let ch=false;
+  for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++){const cell=s.cells[ix(c,r)];if(cell.raw!==''){cell.raw='';ch=true}}
+  return ch;
+}
+function setFormat(f){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);let ch=false;
+  for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++){const cell=s.cells[ix(c,r)];if(cell.fmt!==f){cell.fmt=f;ch=true}}
+  return ch;
+}
+function makeBlock(mode){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);
+  const cs=[];
+  for(let r=r1;r<=r2;r++){const row=[];for(let c=c1;c<=c2;c++){const cell=s.cells[ix(c,r)];row.push({raw:cell.raw,fmt:cell.fmt})}cs.push(row)}
+  return{cells:cs,c1,r1,w:c2-c1+1,h:r2-r1+1,sheetName:s.name,mode};
+}
+function paste(b){
+  const s=curSheet(),[c0,r0]=selRect(s);
+  if(b.mode==='cut'){
+    const src=findSheet(b.sheetName);
+    if(src)for(let i=0;i<b.h;i++)for(let j=0;j<b.w;j++){const cell=src.cells[ix(b.c1+j,b.r1+i)];cell.raw='';cell.fmt='general'}
+  }
+  for(let i=0;i<b.h;i++)for(let j=0;j<b.w;j++){
+    const dc=c0+j,dr=r0+i;
+    if(dc>8||dr>12)continue;
+    const src=b.cells[i][j],dst=s.cells[ix(dc,dr)];
+    dst.raw=b.mode==='copy'?adjustRaw(src.raw,dc-(b.c1+j),dr-(b.r1+i)):src.raw;
+    dst.fmt=src.fmt;
+  }
+  s.an=[c0,r0];s.ac=[c0,r0];
+}
+function sortSel(desc){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s),kc=s.ac[0];
+  const rows=[];
+  for(let r=r1;r<=r2;r++){
+    const empty=s.cells[ix(kc,r)].raw==='';
+    const cs=[];for(let c=c1;c<=c2;c++){const cell=s.cells[ix(c,r)];cs.push({raw:cell.raw,fmt:cell.fmt})}
+    rows.push({i:r-r1,empty,v:empty?null:cellVal(s,kc,r),cs});
+  }
+  const rank=x=>x.empty?4:isErr(x.v)?3:typeof x.v==='number'?0:typeof x.v==='string'?1:2;
+  const order=rows.slice().sort((a,b)=>{
+    const ra=rank(a),rb=rank(b);
+    if(ra===4||rb===4){if(ra===rb)return a.i-b.i;return ra===4?1:-1}
+    let c;
+    if(ra!==rb)c=ra-rb;
+    else if(ra===3)c=0;
+    else c=cmp(a.v,b.v);
+    if(desc)c=-c;
+    return c||a.i-b.i;
+  });
+  if(order.every((x,i)=>x.i===i))return false;
+  order.forEach((row,i)=>{
+    for(let c=c1;c<=c2;c++){const cell=s.cells[ix(c,r1+i)],src=row.cs[c-c1];cell.raw=src.raw;cell.fmt=src.fmt}
+  });
+  return true;
+}
+function fillDown(){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);
+  if(r2<=r1)return false;
+  for(let c=c1;c<=c2;c++){
+    const src=s.cells[ix(c,r1)],raw=src.raw,fmt=src.fmt;
+    for(let r=r1+1;r<=r2;r++){const d=s.cells[ix(c,r)];d.raw=adjustRaw(raw,0,r-r1);d.fmt=fmt}
+  }
+  return true;
+}
+function fillRight(){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);
+  if(c2<=c1)return false;
+  for(let r=r1;r<=r2;r++){
+    const src=s.cells[ix(c1,r)],raw=src.raw,fmt=src.fmt;
+    for(let c=c1+1;c<=c2;c++){const d=s.cells[ix(c,r)];d.raw=adjustRaw(raw,c-c1,0);d.fmt=fmt}
+  }
+  return true;
+}
+function fillSeries(){
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);
+  const lines=[];
+  if(r1===r2){const l=[];for(let c=c1;c<=c2;c++)l.push(ix(c,r1));lines.push(l)}
+  else for(let c=c1;c<=c2;c++){const l=[];for(let r=r1;r<=r2;r++)l.push(ix(c,r));lines.push(l)}
+  let any=false;
+  for(const l of lines){
+    if(l.length<3)continue;
+    const A=s.cells[l[0]],B=s.cells[l[1]];
+    if(A.raw[0]==='='||B.raw[0]==='=')continue;
+    const ka=classify(A.raw),kb=classify(B.raw);
+    if(ka.k!=='number'||kb.k!=='number')continue;
+    const st=N(kb.v-ka.v);
+    const vals=[];let ok=true;
+    for(let k=3;k<=l.length;k++){
+      const v=N(ka.v+(k-1)*st);
+      if(!isFinite(v)||Math.abs(v)>=1e15){ok=false;break}
+      vals.push(v);
+    }
+    if(!ok)continue;
+    vals.forEach((v,j)=>{const c=s.cells[l[j+2]];c.raw=P(v);c.fmt=A.fmt});
+    any=true;
+  }
+  return any;
+}
+function addSheet(){
+  let n=1;
+  while(findSheet('Sheet'+n))n++;
+  const s=mkSheet('Sheet'+n);
+  wb.sheets.push(s);wb.active=s.id;
+}
+function renameSheet(v){
+  const s=curSheet();
+  if(v===s.name)return'same';
+  if(!validSheetName(v))return'invalid';
+  const o=findSheet(v);
+  if(o&&o!==s)return'dup';
+  rewriteFormulas(n=>{
+    if(n.prefix===null||findSheet(n.prefix)!==s)return n;
+    return{...n,prefix:v};
+  });
+  s.name=v;
+  return'ok';
+}
+function deleteSheet(){
+  if(wb.sheets.length<2)return false;
+  const s=curSheet(),i=wb.sheets.indexOf(s);
+  rewriteFormulas(n=>(n.prefix!==null&&findSheet(n.prefix)===s)?REFN:n);
+  for(const d of wb.names)if(d.target.kind!=='removed'&&d.target.sheet===s.id)d.target={kind:'removed'};
+  wb.sheets.splice(i,1);
+  wb.active=wb.sheets[Math.min(i,wb.sheets.length-1)].id;
+  return true;
+}
+function defineName(v){
+  if(!validName(v))return'Invalid name';
+  if(findName(v))return'Name already used';
+  if(wb.names.length>=10)return'Too many names';
+  const s=curSheet(),[c1,r1,c2,r2]=selRect(s);
+  const one=c1===c2&&r1===r2;
+  wb.names.push({name:v,target:{kind:one?'cell':'range',sheet:s.id,c1,r1,c2,r2}});
+  return null;
+}
+function deleteName(v){
+  const d=findName(v);
+  if(!d)return'Unknown name';
+  wb.names.splice(wb.names.indexOf(d),1);
+  return null;
+}
+function sortedNames(){
+  return wb.names.slice().sort((a,b)=>{const x=a.name.toUpperCase(),y=b.name.toUpperCase();return x<y?-1:x>y?1:0});
+}
+function targetText(t){
+  if(t.kind==='removed')return'#REF!';
+  const s=sheetById(t.sheet);
+  return qname(s.name)+'!'+addr(t.c1,t.r1)+(t.kind==='range'?':'+addr(t.c2,t.r2):'');
+}
+const fold=s=>s.replace(/[A-Z]/g,c=>String.fromCharCode(c.charCodeAt(0)+32));
+function findMatches(needle,mc,whole){
+  const s=curSheet(),out=[];
+  if(needle==='')return out;
+  const nd=mc?needle:fold(needle);
+  for(let i=0;i<96;i++){
+    const raw=s.cells[i].raw;if(raw==='')continue;
+    const h=mc?raw:fold(raw);
+    if(whole?h===nd:h.indexOf(nd)>=0)out.push(i);
+  }
+  return out;
+}
+function findNext(needle,mc,whole){
+  const s=curSheet(),m=findMatches(needle,mc,whole);
+  if(!m.length)return 0;
+  const cur=ix(s.ac[0],s.ac[1]),set=new Set(m);
+  for(let k=1;k<=96;k++){
+    const i=(cur+k)%96;
+    if(set.has(i)){const c=i%8+1,r=Math.floor(i/8)+1;s.an=[c,r];s.ac=[c,r];break}
+  }
+  return m.length;
+}
+function replaceAll(needle,repl,mc,whole){
+  const s=curSheet(),m=findMatches(needle,mc,whole);
+  const nd=mc?needle:fold(needle);
+  let ch=false;
+  for(const i of m){
+    const raw=s.cells[i].raw;let ns;
+    if(whole)ns=repl;
+    else{
+      const h=mc?raw:fold(raw);let out='',p=0;
+      for(;;){const j=h.indexOf(nd,p);if(j<0){out+=raw.slice(p);break}out+=raw.slice(p,j)+repl;p=j+nd.length}
+      ns=out;
+    }
+    if(commitStr(s,i,ns,true))ch=true;
+  }
+  return{n:m.length,changed:ch};
+}
+function csvQuote(f){return/["\r\n,]/.test(f)?'"'+f.replace(/"/g,'""')+'"':f}
+function exportCsv(raw){
+  const s=curSheet();let R=0,C=0;
+  for(let r=1;r<=12;r++)for(let c=1;c<=8;c++)if(s.cells[ix(c,r)].raw!==''){if(r>R)R=r;if(c>C)C=c}
+  if(!R)return'';
+  const rows=[];
+  for(let r=1;r<=R;r++){
+    const f=[];
+    for(let c=1;c<=C;c++)f.push(csvQuote(raw?s.cells[ix(c,r)].raw:cellInfo(s,c,r).text));
+    rows.push(f.join(','));
+  }
+  return rows.join('\n');
+}
+function parseCsv(t){
+  const n=t.length,recs=[];let i=0;
+  const isLB=ch=>ch==='\n'||ch==='\r';
+  for(;;){
+    const fields=[];
+    for(;;){
+      let v='';
+      if(t[i]==='"'){
+        i++;
+        for(;;){
+          if(i>=n)return null;
+          const ch=t[i];
+          if(ch==='"'){if(t[i+1]==='"'){v+='"';i+=2}else{i++;break}}
+          else if(isLB(ch)){v+=' ';if(ch==='\r'&&t[i+1]==='\n')i++;i++}
+          else{v+=ch;i++}
+        }
+        if(i<n&&t[i]!==','&&!isLB(t[i]))return null;
+      }else{
+        while(i<n&&t[i]!==','&&!isLB(t[i]))v+=t[i++];
+      }
+      fields.push(v);
+      if(i<n&&t[i]===','){i++;continue}
+      break;
+    }
+    recs.push(fields);
+    if(i>=n)break;
+    if(t[i]==='\r'&&t[i+1]==='\n')i+=2;else i++;
+    if(i>=n)break;
+  }
+  return recs;
+}
+function importCsv(text){
+  if(text==='')return{msg:'Nothing to import'};
+  const recs=parseCsv(text);
+  if(!recs)return{msg:'Invalid CSV'};
+  const s=curSheet();
+  for(const c of s.cells)c.raw='';
+  let k=0,d=0;
+  recs.forEach((rec,i)=>rec.forEach((f,j)=>{
+    if(f==='')return;
+    if(i+1<=12&&j+1<=8){commitStr(s,ix(j+1,i+1),f,true);k++}else d++;
+  }));
+  return{msg:'Imported: '+k+' | Dropped: '+d,done:true};
+}
+
+return{newWorkbook,snap,restore,load,validState,recalc,cellInfo,cellVal,curSheet,sheetById,selRect,selSummary,commitStr,structOp,clearSel,setFormat,makeBlock,paste,sortSel,fillDown,fillRight,fillSeries,addSheet,renameSheet,deleteSheet,defineName,deleteName,sortedNames,targetText,findNext,findMatches,replaceAll,exportCsv,importCsv,
+  get wb(){return wb},ix,addr,qname,isErr};
+})();
+</script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.querySelector('[data-testid="'+id+'"]');
+const tb=TB;
+let editing=false,clip=null,hist=[],hpos=0;
+
+/* ----- load ----- */
+(function init(){
+  let ok=false;
+  try{
+    const s=localStorage.getItem('tally-book');
+    if(s!==null){const o=JSON.parse(s);if(tb.validState(o)){tb.load(o);ok=true}}
+  }catch(e){}
+  if(!ok)tb.newWorkbook();
+})();
+function persist(){try{localStorage.setItem('tally-book',tb.snap())}catch(e){}}
+
+/* ----- elements ----- */
+const gridEl=$('grid'),fi=$('formula-input'),fmtSel=$('format-select'),nameBox=$('name-box'),summ=$('selection-summary');
+const tabsEl=$('sheet-tabs'),listEl=$('name-list');
+const sheetIn=$('sheet-name-input'),nameIn=$('name-input'),findIn=$('find-input'),replIn=$('replace-input'),csvTa=$('csv-text');
+const chkCase=$('find-case'),chkWhole=$('find-whole'),chkRaw=$('csv-raw');
+const COLS='ABCDEFGH';
+const cellEls=[];
+function mkEl(tag,attrs,text){
+  const e=document.createElement(tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);
+  if(text!==undefined)e.textContent=text;
+  return e;
+}
+(function buildGrid(){
+  const hr=mkEl('div',{role:'row',class:'row'});
+  hr.appendChild(mkEl('div',{role:'presentation',class:'hd'}));
+  for(let c=1;c<=8;c++)hr.appendChild(mkEl('div',{role:'columnheader','data-testid':'col-header-'+COLS[c-1],class:'hd'},COLS[c-1]));
+  gridEl.appendChild(hr);
+  for(let r=1;r<=12;r++){
+    const row=mkEl('div',{role:'row',class:'row'});
+    row.appendChild(mkEl('div',{role:'rowheader','data-testid':'row-header-'+r,class:'hd'},String(r)));
+    for(let c=1;c<=8;c++){
+      const el=mkEl('div',{role:'gridcell','data-testid':'cell-'+COLS[c-1]+r,class:'cell','data-kind':'empty','aria-selected':'false','data-in-selection':'false'});
+      el.addEventListener('click',e=>onCell(c,r,e.shiftKey));
+      row.appendChild(el);cellEls[(r-1)*8+c-1]=el;
+    }
+    gridEl.appendChild(row);
+  }
+})();
+
+/* ----- messages ----- */
+function msg(id,text){const e=$(id);e.textContent=text||'';e.hidden=!text}
+
+/* ----- history ----- */
+function pushHist(before){
+  hist.length=hpos;hist.push({b:before,a:tb.snap()});
+  if(hist.length>20)hist.shift();
+  hpos=hist.length;
+}
+function endStep(before,changed){if(changed)pushHist(before)}
+function syncSheetName(){sheetIn.value=tb.curSheet().name}
+function afterHistory(){syncSheetName();refresh()}
+function undo(){if(editing||hpos<=0)return;hpos--;tb.restore(hist[hpos].b);afterHistory()}
+function redo(){if(editing||hpos>=hist.length)return;tb.restore(hist[hpos].a);hpos++;afterHistory()}
+
+/* ----- render ----- */
+const toolIds=['undo-button','redo-button','copy-button','cut-button','paste-button','clear-button','insert-row','delete-row','insert-col','delete-col','sort-asc','sort-desc','fill-down','fill-right','fill-series','format-select','add-sheet','sheet-name-input','rename-sheet','delete-sheet','name-input','define-name','delete-name','find-input','replace-input','find-case','find-whole','find-next','replace-all','csv-raw','csv-export','csv-import','csv-text'];
+const toolEls=toolIds.map($);
+function setText(e,t){if(e.textContent!==t)e.textContent=t}
+function setAttr(e,k,v){if(e.getAttribute(k)!==v)e.setAttribute(k,v)}
+function render(){
+  tb.recalc();
+  const wb=tb.wb,sh=tb.curSheet();
+  const[c1,r1,c2,r2]=tb.selRect(sh);
+  for(let r=1;r<=12;r++)for(let c=1;c<=8;c++){
+    const el=cellEls[(r-1)*8+c-1],info=tb.cellInfo(sh,c,r);
+    setText(el,info.text);
+    setAttr(el,'data-kind',info.kind);
+    setAttr(el,'aria-selected',(c===sh.ac[0]&&r===sh.ac[1])?'true':'false');
+    setAttr(el,'data-in-selection',(c>=c1&&c<=c2&&r>=r1&&r<=r2)?'true':'false');
+  }
+  nameBox.textContent=(c1===c2&&r1===r2)?tb.addr(c1,r1):tb.addr(c1,r1)+':'+tb.addr(c2,r2);
+  const ac=sh.cells[tb.ix(sh.ac[0],sh.ac[1])];
+  if(!editing)fi.value=ac.raw;
+  fi.setAttribute('data-editing',editing?'true':'false');
+  if(!editing)fmtSel.value=ac.fmt;
+  const sm=tb.selSummary(sh);
+  if(sm===null){summ.hidden=true;summ.textContent=''}else{summ.hidden=false;summ.textContent=sm}
+  while(tabsEl.children.length<wb.sheets.length){
+    const b=mkEl('button',{type:'button',role:'tab'});
+    b.setAttribute('data-testid','sheet-tab-'+(tabsEl.children.length+1));
+    b.addEventListener('click',()=>{
+      if(editing)return;
+      const i=Array.prototype.indexOf.call(tabsEl.children,b);
+      tb.wb.active=tb.wb.sheets[i].id;syncSheetName();refresh();
+    });
+    tabsEl.appendChild(b);
+  }
+  while(tabsEl.children.length>wb.sheets.length)tabsEl.removeChild(tabsEl.lastChild);
+  wb.sheets.forEach((s,i)=>{
+    const b=tabsEl.children[i];
+    setText(b,s.name);setAttr(b,'aria-selected',s.id===wb.active?'true':'false');b.disabled=editing;
+  });
+  const names=tb.sortedNames();
+  while(listEl.children.length<names.length){
+    const d=mkEl('div',{role:'listitem'});
+    d.setAttribute('data-testid','name-item-'+(listEl.children.length+1));
+    listEl.appendChild(d);
+  }
+  while(listEl.children.length>names.length)listEl.removeChild(listEl.lastChild);
+  names.forEach((d,i)=>setText(listEl.children[i],d.name+' = '+tb.targetText(d.target)));
+  for(const e of toolEls)e.disabled=editing;
+  if(!editing){
+    $('undo-button').disabled=hpos<=0;
+    $('redo-button').disabled=hpos>=hist.length;
+    $('paste-button').disabled=!clip;
+    $('add-sheet').disabled=wb.sheets.length>=5;
+    $('delete-sheet').disabled=wb.sheets.length<=1;
+  }
+}
+function refresh(save){render();if(save!==false)persist()}
+
+/* ----- editing ----- */
+fi.addEventListener('input',()=>{if(!editing){editing=true;render()}});
+function commitEdit(){
+  const s=tb.curSheet(),i=tb.ix(s.ac[0],s.ac[1]);
+  editing=false;
+  return tb.commitStr(s,i,fi.value,false);
+}
+fi.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||(e.key==='Tab'&&!e.shiftKey)){
+    e.preventDefault();
+    const before=tb.snap();
+    const ch=editing?commitEdit():false;
+    const s=tb.curSheet();
+    if(e.key==='Enter')s.ac=[s.ac[0],Math.min(12,s.ac[1]+1)];else s.ac=[Math.min(8,s.ac[0]+1),s.ac[1]];
+    s.an=s.ac.slice();
+    endStep(before,ch);refresh();
+  }else if(e.key==='Escape'){
+    e.preventDefault();
+    editing=false;refresh(false);
+    gridEl.focus({preventScroll:true});
+  }
+});
+function onCell(c,r,shift){
+  const before=tb.snap();
+  const ch=editing?commitEdit():false;
+  const s=tb.curSheet();
+  if(shift)s.ac=[c,r];else{s.an=[c,r];s.ac=[c,r]}
+  gridEl.focus({preventScroll:true});
+  endStep(before,ch);refresh();
+}
+
+/* ----- grid keys ----- */
+gridEl.addEventListener('keydown',e=>{
+  const k=e.key;let handled=true;
+  if(k.length>5&&k.indexOf('Arrow')===0){
+    if(!editing){
+      const s=tb.curSheet();
+      let c=s.ac[0],r=s.ac[1];
+      if(k==='ArrowUp')r=Math.max(1,r-1);
+      else if(k==='ArrowDown')r=Math.min(12,r+1);
+      else if(k==='ArrowLeft')c=Math.max(1,c-1);
+      else c=Math.min(8,c+1);
+      s.ac=[c,r];
+      if(!e.shiftKey)s.an=[c,r];
+      refresh();
+    }
+  }else if(k==='Delete'||k==='Backspace'){
+    if(!editing)doClear();
+  }else if(k==='Enter'){
+    fi.focus();
+  }else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='z'){
+    undo();
+  }else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='y'){
+    redo();
+  }else handled=false;
+  if(handled)e.preventDefault();
+});
+
+/* ----- toolbar ----- */
+function doClear(){const b=tb.snap();endStep(b,tb.clearSel());refresh()}
+function act(fn){return()=>{if(editing)return;const b=tb.snap();const ch=fn();endStep(b,ch);refresh()}}
+$('undo-button').addEventListener('click',undo);
+$('redo-button').addEventListener('click',redo);
+$('copy-button').addEventListener('click',()=>{if(editing)return;clip=tb.makeBlock('copy');refresh(false)});
+$('cut-button').addEventListener('click',()=>{if(editing)return;clip=tb.makeBlock('cut');refresh(false)});
+$('paste-button').addEventListener('click',act(()=>{
+  if(!clip)return false;
+  tb.paste(clip);
+  if(clip.mode==='cut')clip=null;
+  return true;
+}));
+$('clear-button').addEventListener('click',doClear);
+$('insert-row').addEventListener('click',act(()=>{tb.structOp('row',true);return true}));
+$('delete-row').addEventListener('click',act(()=>{tb.structOp('row',false);return true}));
+$('insert-col').addEventListener('click',act(()=>{tb.structOp('col',true);return true}));
+$('delete-col').addEventListener('click',act(()=>{tb.structOp('col',false);return true}));
+$('sort-asc').addEventListener('click',act(()=>tb.sortSel(false)));
+$('sort-desc').addEventListener('click',act(()=>tb.sortSel(true)));
+$('fill-down').addEventListener('click',act(()=>tb.fillDown()));
+$('fill-right').addEventListener('click',act(()=>tb.fillRight()));
+$('fill-series').addEventListener('click',act(()=>tb.fillSeries()));
+fmtSel.addEventListener('change',()=>{
+  if(editing)return;
+  const b=tb.snap();const ch=tb.setFormat(fmtSel.value);endStep(b,ch);refresh();
+});
+
+/* ----- sheets ----- */
+$('add-sheet').addEventListener('click',()=>{
+  if(editing)return;
+  msg('sheet-message','');
+  if(tb.wb.sheets.length>=5)return;
+  const b=tb.snap();tb.addSheet();pushHist(b);syncSheetName();refresh();
+});
+$('rename-sheet').addEventListener('click',()=>{
+  if(editing)return;
+  msg('sheet-message','');
+  const b=tb.snap();
+  const r=tb.renameSheet(sheetIn.value);
+  if(r==='invalid')msg('sheet-message','Invalid sheet name');
+  else if(r==='dup')msg('sheet-message','Sheet name already used');
+  else if(r==='ok'){pushHist(b);syncSheetName();refresh()}
+});
+$('delete-sheet').addEventListener('click',()=>{
+  if(editing)return;
+  msg('sheet-message','');
+  const b=tb.snap();
+  if(tb.deleteSheet()){pushHist(b);syncSheetName();refresh()}
+});
+
+/* ----- names ----- */
+$('define-name').addEventListener('click',()=>{
+  if(editing)return;
+  msg('name-message','');
+  const b=tb.snap();
+  const e=tb.defineName(nameIn.value);
+  if(e){msg('name-message',e);return}
+  nameIn.value='';pushHist(b);refresh();
+});
+$('delete-name').addEventListener('click',()=>{
+  if(editing)return;
+  msg('name-message','');
+  const b=tb.snap();
+  const e=tb.deleteName(nameIn.value);
+  if(e){msg('name-message',e);return}
+  nameIn.value='';pushHist(b);refresh();
+});
+
+/* ----- find ----- */
+$('find-next').addEventListener('click',()=>{
+  if(editing)return;
+  msg('find-status','');
+  const n=tb.findNext(findIn.value,chkCase.checked,chkWhole.checked);
+  msg('find-status','Matches: '+n);
+  refresh();
+});
+$('replace-all').addEventListener('click',()=>{
+  if(editing)return;
+  msg('find-status','');
+  const b=tb.snap();
+  const r=tb.replaceAll(findIn.value,replIn.value,chkCase.checked,chkWhole.checked);
+  msg('find-status','Replaced: '+r.n);
+  endStep(b,r.changed);refresh();
+});
+
+/* ----- csv ----- */
+$('csv-export').addEventListener('click',()=>{
+  if(editing)return;
+  msg('csv-message','');
+  csvTa.value=tb.exportCsv(chkRaw.checked);
+});
+$('csv-import').addEventListener('click',()=>{
+  if(editing)return;
+  msg('csv-message','');
+  const b=tb.snap();
+  const r=tb.importCsv(csvTa.value.replace(/\r\n?/g,'\n'));
+  msg('csv-message',r.msg);
+  if(r.done){pushHist(b);refresh()}
+});
+
+/* ----- fields at load ----- */
+function initFields(){
+  nameIn.value='';findIn.value='';replIn.value='';csvTa.value='';
+  chkCase.checked=false;chkWhole.checked=false;chkRaw.checked=false;
+  syncSheetName();
+  if(!editing)fi.value=tb.curSheet().cells[tb.ix(tb.curSheet().ac[0],tb.curSheet().ac[1])].raw;
+}
+initFields();
+refresh(false);
+window.addEventListener('load',initFields);
+window.addEventListener('pageshow',initFields);
+document.addEventListener('submit',e=>e.preventDefault());
+})();
+</script>
+</body>
+</html>

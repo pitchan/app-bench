@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Grid — 04-fr-grid-and-editing</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-grid">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <strong>04-fr-grid-and-editing</strong> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="4-functional-requirements--grid-and-editing">4. Functional requirements — Grid and editing</h1>
+<h2 id="41-grid">4.1 Grid</h2>
+<h3 id="FR-GRD-01">FR-GRD-01 Grid structure</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show a grid of 8 columns <code>A</code> to <code>H</code> and 12 rows <code>1</code> to <code>12</code>, with one <code>col-header-&lt;column&gt;</code> per column showing the column letter, one <code>row-header-&lt;row&gt;</code> per row showing the row number, and one <code>cell-&lt;address&gt;</code> per cell. The number of rows and columns shall never change. On a new sheet every cell shall be empty, with the format <code>general</code>.</li>
+<li><strong>Rationale:</strong> The sheet has a fixed size; rows and columns are inserted and deleted inside it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: New sheet
+  When the page loads
+  Then there are 96 cell elements, from cell-A1 to cell-H12
+  And col-header-C reads &quot;C&quot;
+  And row-header-12 reads &quot;12&quot;
+  And every cell shows nothing and has data-kind &quot;empty&quot;
+</code></pre>
+<h3 id="FR-GRD-02">FR-GRD-02 Cell display</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in each cell the text of its value (02, section 2.5) and shall set <code>data-kind</code> to the type of that value. The system shall keep both up to date after every change of the sheet.</li>
+<li><strong>Rationale:</strong> A cell shows its result, never its formula.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Kinds
+  When the user enters &quot;12.50&quot; in A1
+  And the user enters &quot;hello&quot; in A2
+  And the user enters &quot;true&quot; in A3
+  And the user enters &quot;=A1*2&quot; in A4
+  And the user enters &quot;=1/0&quot; in A5
+  Then cell-A1 reads &quot;12.5&quot; and has data-kind &quot;number&quot;
+  And cell-A2 reads &quot;hello&quot; and has data-kind &quot;text&quot;
+  And cell-A3 reads &quot;TRUE&quot; and has data-kind &quot;logical&quot;
+  And cell-A4 reads &quot;25&quot; and has data-kind &quot;number&quot;
+  And cell-A5 reads &quot;#DIV/0!&quot; and has data-kind &quot;error&quot;
+  And cell-A6 has data-kind &quot;empty&quot;
+</code></pre>
+<h3 id="FR-GRD-03">FR-GRD-03 Page frame</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show one <code>&lt;header&gt;</code> element carrying <code>data-testid=&quot;app-header&quot;</code> and one element carrying <code>data-testid=&quot;toolbar&quot;</code> that contains the eleven toolbar controls, both visible at all times. <code>format-select</code> shall have exactly three <code>&lt;option&gt;</code> elements, in this order, with the values and texts of 03, section 3.2.</li>
+<li><strong>Rationale:</strong> The page has one place for its title and one for its actions.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Header, toolbar and formats
+  When the page loads
+  Then app-header is visible and is a header element
+  And toolbar is visible and contains the ten buttons and format-select
+  And the options of format-select have the values &quot;general&quot;, &quot;fixed2&quot;, &quot;percent1&quot;
+  And the options of format-select have the texts &quot;General&quot;, &quot;1,234.50&quot;, &quot;12.5%&quot;
+</code></pre>
+<h2 id="42-selection">4.2 Selection</h2>
+<h3 id="FR-SEL-01">FR-SEL-01 Selecting with the pointer</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks a cell without the Shift key, the system shall make that cell the anchor and the active cell, and shall give the focus to <code>grid</code>. The system shall set <code>aria-selected</code> and <code>data-in-selection</code> on every cell as 03-ui-contract defines them. On a new sheet, the anchor and the active cell are <code>A1</code>. When <code>grid</code> receives the focus by any other means, the system shall change neither the selection, nor the sheet, nor the editing state.</li>
+<li><strong>Rationale:</strong> One cell is always active.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Click
+  When the user clicks cell C4
+  Then cell-C4 has aria-selected &quot;true&quot; and data-in-selection &quot;true&quot;
+  And every other cell has aria-selected &quot;false&quot; and data-in-selection &quot;false&quot;
+  And the grid has the focus
+</code></pre>
+<h3 id="FR-SEL-02">FR-SEL-02 Moving with the keyboard</h3>
+<ul>
+<li><strong>Statement:</strong> When the user presses an arrow key without Shift on the grid, the system shall move the active cell by one cell in that direction and make it the anchor. If the active cell is already on the edge of the grid in that direction, the active cell shall not move and shall still become the anchor.</li>
+<li><strong>Rationale:</strong> The sheet is usable without a pointer.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Arrows
+  Given the user clicks cell B2
+  When the user presses ArrowRight on the grid
+  And the user presses ArrowDown on the grid
+  Then the selection is &quot;C3&quot;
+  When the user clicks cell A1
+  And the user presses ArrowUp on the grid
+  Then the selection is &quot;A1&quot;
+</code></pre>
+<h3 id="FR-SEL-03">FR-SEL-03 Extending the selection</h3>
+<ul>
+<li><strong>Statement:</strong> When the user shift-clicks a cell, the system shall make that cell the active cell, keep the anchor, and give the focus to <code>grid</code>. When the user presses an arrow key with Shift on the grid, the system shall move the active cell by one cell in that direction, when it is not on that edge of the grid, and keep the anchor. The selection is the rectangle between the anchor and the active cell.</li>
+<li><strong>Rationale:</strong> Clearing, copying and formatting act on rectangles.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Rectangle
+  Given the user clicks cell D5
+  When the user shift-clicks cell B2
+  Then the selection is &quot;B2:D5&quot;
+  And cell-B2 has aria-selected &quot;true&quot;
+  And cell-D5 has aria-selected &quot;false&quot; and data-in-selection &quot;true&quot;
+  And exactly 12 cells have data-in-selection &quot;true&quot;
+  When the user presses Shift+ArrowRight on the grid
+  Then the selection is &quot;C2:D5&quot;
+</code></pre>
+<h3 id="FR-SEL-04">FR-SEL-04 Name box</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in <code>name-box</code> the address of the active cell while the selection is one cell, and otherwise the address of the top-left cell of the selection, <code>:</code>, and the address of its bottom-right cell.</li>
+<li><strong>Rationale:</strong> The user reads where the selection is.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: One cell and a rectangle
+  When the user clicks cell H12
+  Then name-box reads &quot;H12&quot;
+  When the user shift-clicks cell A12
+  Then name-box reads &quot;A12:H12&quot;
+</code></pre>
+<h3 id="FR-SEL-05">FR-SEL-05 Selection summary</h3>
+<ul>
+<li><strong>Statement:</strong> While the selection holds one number cell at least (02, section 2.8.3), the system shall show <code>selection-summary</code> with TXT-01, where <code>{n}</code> is the number of number cells of the selection, <code>{s}</code> is the general text (02, section 2.5) of the normalized sum of their values, added in visiting order starting from 0, and <code>{a}</code> is the general text of that sum, before its normalization, divided by <code>{n}</code> and then normalized. The range rule of 02, section 2.4 applies to the final sum and to the average, each on its own, and not to the intermediate additions: when the normalized absolute value is 10^15 or more, <code>{s}</code> (or <code>{a}</code>) is written <code>#NUM!</code>. Cells of any other type, error cells included, are ignored. While the selection holds no number cell, <code>selection-summary</code> shall not be visible.</li>
+<li><strong>Rationale:</strong> The user checks a total without writing a formula.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Numbers, text and error
+  Given the user enters &quot;10&quot; in A1
+  And the user enters &quot;x&quot; in A2
+  And the user enters &quot;=1/0&quot; in A3
+  And the user enters &quot;5&quot; in A4
+  When the user clicks cell A1
+  And the user shift-clicks cell A4
+  Then selection-summary reads &quot;Sum: 15 | Average: 7.5 | Count: 2&quot;
+  When the user clicks cell A2
+  Then selection-summary is not visible
+
+Scenario: Sum out of range
+  Given the user enters &quot;999999999999000&quot; in A1
+  And the user enters &quot;999999999999000&quot; in A2
+  When the user clicks cell A1
+  And the user shift-clicks cell A2
+  Then selection-summary reads &quot;Sum: #NUM! | Average: 999999999999000 | Count: 2&quot;
+</code></pre>
+<h2 id="43-editing">4.3 Editing</h2>
+<h3 id="FR-EDT-01">FR-EDT-01 Formula bar content</h3>
+<ul>
+<li><strong>Statement:</strong> While the system is not in the editing state (FR-EDT-02), the value of <code>formula-input</code> shall be the raw content of the active cell, kept up to date when the active cell changes and when its raw content changes. When the user presses Enter on the grid, the system shall give the focus to <code>formula-input</code> without changing the selection.</li>
+<li><strong>Rationale:</strong> The cell shows the result; the formula bar shows what was typed.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Raw content
+  Given the user enters &quot;= a1 + 1&quot; in B1
+  And the user enters &quot;007&quot; in B2
+  And the user enters &quot;&#39;=x&quot; in B3
+  When the user clicks cell B1
+  Then formula-input has the value &quot;=A1+1&quot;
+  When the user clicks cell B2
+  Then formula-input has the value &quot;007&quot;
+  And cell-B2 reads &quot;7&quot;
+  When the user clicks cell B3
+  Then formula-input has the value &quot;&#39;=x&quot;
+  And cell-B3 reads &quot;=x&quot;
+</code></pre>
+<h3 id="FR-EDT-02">FR-EDT-02 Editing state</h3>
+<ul>
+<li><strong>Statement:</strong> When <code>formula-input</code> receives an <code>input</code> event while the system is not in the editing state, the system shall enter the editing state. While in the editing state, the system shall set <code>data-editing=&quot;true&quot;</code> on <code>formula-input</code> and shall disable every toolbar control. While not in the editing state, <code>data-editing</code> shall be <code>&quot;false&quot;</code>. The editing state ends only with a commit (FR-EDT-03) or a cancel (FR-EDT-04); <code>formula-input</code> losing the focus neither commits nor cancels. While in the editing state, the cells shall keep showing the sheet as it was before the edit. While in the editing state, a key of 03, section 3.3 pressed while <code>grid</code> has the focus shall change neither the sheet, nor the selection, nor the history, nor the clipboard, nor the editing state, nor the value of <code>formula-input</code>; <code>preventDefault()</code> is still called on its <code>keydown</code> event. The only effect kept is that of Enter, which gives the focus to <code>formula-input</code> (FR-EDT-01).</li>
+<li><strong>Rationale:</strong> Nothing changes in the sheet until the user confirms, and no other action mixes with a half-typed content.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Typing
+  Given the user clicks cell A1
+  When the user fills formula-input with &quot;42&quot;
+  Then formula-input has data-editing &quot;true&quot;
+  And every toolbar control is disabled
+  And cell-A1 shows nothing
+</code></pre>
+<h3 id="FR-EDT-03">FR-EDT-03 Committing an edit</h3>
+<ul>
+<li><strong>Statement:</strong> When the user presses Enter or Tab in <code>formula-input</code>, the system shall, in this order: (1) if in the editing state, commit the value of <code>formula-input</code> to the active cell under 02, section 2.2, and leave the editing state; (2) move the active cell by one row down for Enter, by one column right for Tab, and make it the anchor; if the active cell is already on that edge of the grid (row 12 for Enter, column <code>H</code> for Tab), the active cell shall not move and shall still become the anchor; (3) keep the focus in <code>formula-input</code>, which shows the raw content of the new active cell. When the user clicks or shift-clicks a cell while in the editing state, the system shall first commit as in (1), then apply FR-SEL-01 or FR-SEL-03. If the raw content that the commit would store equals the raw content of the cell, the commit shall change nothing and shall create no history step.</li>
+<li><strong>Rationale:</strong> Entering a column of values takes one key per value.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Enter and Tab
+  Given the user clicks cell B2
+  When the user fills formula-input with &quot;1&quot;
+  And the user presses Enter in formula-input
+  Then cell-B2 reads &quot;1&quot;
+  And the selection is &quot;B3&quot;
+  And formula-input has the focus and data-editing &quot;false&quot;
+  When the user fills formula-input with &quot;2&quot;
+  And the user presses Tab in formula-input
+  Then cell-B3 reads &quot;2&quot;
+  And the selection is &quot;C3&quot;
+
+Scenario: Enter on the last row
+  Given the user clicks cell A1
+  And the user shift-clicks cell A12
+  When the user fills formula-input with &quot;5&quot;
+  And the user presses Enter in formula-input
+  Then cell-A12 reads &quot;5&quot;
+  And the selection is &quot;A12&quot;
+
+Scenario: Click commits
+  Given the user clicks cell A1
+  When the user fills formula-input with &quot;5&quot;
+  And the user clicks cell D4
+  Then cell-A1 reads &quot;5&quot;
+  And the selection is &quot;D4&quot;
+</code></pre>
+<h3 id="FR-EDT-04">FR-EDT-04 Cancelling an edit</h3>
+<ul>
+<li><strong>Statement:</strong> When the user presses Escape in <code>formula-input</code>, the system shall leave the editing state without changing any cell, show again the raw content of the active cell in <code>formula-input</code>, and give the focus to <code>grid</code>.</li>
+<li><strong>Rationale:</strong> A typing mistake is dropped with one key.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Escape
+  Given the user enters &quot;8&quot; in A1
+  And the user clicks cell A1
+  When the user fills formula-input with &quot;99&quot;
+  And the user presses Escape in formula-input
+  Then cell-A1 reads &quot;8&quot;
+  And formula-input has the value &quot;8&quot; and data-editing &quot;false&quot;
+  And the grid has the focus
+  And undo-button is enabled and redo-button is disabled
+</code></pre>
+<h3 id="FR-EDT-05">FR-EDT-05 Content kinds</h3>
+<ul>
+<li><strong>Statement:</strong> When a string is committed, the system shall decide its kind, its raw content and its value by the rules of 02, section 2.2, in the order given there.</li>
+<li><strong>Rationale:</strong> What is a number and what is a text is decided by one written rule.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Numbers and texts
+  When the user enters &quot; 12.5% &quot; in A1
+  And the user enters &quot;1.&quot; in A2
+  And the user enters &quot;&#39;12&quot; in A3
+  And the user enters &quot; abc &quot; in A4
+  And the user enters &quot;+.5&quot; in A5
+  And the user enters &quot;&#39;&quot; in A6
+  Then cell-A1 reads &quot;0.125&quot; and has data-kind &quot;number&quot;
+  And cell-A2 reads &quot;1.&quot; and has data-kind &quot;text&quot;
+  And cell-A3 reads &quot;12&quot; and has data-kind &quot;text&quot;
+  And cell-A4 has data-kind &quot;text&quot; and the raw content of A4 is &quot; abc &quot;
+  And cell-A5 reads &quot;0.5&quot; and has data-kind &quot;number&quot;
+  And cell-A6 shows nothing and has data-kind &quot;text&quot;
+</code></pre>
+<h3 id="FR-EDT-06">FR-EDT-06 Clearing cells</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>clear-button</code>, or presses Delete or Backspace on the grid, the system shall set the raw content of every cell of the selection to the empty string. The formats and the selection shall not change. If every cell of the selection is already empty, nothing shall change and no history step shall be created.</li>
+<li><strong>Rationale:</strong> A block of cells is emptied in one action.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Clear a rectangle
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;2&quot; in B2
+  And the user enters &quot;=A1+B2&quot; in C1
+  When the user clicks cell A1
+  And the user shift-clicks cell B2
+  And the user presses Delete on the grid
+  Then cell-A1 and cell-B2 show nothing
+  And cell-C1 reads &quot;0&quot;
+  And the selection is &quot;A1:B2&quot;
+</code></pre>
+<h2 id="44-numbers-and-formats">4.4 Numbers and formats</h2>
+<h3 id="FR-NUM-01">FR-NUM-01 Number normalization</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall normalize every number as 02, section 2.4 states: entry numbers, number literals, the result of every arithmetic operator and the result of every function that returns a number. If a result is not finite or reaches 10^15 in absolute value, then the system shall give <code>#NUM!</code>.</li>
+<li><strong>Rationale:</strong> The same sheet gives the same digits everywhere, and binary rounding noise never shows.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Twelve significant digits
+  When the user enters &quot;=0.1+0.2=0.3&quot; in A1
+  And the user enters &quot;=1/3*3*1000000&quot; in A2
+  And the user enters &quot;=1/3*3=1&quot; in A3
+  And the user enters &quot;=123456789012345+0&quot; in A4
+  And the user enters &quot;=999999999999999+1&quot; in A5
+  And the user enters &quot;=10^15&quot; in A6
+  Then cell-A1 reads &quot;TRUE&quot;
+  And cell-A2 reads &quot;999999.999999&quot;
+  And cell-A3 reads &quot;FALSE&quot;
+  And cell-A4 reads &quot;123456789012000&quot;
+  And cell-A5 reads &quot;#NUM!&quot;
+  And cell-A6 reads &quot;#NUM!&quot;
+</code></pre>
+<h3 id="FR-NUM-02">FR-NUM-02 General number display</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show a number of a cell whose format is <code>general</code> as 02, section 2.5 states: rounded to 6 decimal places on its decimal representation, ties away from zero, without trailing zeros, without exponent, and without sign when the result is zero.</li>
+<li><strong>Rationale:</strong> Numbers are short to read and rounded the way people round.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: General display
+  When the user enters &quot;=1.0000005&quot; in A1
+  And the user enters &quot;=0.0000004&quot; in A2
+  And the user enters &quot;=-0.0000004&quot; in A3
+  And the user enters &quot;=2/3&quot; in A4
+  And the user enters &quot;=1000000*1000000&quot; in A5
+  And the user enters &quot;=0.1+0.7&quot; in A6
+  Then cell-A1 reads &quot;1.000001&quot;
+  And cell-A2 reads &quot;0&quot;
+  And cell-A3 reads &quot;0&quot;
+  And cell-A4 reads &quot;0.666667&quot;
+  And cell-A5 reads &quot;1000000000000&quot;
+  And cell-A6 reads &quot;0.8&quot;
+</code></pre>
+<h3 id="FR-NUM-03">FR-NUM-03 Cell formats</h3>
+<ul>
+<li><strong>Statement:</strong> When the user chooses a format in <code>format-select</code>, the system shall give that format to every cell of the selection and shall show the numbers of these cells in that format (02, section 2.5). While not in the editing state, <code>format-select</code> shall show the format of the active cell. The format shall belong to the cell, whatever its content: it is kept when the content changes or is cleared. If every cell of the selection already has the chosen format, no history step shall be created.</li>
+<li><strong>Rationale:</strong> Amounts and rates are read in their usual writing.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Fixed and percent
+  Given the user enters &quot;1234.565&quot; in A1
+  And the user enters &quot;-0.004&quot; in A2
+  And the user enters &quot;0.285&quot; in B1
+  And the user enters &quot;abc&quot; in B2
+  When the user clicks cell A1
+  And the user shift-clicks cell A2
+  And the user sets the format to &quot;fixed2&quot;
+  Then cell-A1 reads &quot;1,234.57&quot;
+  And cell-A2 reads &quot;0.00&quot;
+  When the user clicks cell B1
+  And the user shift-clicks cell B2
+  And the user sets the format to &quot;percent1&quot;
+  Then cell-B1 reads &quot;28.5%&quot;
+  And cell-B2 reads &quot;abc&quot;
+  When the user clicks cell A1
+  Then format-select has the value &quot;fixed2&quot;
+  When the user enters &quot;0.125&quot; in A1
+  Then cell-A1 reads &quot;0.13&quot;
+</code></pre>
+
+</main>
+</body>
+</html>

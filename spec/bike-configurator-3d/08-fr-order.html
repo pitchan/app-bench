@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator 3D — 08-fr-order</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator-3d">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <strong>08-fr-order</strong> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a> · <a href="11-fr-preview-3d.html">11-fr-preview-3d</a></nav>
+<h1 id="8-functional-requirements--order">8. Functional requirements — Order</h1>
+<h3 id="FR-ORD-01">FR-ORD-01 Order button label</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in <code>order-button</code> the text MSG-14 for the current quantity.</li>
+<li><strong>Rationale:</strong> The customer sees how many bikes the click orders.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Singular and plural
+  When the page loads
+  Then order-button reads &quot;Order 1 bike&quot;
+  When the user activates qty-increase
+  Then order-button reads &quot;Order 2 bikes&quot;
+</code></pre>
+<h3 id="FR-ORD-02">FR-ORD-02 Order availability</h3>
+<ul>
+<li><strong>Statement:</strong> While the height is not valid or no frame is selected, the system shall disable <code>order-button</code>. While the height is not valid, the system shall show <code>order-hint</code> with MSG-15. While the height is valid and a frame is selected, <code>order-button</code> shall be enabled and <code>order-hint</code> not visible.</li>
+<li><strong>Rationale:</strong> The workshop builds every frame to a known rider height.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Manual frame without height
+  Given the user selected card-frame-M
+  Then order-button is disabled
+  And order-hint shows &quot;Enter your height to continue.&quot;
+  When the user fills height-input with &quot;170&quot;
+  Then order-button is enabled and order-hint is not visible
+</code></pre>
+<h3 id="FR-ORD-03">FR-ORD-03 Order confirmation</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates the enabled <code>order-button</code>, the system shall hide <code>configurator</code> and <code>summary</code>, hide <code>notice</code>, show <code>confirmation</code> with <code>confirmation-title</code> (MSG-16), <code>confirmation-reference</code> (MSG-17), <code>confirmation-total</code> (the summary total at the time of the order) and <code>confirmation-delivery</code> (the summary delivery date at the time of the order), and move keyboard focus to <code>confirmation-title</code>.</li>
+<li><strong>Rationale:</strong> The customer gets a clear end state and keyboard and screen-reader users land on it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Confirm example P1
+  Given today is 2026-11-13
+  And the configuration of example P1 with height 178
+  When the user activates order-button
+  Then configurator and summary are not visible
+  And confirmation-title shows &quot;Order confirmed&quot;
+  And confirmation-reference shows &quot;BK-20261113-001&quot;
+  And confirmation-total shows &quot;€4,550.31&quot;
+  And confirmation-title has the keyboard focus
+</code></pre>
+<h3 id="FR-ORD-04">FR-ORD-04 Order reference</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall number confirmed orders from 1 when the page loads and add 1 at each confirmed order, and shall build <code>confirmation-reference</code> with MSG-17. A reload starts again at 1.</li>
+<li><strong>Rationale:</strong> Each order of a session has its own reference.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Second order
+  Given today is 2026-11-13 and one order was confirmed
+  When the user activates confirmation-new, configures a valid bike and activates order-button
+  Then confirmation-reference shows &quot;BK-20261113-002&quot;
+</code></pre>
+<h3 id="FR-ORD-05">FR-ORD-05 New configuration</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>confirmation-new</code>, the system shall hide <code>confirmation</code>, show <code>configurator</code> and <code>summary</code> in their load-time state (empty height, automatic frame mode on, no frame, default options, no accessory, quantity 1, no applied code, empty <code>promo-input</code>, no error, no notice), and move keyboard focus to <code>height-input</code>. The order counter of FR-ORD-04 is kept.</li>
+<li><strong>Rationale:</strong> The next bike starts from a clean configuration.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Back to defaults
+  Given an order was confirmed with quantity 3 and WELCOME50 applied
+  When the user activates confirmation-new
+  Then height-input is empty and has the keyboard focus
+  And qty-value reads &quot;1&quot;
+  And no frame radio is checked
+  And promo-status is not visible
+  When the user fills height-input with &quot;190&quot;
+  Then the radio &quot;Frame XL&quot; is checked
+</code></pre>
+
+</main>
+</body>
+</html>

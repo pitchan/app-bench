@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+  :root { --ink:#16181d; --muted:#4a5160; --line:#c9ced8; --bg:#f6f7f9; --accent:#1d4ed8; --sel:#dbe6ff; --err:#a3001b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: #ffffff; border-bottom: 1px solid var(--line); padding: 10px 16px; }
+  header h1 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: .2px; }
+  main { padding: 12px 16px 24px; max-width: 100%; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .toolbar .sep { width: 1px; height: 24px; background: var(--line); margin: 0 2px; }
+  button, select { font: inherit; color: var(--ink); background: #ffffff; border: 1px solid #9aa3b2; border-radius: 6px; padding: 5px 10px; min-height: 32px; cursor: pointer; }
+  button:hover:not(:disabled), select:hover:not(:disabled) { background: #eef2fb; }
+  button:disabled, select:disabled { color: #8a8f99; background: #f0f1f4; border-color: #d3d7de; cursor: default; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .fbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .namebox { flex: 0 0 auto; min-width: 72px; padding: 6px 8px; background: #ffffff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; font-family: ui-monospace, Consolas, monospace; text-align: center; }
+  .fbar input { flex: 1 1 auto; min-width: 0; font: 14px ui-monospace, Consolas, monospace; color: var(--ink); background: #ffffff; border: 1px solid #9aa3b2; border-radius: 6px; padding: 6px 8px; }
+  .fbar input[data-editing="true"] { border-color: var(--accent); background: #fffdf3; }
+  .wrap { overflow: auto; max-width: 100%; background: #ffffff; border: 1px solid var(--line); border-radius: 6px; }
+  table.sheet { border-collapse: collapse; table-layout: fixed; width: 776px; user-select: none; -webkit-user-select: none; }
+  table.sheet:focus { outline: none; }
+  table.sheet:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+  .sheet th, .sheet td { border: 1px solid #dde1e8; height: 28px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet th { background: #eceef2; color: var(--muted); font-weight: 600; font-size: 12px; text-align: center; }
+  .sheet th.corner { width: 40px; }
+  .sheet thead th { width: 92px; }
+  .sheet td { background: #ffffff; color: var(--ink); cursor: cell; }
+  .sheet td[data-kind="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+  .sheet td[data-kind="logical"], .sheet td[data-kind="error"] { text-align: center; }
+  .sheet td[data-kind="error"] { color: var(--err); font-weight: 600; }
+  .sheet td[data-in-selection="true"] { background: var(--sel); }
+  .sheet td[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+  table.sheet:focus-visible td[aria-selected="true"] { box-shadow: inset 0 0 0 3px #0b2a8a; }
+  .summary { margin-top: 10px; padding: 6px 10px; background: #ffffff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; display: inline-block; font-variant-numeric: tabular-nums; }
+  .summary[hidden] { display: none; }
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+<main>
+  <div class="toolbar" data-testid="toolbar">
+    <button type="button" data-testid="undo-button">Undo</button>
+    <button type="button" data-testid="redo-button">Redo</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" data-testid="copy-button">Copy</button>
+    <button type="button" data-testid="cut-button">Cut</button>
+    <button type="button" data-testid="paste-button">Paste</button>
+    <button type="button" data-testid="clear-button">Clear</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" data-testid="insert-row">Insert row</button>
+    <button type="button" data-testid="delete-row">Delete row</button>
+    <button type="button" data-testid="insert-col">Insert column</button>
+    <button type="button" data-testid="delete-col">Delete column</button>
+    <select data-testid="format-select" aria-label="Number format">
+      <option value="general">General</option>
+      <option value="fixed2">1,234.50</option>
+      <option value="percent1">12.5%</option>
+    </select>
+  </div>
+  <div class="fbar">
+    <div class="namebox" data-testid="name-box">A1</div>
+    <input type="text" data-testid="formula-input" aria-label="Cell content" data-editing="false" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="wrap"><table class="sheet" data-testid="grid" role="grid" aria-label="Sheet" tabindex="0"></table></div>
+  <div class="summary" data-testid="selection-summary" hidden></div>
+</main>
+<script>
+"use strict";
+const COLS = 8, ROWS = 12, LET = "ABCDEFGH";
+
+// ---------- values and numbers ----------
+const BLANK = { t: "blank" };
+const E = (v) => ({ t: "e", v });
+const num = (v) => ({ t: "n", v });
+function N(x) {
+  if (!isFinite(x)) return E("#NUM!");
+  let y = Number(x.toPrecision(12));
+  if (y === 0) y = 0;
+  if (Math.abs(y) >= 1e15) return E("#NUM!");
+  return num(y);
+}
+// R(x, d) on the decimal representation: value = I * 10^-d
+function Rbig(x, d) {
+  if (x === 0) return { neg: false, I: 0n };
+  const neg = x < 0;
+  const s = Math.abs(x).toPrecision(12);
+  let digits, point;
+  if (s.includes("e")) {
+    const [m, e] = s.split("e");
+    const k = m.indexOf(".");
+    digits = m.replace(".", "");
+    point = (k < 0 ? m.length : k) + Number(e);
+  } else {
+    const k = s.indexOf(".");
+    digits = s.replace(".", "");
+    point = k < 0 ? s.length : k;
+  }
+  let z = 0;
+  while (z < digits.length - 1 && digits[z] === "0") z++;
+  digits = digits.slice(z); point -= z;
+  const D = BigInt(digits);
+  const e = point - digits.length + d;
+  let I;
+  if (e >= 0) I = D * 10n ** BigInt(e);
+  else {
+    const sh = -e;
+    if (sh > digits.length) I = 0n;
+    else {
+      const p = 10n ** BigInt(sh);
+      I = D / p;
+      if ((D % p) * 2n >= p) I += 1n;
+    }
+  }
+  return { neg: neg && I !== 0n, I };
+}
+function parts(x, d) {
+  const { neg, I } = Rbig(x, d);
+  let ip, fp = "";
+  if (d <= 0) ip = I === 0n ? "0" : I.toString() + "0".repeat(-d);
+  else {
+    const s = I.toString().padStart(d + 1, "0");
+    ip = s.slice(0, s.length - d); fp = s.slice(s.length - d);
+  }
+  return { neg, ip, fp };
+}
+function Rnum(x, d) { const p = parts(x, d); return Number((p.neg ? "-" : "") + p.ip + "." + (p.fp || "0")); }
+function fmtGeneral(x) {
+  const p = parts(x, 6);
+  const fp = p.fp.replace(/0+$/, "");
+  return (p.neg ? "-" : "") + p.ip + (fp ? "." + fp : "");
+}
+function groupInt(s) { return s.replace(/\B(?=(\d{3})+$)/g, ","); }
+function fmtNumber(x, f) {
+  if (f === "fixed2") { const p = parts(x, 2); return (p.neg ? "-" : "") + groupInt(p.ip) + "." + p.fp; }
+  if (f === "percent1") {
+    let y = Number((x * 100).toPrecision(12)); if (y === 0) y = 0;
+    const p = parts(y, 1); return (p.neg ? "-" : "") + p.ip + "." + p.fp + "%";
+  }
+  return fmtGeneral(x);
+}
+function entryNum(s) {
+  const m = /^([+-]?)(\d+(?:\.\d+)?|\.\d+)(%?)$/.exec(s);
+  if (!m) return null;
+  let x = Number(m[2]);
+  if (m[3]) x = x / 100;
+  if (m[1] === "-") x = -x;
+  if (!isFinite(x)) return null;
+  let y = Number(x.toPrecision(12)); if (y === 0) y = 0;
+  if (Math.abs(y) >= 1e15) return null;
+  return y;
+}
+
+// ---------- references ----------
+function colNum(l) { let n = 0; for (const ch of l) n = n * 26 + (ch.charCodeAt(0) - 64); return n; }
+function mkRef(ca, cl, ra, rsRaw) {
+  const rs = rsRaw.replace(/^0+(?=\d)/, "");
+  return { ca, cl, cn: colNum(cl), ra, rs, rn: Number(rs) };
+}
+const inGrid = (r) => r.cn >= 1 && r.cn <= COLS && r.rn >= 1 && r.rn <= ROWS;
+const refIdx = (r) => (r.rn - 1) * COLS + (r.cn - 1);
+const withRow = (r, n) => ({ ...r, rn: n, rs: String(n) });
+const withCol = (r, n) => ({ ...r, cn: n, cl: n >= 1 && n <= COLS ? LET[n - 1] : "?" });
+const sref = (r) => (r.ca ? "$" : "") + r.cl + (r.ra ? "$" : "") + r.rs;
+function normRange(a, b) {
+  let c1 = { ca: a.ca, cl: a.cl, cn: a.cn }, c2 = { ca: b.ca, cl: b.cl, cn: b.cn };
+  let r1 = { ra: a.ra, rs: a.rs, rn: a.rn }, r2 = { ra: b.ra, rs: b.rs, rn: b.rn };
+  if (c2.cn < c1.cn) [c1, c2] = [c2, c1];
+  if (r2.rn < r1.rn) [r1, r2] = [r2, r1];
+  return [{ ...c1, ...r1 }, { ...c2, ...r2 }];
+}
+
+// ---------- tokenizer and parser ----------
+function tokenize(s) {
+  const t = []; let i = 0, m;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === " ") { i++; continue; }
+    const rest = s.slice(i);
+    if ((m = /^(\d+(\.\d+)?|\.\d+)/.exec(rest))) { t.push({ y: "num", x: m[0] }); i += m[0].length; continue; }
+    if (ch === '"') {
+      let j = i + 1, v = "";
+      for (;;) {
+        if (j >= s.length) return null;
+        if (s[j] === '"') { if (s[j + 1] === '"') { v += '"'; j += 2; continue; } j++; break; }
+        v += s[j++];
+      }
+      t.push({ y: "str", x: s.slice(i, j), v }); i = j; continue;
+    }
+    if ((m = /^[A-Za-z$][A-Za-z0-9$]*/.exec(rest))) {
+      const w = m[0]; i += w.length;
+      if (/^(true|false)$/i.test(w)) t.push({ y: "bool", v: w.toUpperCase() === "TRUE" });
+      else if ((m = /^(\$?)([A-Za-z]+)(\$?)([0-9]+)$/.exec(w))) t.push({ y: "ref", ref: mkRef(m[1] === "$", m[2].toUpperCase(), m[3] === "$", m[4]) });
+      else if (/^[A-Za-z0-9]+$/.test(w)) t.push({ y: "name", x: w.toUpperCase() });
+      else return null;
+      continue;
+    }
+    if (rest.slice(0, 5).toUpperCase() === "#REF!") { t.push({ y: "referr" }); i += 5; continue; }
+    const two = rest.slice(0, 2);
+    if (two === "<>" || two === "<=" || two === ">=") { t.push({ y: "op", x: two }); i += 2; continue; }
+    if ("+-*/^&%=<>".includes(ch)) { t.push({ y: "op", x: ch }); i++; continue; }
+    if ("(),:".includes(ch)) { t.push({ y: "p", x: ch }); i++; continue; }
+    return null;
+  }
+  return t;
+}
+const CMP = new Set(["=", "<>", "<", "<=", ">", ">="]);
+const parseCache = new Map();
+function parse(src) {
+  if (parseCache.has(src)) return parseCache.get(src);
+  let res = null;
+  try { res = parseRaw(src); } catch (e) { res = null; }
+  if (parseCache.size > 5000) parseCache.clear();
+  parseCache.set(src, res);
+  return res;
+}
+function parseRaw(src) {
+  const toks = tokenize(src.slice(1));
+  if (!toks || !toks.length) return null;
+  let p = 0;
+  const isOp = (x) => toks[p] && toks[p].y === "op" && toks[p].x === x;
+  const isP = (x) => toks[p] && toks[p].y === "p" && toks[p].x === x;
+  const fail = () => { throw 0; };
+  function expr() {
+    let l = concat();
+    while (toks[p] && toks[p].y === "op" && CMP.has(toks[p].x)) { const op = toks[p++].x; l = { k: "bin", op, l, r: concat() }; }
+    return l;
+  }
+  function concat() { let l = sum(); while (isOp("&")) { p++; l = { k: "bin", op: "&", l, r: sum() }; } return l; }
+  function sum() { let l = product(); while (isOp("+") || isOp("-")) { const op = toks[p++].x; l = { k: "bin", op, l, r: product() }; } return l; }
+  function product() { let l = signed(); while (isOp("*") || isOp("/")) { const op = toks[p++].x; l = { k: "bin", op, l, r: signed() }; } return l; }
+  function signed() { if (isOp("-") || isOp("+")) { const op = toks[p++].x; return { k: "un", op, e: signed() }; } return power(); }
+  function power() { const b = percent(); if (isOp("^")) { p++; return { k: "bin", op: "^", l: b, r: signed() }; } return b; }
+  function percent() { let e = primary(); while (isOp("%")) { p++; e = { k: "pct", e }; } return e; }
+  function primary() {
+    const t = toks[p]; if (!t) fail(); p++;
+    switch (t.y) {
+      case "num": return { k: "num", x: t.x };
+      case "str": return { k: "str", x: t.x, v: t.v };
+      case "bool": return { k: "bool", v: t.v };
+      case "referr": return { k: "referr" };
+      case "ref":
+        if (isP(":")) {
+          p++; const t2 = toks[p]; if (!t2 || t2.y !== "ref") fail(); p++;
+          const [a, b] = normRange(t.ref, t2.ref); return { k: "range", a, b };
+        }
+        return { k: "ref", ref: t.ref };
+      case "name":
+        if (isP("(")) {
+          p++; const args = [];
+          if (isP(")")) { p++; return { k: "call", name: t.x, args }; }
+          for (;;) { args.push(expr()); if (isP(",")) { p++; continue; } if (isP(")")) { p++; break; } fail(); }
+          return { k: "call", name: t.x, args };
+        }
+        return { k: "name", name: t.x };
+      case "p":
+        if (t.x === "(") { const e = expr(); if (!isP(")")) fail(); p++; return { k: "paren", e }; }
+        fail();
+    }
+    fail();
+  }
+  let e;
+  try { e = expr(); } catch (x) { if (x === 0) return null; throw x; }
+  return p === toks.length ? e : null;
+}
+function ser(n) {
+  switch (n.k) {
+    case "num": case "str": return n.x;
+    case "bool": return n.v ? "TRUE" : "FALSE";
+    case "referr": return "#REF!";
+    case "ref": return sref(n.ref);
+    case "range": return sref(n.a) + ":" + sref(n.b);
+    case "name": return n.name;
+    case "call": return n.name + "(" + n.args.map(ser).join(",") + ")";
+    case "paren": return "(" + ser(n.e) + ")";
+    case "bin": return ser(n.l) + n.op + ser(n.r);
+    case "un": return n.op + ser(n.e);
+    case "pct": return ser(n.e) + "%";
+  }
+  return "";
+}
+function canonical(s) { const a = parse(s); return a ? "=" + ser(a) : s; }
+
+// ---------- rewriting ----------
+function mapRefs(n, fr, fg) {
+  switch (n.k) {
+    case "ref": { const r = fr(n.ref); return r ? { k: "ref", ref: r } : { k: "referr" }; }
+    case "range": { const pr = fg(n.a, n.b); return pr ? { k: "range", a: pr[0], b: pr[1] } : { k: "referr" }; }
+    case "call": return { ...n, args: n.args.map((a) => mapRefs(a, fr, fg)) };
+    case "paren": case "un": case "pct": return { ...n, e: mapRefs(n.e, fr, fg) };
+    case "bin": return { ...n, l: mapRefs(n.l, fr, fg), r: mapRefs(n.r, fr, fg) };
+  }
+  return n;
+}
+function rewriteRaw(s, fns) {
+  if (s[0] !== "=") return s;
+  const a = parse(s); if (!a) return s;
+  return "=" + ser(mapRefs(a, fns[0], fns[1]));
+}
+function structFns(dim, p, ins) {
+  const lim = dim === "r" ? ROWS : COLS;
+  const get = (r) => (dim === "r" ? r.rn : r.cn);
+  const set = (r, n) => (dim === "r" ? withRow(r, n) : withCol(r, n));
+  const fr = (ref) => {
+    if (!inGrid(ref)) return ref;
+    const n = get(ref);
+    if (n < p) return ref;
+    if (ins) return n + 1 > lim ? null : set(ref, n + 1);
+    return n === p ? null : set(ref, n - 1);
+  };
+  const fg = (a, b) => {
+    if (!inGrid(a) || !inGrid(b)) return [a, b];
+    const t = get(a), bt = get(b);
+    if (ins) {
+      const t2 = t < p ? t : t + 1; let b2 = bt < p ? bt : bt + 1;
+      if (t2 > lim) return null;
+      return [set(a, t2), set(b, Math.min(b2, lim))];
+    }
+    if (p > bt) return [a, b];
+    if (p < t) return [set(a, t - 1), set(b, bt - 1)];
+    if (t === bt) return null;
+    return [a, set(b, bt - 1)];
+  };
+  return [fr, fg];
+}
+function pasteFns(dr, dc) {
+  const mv = (ref) => { let r = ref; if (!ref.ca) r = withCol(r, r.cn + dc); if (!ref.ra) r = withRow(r, r.rn + dr); return r; };
+  const fr = (ref) => { if (!inGrid(ref)) return ref; const m = mv(ref); return inGrid(m) ? m : null; };
+  const fg = (a, b) => {
+    if (!inGrid(a) || !inGrid(b)) return [a, b];
+    const a2 = mv(a), b2 = mv(b);
+    if (!inGrid(a2) || !inGrid(b2)) return null;
+    return normRange(a2, b2);
+  };
+  return [fr, fg];
+}
+
+// ---------- evaluation ----------
+function toNum(v) {
+  switch (v.t) { case "n": return v; case "b": return num(v.v ? 1 : 0); case "blank": return num(0); case "s": return E("#VALUE!"); }
+  return v;
+}
+function toText(v) {
+  switch (v.t) { case "n": return { t: "s", v: fmtGeneral(v.v) }; case "b": return { t: "s", v: v.v ? "TRUE" : "FALSE" }; case "blank": return { t: "s", v: "" }; }
+  return v;
+}
+function toBool(v) {
+  switch (v.t) { case "n": return { t: "b", v: v.v !== 0 }; case "blank": return { t: "b", v: false }; case "s": return E("#VALUE!"); }
+  return v;
+}
+function toInt(v) { const x = toNum(v); return x.t === "e" ? x : num(Math.trunc(x.v)); }
+const RANK = { n: 0, s: 1, b: 2 };
+function cmpSame(a, b) {
+  if (a.t === "n") return a.v < b.v ? -1 : a.v > b.v ? 1 : 0;
+  if (a.t === "s") { const x = a.v.toUpperCase(), y = b.v.toUpperCase(); return x < y ? -1 : x > y ? 1 : 0; }
+  return Number(a.v) - Number(b.v);
+}
+function blankFor(o) { return o.t === "s" ? { t: "s", v: "" } : o.t === "b" ? { t: "b", v: false } : num(0); }
+function compare(l, r) {
+  if (l.t === "blank") l = blankFor(r);
+  if (r.t === "blank") r = blankFor(l);
+  if (l.t !== r.t) return RANK[l.t] - RANK[r.t];
+  return cmpSame(l, r);
+}
+function testOp(op, d) {
+  switch (op) { case "=": return d === 0; case "<>": return d !== 0; case "<": return d < 0; case "<=": return d <= 0; case ">": return d > 0; case ">=": return d >= 0; }
+  return false;
+}
+const ARITY = {
+  SUM: [1, Infinity], AVERAGE: [1, Infinity], MIN: [1, Infinity], MAX: [1, Infinity], COUNT: [1, Infinity], COUNTA: [1, Infinity],
+  ROUND: [2, 2], ABS: [1, 1], INT: [1, 1], MOD: [2, 2], IF: [3, 3], AND: [1, Infinity], OR: [1, Infinity], NOT: [1, 1],
+  IFERROR: [2, 2], ISERROR: [1, 1], ISBLANK: [1, 1], LEN: [1, 1], UPPER: [1, 1], LEFT: [2, 2], RIGHT: [2, 2], MID: [3, 3],
+  CONCAT: [1, Infinity], COUNTIF: [2, 2], SUMIF: [3, 3],
+};
+const isRA = (n) => n.k === "ref" || n.k === "range" || n.k === "referr";
+
+function makeSheet(raw) {
+  const memo = new Array(ROWS * COLS);
+  const asts = raw.map((s) => (s[0] === "=" ? parse(s) : null));
+  // circular detection
+  const prec = asts.map((a) => {
+    const out = new Set();
+    if (!a) return out;
+    (function walk(n) {
+      switch (n.k) {
+        case "ref": if (inGrid(n.ref)) out.add(refIdx(n.ref)); break;
+        case "range":
+          if (inGrid(n.a) && inGrid(n.b))
+            for (let r = n.a.rn; r <= n.b.rn; r++) for (let c = n.a.cn; c <= n.b.cn; c++) out.add((r - 1) * COLS + c - 1);
+          break;
+        case "call": n.args.forEach(walk); break;
+        case "paren": case "un": case "pct": walk(n.e); break;
+        case "bin": walk(n.l); walk(n.r); break;
+      }
+    })(a);
+    return [...out];
+  });
+  const circ = raw.map((_, i) => {
+    const seen = new Uint8Array(ROWS * COLS), stack = [...prec[i]];
+    while (stack.length) {
+      const j = stack.pop();
+      if (j === i) return true;
+      if (seen[j]) continue;
+      seen[j] = 1;
+      for (const k of prec[j]) if (!seen[k]) stack.push(k);
+    }
+    return false;
+  });
+
+  function cv(i) {
+    if (memo[i]) return memo[i];
+    let v;
+    const s = raw[i];
+    if (s === "") v = BLANK;
+    else if (circ[i]) v = E("#CYCLE!");
+    else if (s[0] === "=") {
+      if (!asts[i]) v = E("#SYNTAX!");
+      else { try { v = ev(asts[i]); } catch (e) { v = E("#NUM!"); } if (v.t === "blank") v = num(0); }
+    } else if (s[0] === "'") v = { t: "s", v: s.slice(1) };
+    else {
+      const tr = s.replace(/^ +| +$/g, "");
+      const en = entryNum(tr);
+      if (en !== null) v = num(en);
+      else if (/^(true|false)$/i.test(tr)) v = { t: "b", v: tr.toUpperCase() === "TRUE" };
+      else v = { t: "s", v: s };
+    }
+    memo[i] = v;
+    return v;
+  }
+  function rng(n) {
+    if (n.k === "referr") return E("#REF!");
+    const a = n.k === "ref" ? n.ref : n.a, b = n.k === "ref" ? n.ref : n.b;
+    if (!inGrid(a) || !inGrid(b)) return E("#REF!");
+    const cells = [];
+    for (let r = a.rn; r <= b.rn; r++) for (let c = a.cn; c <= b.cn; c++) cells.push((r - 1) * COLS + c - 1);
+    return { t: "r", cells, h: b.rn - a.rn + 1, w: b.cn - a.cn + 1 };
+  }
+  function arith(op, a, b) {
+    switch (op) {
+      case "+": return N(a + b);
+      case "-": return N(a - b);
+      case "*": return N(a * b);
+      case "/": return b === 0 ? E("#DIV/0!") : N(a / b);
+      case "^":
+        if (a === 0 && b === 0) return E("#NUM!");
+        if (a === 0 && b < 0) return E("#DIV/0!");
+        if (a < 0 && !Number.isInteger(b)) return E("#NUM!");
+        return N(Math.pow(a, b));
+    }
+  }
+  function ev(n) {
+    switch (n.k) {
+      case "num": return N(Number(n.x));
+      case "str": return { t: "s", v: n.v };
+      case "bool": return { t: "b", v: n.v };
+      case "referr": return E("#REF!");
+      case "ref": return inGrid(n.ref) ? cv(refIdx(n.ref)) : E("#REF!");
+      case "range": return E("#VALUE!");
+      case "name": return E("#NAME?");
+      case "paren": return ev(n.e);
+      case "un": case "pct": {
+        const v = ev(n.e); if (v.t === "e") return v;
+        const a = toNum(v); if (a.t === "e") return a;
+        return n.k === "pct" ? N(a.v / 100) : N(n.op === "-" ? -a.v : a.v);
+      }
+      case "bin": {
+        const l = ev(n.l), r = ev(n.r);
+        if (l.t === "e") return l;
+        if (r.t === "e") return r;
+        if (n.op === "&") return { t: "s", v: toText(l).v + toText(r).v };
+        if (CMP.has(n.op)) return { t: "b", v: testOp(n.op, compare(l, r)) };
+        const a = toNum(l), b = toNum(r);
+        if (a.t === "e") return a;
+        if (b.t === "e") return b;
+        return arith(n.op, a.v, b.v);
+      }
+      case "call": return call(n);
+    }
+    return E("#VALUE!");
+  }
+  function evNum(n) { const v = ev(n); return v.t === "e" ? v : toNum(v); }
+  function evText(n) { const v = ev(n); return v.t === "e" ? v : toText(v); }
+  function evInt(n) { const v = ev(n); return v.t === "e" ? v : toInt(v); }
+  function evBool(n) { const v = ev(n); return v.t === "e" ? v : toBool(v); }
+  function call(n) {
+    const A = ARITY[n.name];
+    if (!A) return E("#NAME?");
+    const args = n.args;
+    if (args.length < A[0] || args.length > A[1]) return E("#ARGS!");
+    switch (n.name) {
+      case "SUM": case "AVERAGE": case "MIN": case "MAX": {
+        const xs = [];
+        for (const a of args) {
+          if (isRA(a)) {
+            const R = rng(a); if (R.t === "e") return R;
+            for (const i of R.cells) { const v = cv(i); if (v.t === "e") return v; if (v.t === "n") xs.push(v.v); }
+          } else { const x = evNum(a); if (x.t === "e") return x; xs.push(x.v); }
+        }
+        if (n.name === "MIN" || n.name === "MAX") return xs.length ? N(n.name === "MIN" ? Math.min(...xs) : Math.max(...xs)) : num(0);
+        let s = 0; for (const x of xs) s += x;
+        if (n.name === "SUM") return N(s);
+        return xs.length ? N(s / xs.length) : E("#DIV/0!");
+      }
+      case "COUNT": case "COUNTA": {
+        let c = 0;
+        for (const a of args) {
+          if (isRA(a)) {
+            const R = rng(a); if (R.t === "e") return R;
+            for (const i of R.cells) {
+              const v = cv(i); if (v.t === "e") return v;
+              if (n.name === "COUNT" ? v.t === "n" : raw[i] !== "") c++;
+            }
+          } else {
+            const v = ev(a); if (v.t === "e") return v;
+            if (n.name === "COUNTA" || v.t === "n") c++;
+          }
+        }
+        return num(c);
+      }
+      case "ROUND": {
+        const x = evNum(args[0]); if (x.t === "e") return x;
+        const d = evInt(args[1]); if (d.t === "e") return d;
+        if (d.v < -9 || d.v > 9) return E("#NUM!");
+        return N(Rnum(x.v, d.v));
+      }
+      case "ABS": { const x = evNum(args[0]); return x.t === "e" ? x : N(Math.abs(x.v)); }
+      case "INT": { const x = evNum(args[0]); return x.t === "e" ? x : N(Math.floor(x.v)); }
+      case "MOD": {
+        const a = evNum(args[0]); if (a.t === "e") return a;
+        const b = evNum(args[1]); if (b.t === "e") return b;
+        if (b.v === 0) return E("#DIV/0!");
+        return N(a.v - b.v * Math.floor(a.v / b.v));
+      }
+      case "IF": {
+        const c = evBool(args[0]); if (c.t === "e") return c;
+        return ev(c.v ? args[1] : args[2]);
+      }
+      case "AND": case "OR": {
+        const bs = [];
+        for (const a of args) { const b = evBool(a); if (b.t === "e") return b; bs.push(b.v); }
+        return { t: "b", v: n.name === "AND" ? bs.every((x) => x) : bs.some((x) => x) };
+      }
+      case "NOT": { const b = evBool(args[0]); return b.t === "e" ? b : { t: "b", v: !b.v }; }
+      case "IFERROR": { const x = ev(args[0]); return x.t === "e" ? ev(args[1]) : x; }
+      case "ISERROR": return { t: "b", v: ev(args[0]).t === "e" };
+      case "ISBLANK": {
+        const a = args[0];
+        if (isRA(a)) {
+          const R = rng(a); if (R.t === "e") return R;
+          if (a.k === "range") return E("#VALUE!");
+          return { t: "b", v: raw[R.cells[0]] === "" };
+        }
+        const v = ev(a); return v.t === "e" ? v : { t: "b", v: false };
+      }
+      case "LEN": { const t = evText(args[0]); return t.t === "e" ? t : N(t.v.length); }
+      case "UPPER": { const t = evText(args[0]); return t.t === "e" ? t : { t: "s", v: t.v.toUpperCase() }; }
+      case "LEFT": case "RIGHT": {
+        const t = evText(args[0]); if (t.t === "e") return t;
+        const k = evInt(args[1]); if (k.t === "e") return k;
+        if (k.v < 0) return E("#VALUE!");
+        const s = t.v;
+        if (k.v >= s.length) return t;
+        return { t: "s", v: n.name === "LEFT" ? s.slice(0, k.v) : s.slice(s.length - k.v) };
+      }
+      case "MID": {
+        const t = evText(args[0]); if (t.t === "e") return t;
+        const s = evInt(args[1]); if (s.t === "e") return s;
+        const k = evInt(args[2]); if (k.t === "e") return k;
+        if (s.v < 1 || k.v < 0) return E("#VALUE!");
+        if (s.v > t.v.length) return { t: "s", v: "" };
+        return { t: "s", v: t.v.substr(s.v - 1, Math.min(k.v, t.v.length)) };
+      }
+      case "CONCAT": {
+        let out = "";
+        for (const a of args) {
+          if (isRA(a)) {
+            const R = rng(a); if (R.t === "e") return R;
+            for (const i of R.cells) { const v = cv(i); if (v.t === "e") return v; out += toText(v).v; }
+          } else { const t = evText(a); if (t.t === "e") return t; out += t.v; }
+        }
+        return { t: "s", v: out };
+      }
+      case "COUNTIF": case "SUMIF": {
+        const isSum = n.name === "SUMIF";
+        if (!isRA(args[0])) return E("#VALUE!");
+        if (isSum && !isRA(args[2])) return E("#VALUE!");
+        const R = rng(args[0]); if (R.t === "e") return R;
+        let S = null;
+        if (isSum) {
+          S = rng(args[2]); if (S.t === "e") return S;
+          if (S.h !== R.h || S.w !== R.w) return E("#VALUE!");
+        }
+        const c = ev(args[1]); if (c.t === "e") return c;
+        let op = "=", opd;
+        if (c.t === "n" || c.t === "b") opd = c;
+        else if (c.t === "blank") opd = { t: "s", v: "" };
+        else {
+          const m = /^(>=|<=|<>|>|<|=)/.exec(c.v);
+          if (m) {
+            op = m[1];
+            const rest = c.v.slice(op.length);
+            const en = entryNum(rest);
+            if (en !== null) opd = num(en);
+            else if (/^(true|false)$/i.test(rest)) opd = { t: "b", v: rest.toUpperCase() === "TRUE" };
+            else opd = { t: "s", v: rest };
+          } else opd = c;
+        }
+        let cnt = 0, sum = 0;
+        for (let k = 0; k < R.cells.length; k++) {
+          const v = cv(R.cells[k]);
+          if (v.t === "e") return v;
+          if (v.t === "blank") continue;
+          const ok = v.t !== opd.t ? op === "<>" : testOp(op, cmpSame(v, opd));
+          if (!ok) continue;
+          if (!isSum) cnt++;
+          else { const w = cv(S.cells[k]); if (w.t === "e") return w; if (w.t === "n") sum += w.v; }
+        }
+        return isSum ? N(sum) : num(cnt);
+      }
+    }
+    return E("#NAME?");
+  }
+  return { values: raw.map((_, i) => cv(i)) };
+}
+function storedRaw(s) { return s[0] === "=" ? canonical(s) : s; }
+
+// ---------- UI ----------
+if (typeof document !== "undefined") (function () {
+  const $ = (id) => document.querySelector('[data-testid="' + id + '"]');
+  const grid = $("grid"), input = $("formula-input"), nameBox = $("name-box"), fsel = $("format-select"), summary = $("selection-summary");
+  const B = {};
+  ["undo-button", "redo-button", "copy-button", "cut-button", "paste-button", "clear-button", "insert-row", "delete-row", "insert-col", "delete-col"].forEach((k) => (B[k] = $(k)));
+  const addr = (r, c) => LET[c] + (r + 1);
+
+  // build grid
+  const cellEls = [];
+  {
+    const thead = document.createElement("thead"), hr = document.createElement("tr");
+    hr.setAttribute("role", "row");
+    const corner = document.createElement("th"); corner.className = "corner"; corner.setAttribute("role", "presentation"); hr.appendChild(corner);
+    for (let c = 0; c < COLS; c++) {
+      const th = document.createElement("th"); th.setAttribute("role", "columnheader"); th.dataset.testid = "col-header-" + LET[c]; th.textContent = LET[c]; hr.appendChild(th);
+    }
+    thead.appendChild(hr); grid.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (let r = 0; r < ROWS; r++) {
+      const tr = document.createElement("tr"); tr.setAttribute("role", "row");
+      const th = document.createElement("th"); th.setAttribute("role", "rowheader"); th.dataset.testid = "row-header-" + (r + 1); th.textContent = String(r + 1); tr.appendChild(th);
+      for (let c = 0; c < COLS; c++) {
+        const td = document.createElement("td"); td.setAttribute("role", "gridcell"); td.dataset.testid = "cell-" + addr(r, c);
+        td.dataset.r = r; td.dataset.c = c; tr.appendChild(td); cellEls.push(td);
+      }
+      tbody.appendChild(tr);
+    }
+    grid.appendChild(tbody);
+  }
+
+  let raw = new Array(ROWS * COLS).fill(""), fmt = new Array(ROWS * COLS).fill("general");
+  let anc = { r: 0, c: 0 }, act = { r: 0, c: 0 }, editing = false, undoS = [], redoS = [], clip = null;
+  const ai = () => act.r * COLS + act.c;
+  const rect = () => ({ r0: Math.min(anc.r, act.r), r1: Math.max(anc.r, act.r), c0: Math.min(anc.c, act.c), c1: Math.max(anc.c, act.c) });
+  const rectCells = (R) => { const o = []; for (let r = R.r0; r <= R.r1; r++) for (let c = R.c0; c <= R.c1; c++) o.push(r * COLS + c); return o; };
+  const snap = () => ({ raw: raw.slice(), fmt: fmt.slice(), anc: { ...anc }, act: { ...act } });
+  const restore = (s) => { raw = s.raw.slice(); fmt = s.fmt.slice(); anc = { ...s.anc }; act = { ...s.act }; };
+  function record(before) { undoS.push({ before, after: snap() }); if (undoS.length > 20) undoS.shift(); redoS = []; }
+
+  function render() {
+    const { values } = makeSheet(raw);
+    const R = rect();
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i], el = cellEls[i], r = (i / COLS) | 0, c = i % COLS;
+      let text = "", kind = "empty";
+      switch (v.t) {
+        case "n": kind = "number"; text = fmtNumber(v.v, fmt[i]); break;
+        case "s": kind = "text"; text = v.v; break;
+        case "b": kind = "logical"; text = v.v ? "TRUE" : "FALSE"; break;
+        case "e": kind = "error"; text = v.v; break;
+      }
+      if (el.textContent !== text) el.textContent = text;
+      el.setAttribute("data-kind", kind);
+      el.setAttribute("aria-selected", r === act.r && c === act.c ? "true" : "false");
+      el.setAttribute("data-in-selection", r >= R.r0 && r <= R.r1 && c >= R.c0 && c <= R.c1 ? "true" : "false");
+    }
+    nameBox.textContent = R.r0 === R.r1 && R.c0 === R.c1 ? addr(act.r, act.c) : addr(R.r0, R.c0) + ":" + addr(R.r1, R.c1);
+    let n = 0, s = 0;
+    for (const i of rectCells(R)) if (values[i].t === "n") { n++; s += values[i].v; }
+    if (n) {
+      const S = N(s), A = N(s / n);
+      summary.textContent = "Sum: " + (S.t === "e" ? "#NUM!" : fmtGeneral(S.v)) + " | Average: " + (A.t === "e" ? "#NUM!" : fmtGeneral(A.v)) + " | Count: " + n;
+      summary.hidden = false;
+    } else { summary.hidden = true; summary.textContent = ""; }
+    input.setAttribute("data-editing", editing ? "true" : "false");
+    if (!editing) { input.value = raw[ai()]; fsel.value = fmt[ai()]; }
+    const dis = {
+      "undo-button": !undoS.length, "redo-button": !redoS.length, "paste-button": !clip,
+    };
+    for (const k in B) B[k].disabled = editing || !!dis[k];
+    fsel.disabled = editing;
+  }
+
+  // commit the input value to the active cell; returns the before-snapshot or null
+  function commit() {
+    if (!editing) return null;
+    editing = false;
+    const nr = storedRaw(input.value);
+    if (nr === raw[ai()]) return null;
+    const before = snap();
+    raw[ai()] = nr;
+    return before;
+  }
+  function moveBy(dr, dc, extend) {
+    const r = Math.max(0, Math.min(ROWS - 1, act.r + dr)), c = Math.max(0, Math.min(COLS - 1, act.c + dc));
+    act = { r, c };
+    if (!extend) anc = { r, c };
+  }
+
+  grid.addEventListener("click", (e) => {
+    const td = e.target.closest("td[data-r]");
+    if (!td || !grid.contains(td)) return;
+    const r = +td.dataset.r, c = +td.dataset.c;
+    const before = commit();
+    if (e.shiftKey) act = { r, c }; else { anc = { r, c }; act = { r, c }; }
+    if (before) record(before);
+    grid.focus();
+    render();
+  });
+  grid.addEventListener("mousedown", (e) => { if (e.shiftKey) e.preventDefault(); });
+
+  grid.addEventListener("keydown", (e) => {
+    const k = e.key, lk = k.length === 1 ? k.toLowerCase() : k;
+    const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    const ctrl = e.ctrlKey || e.metaKey;
+    const handled = arrows[k] || k === "Delete" || k === "Backspace" || k === "Enter" || (ctrl && (lk === "z" || lk === "y"));
+    if (!handled) return;
+    e.preventDefault();
+    if (k === "Enter") { input.focus(); return; }
+    if (editing) return;
+    if (arrows[k]) moveBy(arrows[k][0], arrows[k][1], e.shiftKey);
+    else if (k === "Delete" || k === "Backspace") doClear();
+    else if (lk === "z") doUndo();
+    else if (lk === "y") doRedo();
+    render();
+  });
+
+  input.addEventListener("input", () => { if (!editing) { editing = true; render(); } });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) {
+      e.preventDefault();
+      const before = commit();
+      if (e.key === "Enter") moveBy(1, 0, false); else moveBy(0, 1, false);
+      if (before) record(before);
+      render();
+      input.focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      editing = false;
+      render();
+      grid.focus();
+    }
+  });
+
+  function doClear() {
+    const cells = rectCells(rect());
+    if (cells.every((i) => raw[i] === "")) return;
+    const before = snap();
+    for (const i of cells) raw[i] = "";
+    record(before);
+  }
+  function doUndo() { const s = undoS.pop(); if (!s) return; restore(s.before); redoS.push(s); }
+  function doRedo() { const s = redoS.pop(); if (!s) return; restore(s.after); undoS.push(s); }
+  function doStruct(dim, ins) {
+    const before = snap();
+    const p = (dim === "r" ? act.r : act.c) + 1;
+    const fns = structFns(dim, p, ins);
+    const nr = raw.map((s) => rewriteRaw(s, fns));
+    const outR = new Array(ROWS * COLS).fill(""), outF = new Array(ROWS * COLS).fill("general");
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      let v = dim === "r" ? r + 1 : c + 1; // 1-based position in destination
+      let src;
+      if (ins) src = v < p ? v : v === p ? null : v - 1;
+      else src = v < p ? v : v + 1 > (dim === "r" ? ROWS : COLS) ? null : v + 1;
+      if (src === null) continue;
+      const si = dim === "r" ? (src - 1) * COLS + c : r * COLS + (src - 1);
+      outR[r * COLS + c] = nr[si]; outF[r * COLS + c] = fmt[si];
+    }
+    raw = outR; fmt = outF;
+    record(before);
+  }
+  function doTake(mode) {
+    const R = rect(), h = R.r1 - R.r0 + 1, w = R.c1 - R.c0 + 1, cells = rectCells(R);
+    clip = { mode, r0: R.r0, c0: R.c0, h, w, raw: cells.map((i) => raw[i]), fmt: cells.map((i) => fmt[i]) };
+  }
+  function doPaste() {
+    if (!clip) return;
+    const before = snap();
+    const R = rect(), tr = R.r0, tc = R.c0;
+    if (clip.mode === "cut") {
+      for (let i = 0; i < clip.h; i++) for (let j = 0; j < clip.w; j++) { const k = (clip.r0 + i) * COLS + clip.c0 + j; raw[k] = ""; fmt[k] = "general"; }
+    }
+    const fns = clip.mode === "copy" ? pasteFns(tr - clip.r0, tc - clip.c0) : null;
+    for (let i = 0; i < clip.h; i++) for (let j = 0; j < clip.w; j++) {
+      const r = tr + i, c = tc + j;
+      if (r >= ROWS || c >= COLS) continue;
+      const s = clip.raw[i * clip.w + j];
+      raw[r * COLS + c] = fns ? rewriteRaw(s, fns) : s;
+      fmt[r * COLS + c] = clip.fmt[i * clip.w + j];
+    }
+    anc = { r: tr, c: tc }; act = { r: tr, c: tc };
+    if (clip.mode === "cut") clip = null;
+    record(before);
+  }
+
+  const act_ = (k, f) => B[k].addEventListener("click", () => { if (editing || B[k].disabled) return; f(); render(); });
+  act_("undo-button", doUndo);
+  act_("redo-button", doRedo);
+  act_("copy-button", () => doTake("copy"));
+  act_("cut-button", () => doTake("cut"));
+  act_("paste-button", doPaste);
+  act_("clear-button", doClear);
+  act_("insert-row", () => doStruct("r", true));
+  act_("delete-row", () => doStruct("r", false));
+  act_("insert-col", () => doStruct("c", true));
+  act_("delete-col", () => doStruct("c", false));
+  fsel.addEventListener("change", () => {
+    if (editing) return;
+    const f = fsel.value, cells = rectCells(rect());
+    if (cells.some((i) => fmt[i] !== f)) { const before = snap(); for (const i of cells) fmt[i] = f; record(before); }
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

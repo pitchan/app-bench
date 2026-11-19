@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Fable 5.2</title>
+<style>
+:root {
+  --bg: #f5f3ee;
+  --panel: #ffffff;
+  --ink: #1c2422;
+  --muted: #56605c;
+  --line: #d6d2c6;
+  --accent: #0f5c4d;
+  --accent-soft: #e4f1ed;
+  --error: #a8201a;
+  --focus: #c2410c;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--ink);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding-bottom: 150px;
+}
+header {
+  background-color: var(--ink);
+  color: #ffffff;
+  padding: 14px 16px;
+}
+header .inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+header h1 { margin: 0; font-size: 1.15rem; letter-spacing: .02em; font-weight: 650; }
+header svg { flex: none; }
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 960px) {
+  main { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: start; gap: 24px; padding: 24px 16px; }
+}
+.panel {
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+}
+h2 { margin: 0 0 12px; font-size: 1.15rem; }
+h3 { margin: 0 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+section { margin: 0 0 18px; min-width: 0; }
+
+/* fields */
+.field label { display: block; font-weight: 600; margin-bottom: 4px; }
+input[type="text"] {
+  font: inherit;
+  color: var(--ink);
+  background-color: #ffffff;
+  border: 1.5px solid #8a8f8c;
+  border-radius: 8px;
+  padding: 9px 11px;
+  min-height: 44px;
+  width: 100%;
+  max-width: 100%;
+}
+#height-input { max-width: 180px; }
+input[type="text"][aria-invalid="true"] { border-color: var(--error); }
+.msg { margin: 6px 0 0; font-size: .92rem; }
+.msg.error { color: var(--error); font-weight: 600; }
+.msg.ok { color: var(--accent); font-weight: 600; }
+.msg.hint { color: var(--muted); }
+
+/* cards */
+.cards { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 620px) { .cards.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cards.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.card {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background-color: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  min-width: 0;
+  min-height: 64px;
+}
+.card input { position: absolute; top: 10px; left: 10px; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+.card .mark {
+  flex: none;
+  width: 18px; height: 18px;
+  margin-top: 2px;
+  border: 2px solid #7b827f;
+  border-radius: 50%;
+  background-color: #ffffff;
+}
+.card.check .mark { border-radius: 5px; }
+.card .body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; overflow-wrap: break-word; }
+.card [data-role="name"] { font-weight: 650; color: var(--ink); line-height: 1.25; }
+.card [data-role="price"] { color: #3f4a46; font-size: .92rem; font-variant-numeric: tabular-nums; }
+.card .sub { color: var(--muted); font-size: .82rem; }
+.card [data-role="reason"] { color: #7a1f1a; font-size: .82rem; font-weight: 600; }
+.card [data-role="badge"] {
+  align-self: flex-start;
+  background-color: var(--accent);
+  color: #ffffff;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  white-space: nowrap;
+  border-radius: 99px;
+  padding: 1px 8px;
+}
+.card .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #55605c; margin-right: 6px; vertical-align: -1px; }
+.card.selected { border-color: var(--accent); background-color: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.card.selected .mark { border-color: var(--accent); background-color: var(--accent); box-shadow: inset 0 0 0 3px #ffffff; }
+.card.unavailable { cursor: not-allowed; border-style: dashed; border-color: #9a9d98; background-color: #ecebe6; }
+.card.unavailable [data-role="name"] { color: #4a504d; text-decoration: line-through; }
+.card.unavailable [data-role="price"] { color: #4a504d; }
+.card.unavailable .mark { border-color: #a9ada9; background-color: #ecebe6; }
+.card:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* buttons */
+button {
+  font: inherit;
+  font-weight: 650;
+  color: var(--ink);
+  background-color: #ffffff;
+  border: 1.5px solid #6d7471;
+  border-radius: 9px;
+  padding: 8px 14px;
+  min-height: 44px;
+  cursor: pointer;
+}
+button.primary { background-color: var(--accent); border-color: var(--accent); color: #ffffff; }
+button.danger { color: #8f1c17; border-color: #b9817d; }
+button.small { min-height: 36px; padding: 4px 12px; font-size: .92rem; }
+button:disabled { cursor: not-allowed; color: #8b908d; background-color: #ecebe6; border-color: #cfcdc5; }
+button:focus-visible, input[type="text"]:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* quantity */
+.qty { display: flex; align-items: center; gap: 10px; }
+.qty button { width: 44px; padding: 0; font-size: 1.3rem; line-height: 1; }
+.qty [data-testid="qty-value"] { min-width: 36px; text-align: center; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* bike bar */
+.bikebar { border-top: 1px solid var(--line); padding-top: 14px; }
+.bikebar .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bikebar svg { flex: none; width: 112px; height: 64px; }
+.bikebar .pricebox { flex: 1; min-width: 120px; }
+.bikebar .pricebox .cap { display: block; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+[data-testid="bike-price"] { font-size: 1.6rem; font-weight: 750; font-variant-numeric: tabular-nums; color: var(--ink); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.actions .primary { flex: 1 1 160px; }
+
+/* order */
+.empty { color: var(--muted); margin: 0 0 14px; padding: 18px 12px; text-align: center; border: 1.5px dashed var(--line); border-radius: 10px; }
+ol.lines { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.line { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; background-color: #ffffff; min-width: 0; }
+.line.editing { border-color: var(--focus); background-color: #fff6ee; }
+.line .num { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.line [data-role="description"] { display: block; font-weight: 650; overflow-wrap: anywhere; color: var(--ink); }
+.line [data-role="accessories"] { display: block; color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+.line .foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.line .q { color: var(--muted); font-size: .92rem; }
+.line .q [data-role="qty"] { color: var(--ink); font-weight: 700; }
+.line [data-role="amount"] { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); margin-right: auto; }
+.promo { border-top: 1px solid var(--line); padding-top: 14px; margin-bottom: 14px; }
+.promo .row { display: flex; gap: 8px; }
+.promo .row input { flex: 1; min-width: 0; }
+.promo .applied { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.promo .applied .msg { margin: 0; flex: 1 1 180px; color: var(--ink); }
+.summary { border-top: 1px solid var(--line); padding-top: 10px; margin-bottom: 14px; }
+.summary > div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }
+.summary [data-role="label"] { color: var(--muted); }
+.summary [data-role="value"] { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.summary .disc [data-role="value"] { color: var(--accent); }
+.summary .total { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; }
+.summary .total [data-role="label"], .summary .total [data-role="value"] { color: var(--ink); font-size: 1.2rem; font-weight: 750; }
+[data-testid="place-order"] { width: 100%; }
+
+/* live notice */
+.status {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  width: min(560px, calc(100vw - 24px));
+  pointer-events: none;
+  z-index: 20;
+}
+[data-testid="notice"] {
+  background-color: #1c2422;
+  color: #ffffff;
+  border-left: 5px solid #f0a35e;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: .92rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+}
+
+/* confirmation */
+[data-testid="confirmation"] {
+  max-width: 560px;
+  margin: 32px auto;
+  background-color: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px 20px;
+  width: calc(100% - 32px);
+}
+[data-testid="confirmation"] h2 { font-size: 1.5rem; color: var(--accent); margin-bottom: 4px; }
+[data-testid="confirmation"] h2:focus { outline: none; }
+[data-testid="confirmation"] dl { margin: 16px 0 20px; display: grid; gap: 10px; }
+[data-testid="confirmation"] dl div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+[data-testid="confirmation"] dt { color: var(--muted); }
+[data-testid="confirmation"] dd { margin: 0; font-weight: 700; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<header data-testid="app-header">
+  <div class="inner">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="7" cy="17" r="5" fill="none" stroke="#f0a35e" stroke-width="2"/><circle cx="19" cy="17" r="5" fill="none" stroke="#f0a35e" stroke-width="2"/><path d="M7 17l4-9h6l2 9M11 8l3 9" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>
+    <h1>Claude Fable 5.2</h1>
+  </div>
+</header>
+
+<main id="main">
+  <div class="panel" data-testid="configurator">
+    <h2>Configure a bike</h2>
+
+    <section data-testid="section-rider">
+      <h3>Rider</h3>
+      <div class="field">
+        <label for="height-input">Rider height (cm)</label>
+        <input id="height-input" data-testid="height-input" type="text" inputmode="numeric" autocomplete="off">
+      </div>
+      <p class="msg error" id="height-error" data-testid="height-error" hidden></p>
+      <p class="msg ok" id="height-recommendation" data-testid="height-recommendation" hidden></p>
+    </section>
+
+    <section data-testid="section-frame"><h3>Frame</h3><div class="cards four" id="cards-frame"></div></section>
+    <section data-testid="section-wheels"><h3>Wheels</h3><div class="cards" id="cards-wheels"></div></section>
+    <section data-testid="section-drivetrain"><h3>Drivetrain</h3><div class="cards three" id="cards-drivetrain"></div></section>
+    <section data-testid="section-color"><h3>Color</h3><div class="cards four" id="cards-color"></div></section>
+    <section data-testid="section-accessories"><h3>Accessories</h3><div class="cards four" id="cards-accessory"></div></section>
+
+    <section data-testid="section-quantity">
+      <h3>Quantity</h3>
+      <div class="qty">
+        <button type="button" data-testid="qty-decrease" aria-label="Decrease quantity"><span aria-hidden="true">−</span></button>
+        <span data-testid="qty-value">1</span>
+        <button type="button" data-testid="qty-increase" aria-label="Increase quantity"><span aria-hidden="true">+</span></button>
+      </div>
+    </section>
+
+    <div class="bikebar">
+      <div class="top">
+        <svg viewBox="0 0 160 92" aria-hidden="true" id="bike-art">
+          <g fill="none" stroke="#2a302e" stroke-width="3">
+            <circle id="art-w1" cx="40" cy="62" r="22"/>
+            <circle id="art-w2" cx="120" cy="62" r="22"/>
+          </g>
+          <g id="art-frame" fill="none" stroke="#3c4043" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M40 62 L72 62 L62 28 Z"/>
+            <path d="M62 28 L103 27 L72 62"/>
+            <path d="M103 27 L120 62"/>
+          </g>
+          <g fill="none" stroke="#2a302e" stroke-width="4" stroke-linecap="round">
+            <path d="M55 22 L68 22"/><path d="M62 28 L61 22"/>
+            <path d="M103 27 L101 17 L110 15"/>
+          </g>
+          <circle cx="72" cy="62" r="4" fill="#2a302e"/>
+        </svg>
+        <div class="pricebox">
+          <span class="cap">This bike</span>
+          <span data-testid="bike-price">—</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" data-testid="undo-button" disabled>Undo</button>
+        <button type="button" class="primary" data-testid="add-to-order" disabled>Add to order</button>
+        <button type="button" data-testid="cancel-edit" hidden>Cancel edit</button>
+      </div>
+      <p class="msg hint" data-testid="add-hint" hidden></p>
+      <p class="msg error" data-testid="line-error" role="alert" hidden></p>
+    </div>
+  </div>
+
+  <div class="panel" data-testid="order">
+    <h2>Your order</h2>
+    <p class="empty" data-testid="order-empty">Your order is empty.</p>
+    <ol class="lines" id="lines" hidden></ol>
+
+    <div class="promo">
+      <div class="field">
+        <label for="promo-input">Promo code</label>
+        <div class="row">
+          <input id="promo-input" data-testid="promo-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button type="button" data-testid="promo-apply" disabled>Apply</button>
+        </div>
+      </div>
+      <p class="msg error" id="promo-error" data-testid="promo-error" hidden></p>
+      <div class="applied" id="promo-applied" hidden>
+        <p class="msg" data-testid="promo-status" hidden></p>
+        <button type="button" class="small" data-testid="promo-remove" hidden>Remove code</button>
+      </div>
+    </div>
+
+    <div class="summary" id="summary" hidden>
+      <div data-testid="summary-line-bikes" hidden><span data-role="label">Bikes</span><span data-role="value"></span></div>
+      <div class="disc" data-testid="summary-line-pack" hidden><span data-role="label">Commuter pack</span><span data-role="value"></span></div>
+      <div class="disc" data-testid="summary-line-volume" hidden><span data-role="label">Volume discount</span><span data-role="value"></span></div>
+      <div class="disc" data-testid="summary-line-promo" hidden><span data-role="label"></span><span data-role="value"></span></div>
+      <div data-testid="summary-line-shipping" hidden><span data-role="label">Shipping</span><span data-role="value"></span></div>
+      <div class="total" data-testid="summary-line-total" hidden><span data-role="label">Total</span><span data-role="value"></span></div>
+      <div data-testid="summary-line-vat" hidden><span data-role="label">VAT included</span><span data-role="value"></span></div>
+      <div data-testid="summary-line-delivery" hidden><span data-role="label">Delivery</span><span data-role="value"></span></div>
+    </div>
+
+    <button type="button" class="primary" data-testid="place-order" disabled>Place order</button>
+    <p class="msg hint" data-testid="place-hint" hidden></p>
+  </div>
+</main>
+
+<div class="status" role="status"><div data-testid="notice" hidden></div></div>
+
+<section data-testid="confirmation" id="confirmation" hidden>
+  <h2 data-testid="confirmation-title" tabindex="-1">Order confirmed</h2>
+  <dl>
+    <div><dt>Reference</dt><dd data-testid="confirmation-reference"></dd></div>
+    <div><dt>Bikes</dt><dd data-testid="confirmation-bikes"></dd></div>
+    <div><dt>Total</dt><dd data-testid="confirmation-total"></dd></div>
+    <div><dt>Delivery</dt><dd data-testid="confirmation-delivery"></dd></div>
+  </dl>
+  <button type="button" class="primary" data-testid="confirmation-new">Start a new order</button>
+</section>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- catalog ---------- */
+  var CATALOG = {
+    frame: [
+      { id: 'S', name: 'Frame S', price: 119000, min: 150, max: 164 },
+      { id: 'M', name: 'Frame M', price: 119000, min: 165, max: 174 },
+      { id: 'L', name: 'Frame L', price: 124000, min: 175, max: 184 },
+      { id: 'XL', name: 'Frame XL', price: 129000, min: 185, max: 200 }
+    ],
+    wheels: [
+      { id: '275', name: '27.5" wheels', price: 0 },
+      { id: '29', name: '29" wheels', price: 12000 }
+    ],
+    drivetrain: [
+      { id: 'essential', name: 'Essential 1×10', price: 0, lead: 5 },
+      { id: 'sport', name: 'Sport 1×12', price: 24000, lead: 7 },
+      { id: 'pro', name: 'Pro Electronic 2×12', price: 69000, lead: 12 }
+    ],
+    color: [
+      { id: 'graphite', name: 'Graphite', price: 0, hex: '#3c4043' },
+      { id: 'sand', name: 'Sand', price: 0, hex: '#c9b48a' },
+      { id: 'red', name: 'Racing Red', price: 6000, hex: '#c62828' },
+      { id: 'glacier', name: 'Glacier', price: 0, hex: '#8fc7d6' }
+    ],
+    accessory: [
+      { id: 'mudguards', name: 'Mudguards', price: 4500 },
+      { id: 'rack', name: 'Rear rack', price: 6900 },
+      { id: 'lights', name: 'Lights', price: 3990 },
+      { id: 'kickstand', name: 'Kickstand', price: 2450 }
+    ]
+  };
+  var GROUPS = ['frame', 'wheels', 'drivetrain', 'color', 'accessory'];
+  var CODES = ['SPRING10', 'WELCOME50', 'FREESHIP', 'TEAM15'];
+  var CLOSED = { '2026-12-24': 1, '2026-12-25': 1, '2026-12-31': 1, '2027-01-01': 1, '2027-03-29': 1 };
+  var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var MSG = {
+    c1: '29" wheels were replaced by 27.5" wheels: not available with frame S.',
+    c2: 'Pro Electronic 2×12 was replaced by Sport 1×12: not available with frame S.',
+    c3: 'Glacier was replaced by Graphite: available with frames M and L only.',
+    c4: '29" wheels were selected: required by Pro Electronic 2×12.',
+    c5: 'Pro Electronic 2×12 was replaced by Sport 1×12: it requires 29" wheels.',
+    c6: 'Mudguards were added: required by the rear rack.',
+    c7: 'Kickstand was removed: not compatible with the rear rack.',
+    c8: 'Rear rack was removed: it requires mudguards.',
+    c9: 'Rear rack was removed: not compatible with the kickstand.'
+  };
+
+  function item(group, id) {
+    var list = CATALOG[group];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  /* ---------- formats ---------- */
+  function money(cents) {
+    var euros = String(Math.floor(cents / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    var c = cents % 100;
+    return '€' + euros + '.' + (c < 10 ? '0' : '') + c;
+  }
+  function discount(cents) { return '−' + money(cents); }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function isoDate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function longDate(d) { return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function roundDiv(num, den) { return Math.floor((2 * num + den) / (2 * den)); }
+  function bikesText(n) { return n === 1 ? '1 bike' : n + ' bikes'; }
+
+  /* ---------- state ---------- */
+  function defaults() {
+    return { frame: null, wheels: '275', drivetrain: 'essential', color: 'graphite',
+      acc: { mudguards: false, rack: false, lights: false, kickstand: false }, qty: 1 };
+  }
+  function copyCfg(c) {
+    return { frame: c.frame, wheels: c.wheels, drivetrain: c.drivetrain, color: c.color,
+      acc: { mudguards: c.acc.mudguards, rack: c.acc.rack, lights: c.acc.lights, kickstand: c.acc.kickstand }, qty: c.qty };
+  }
+  function cfgKey(c) {
+    return [c.frame, c.wheels, c.drivetrain, c.color,
+      CATALOG.accessory.filter(function (a) { return c.acc[a.id]; }).map(function (a) { return a.id; }).join('+')].join('|');
+  }
+  function fullKey(c, a) { return cfgKey(c) + '|' + c.qty + '|' + a; }
+
+  var cfg = defaults();
+  var auto = true;
+  var history = [];
+  var lines = [];
+  var editIndex = -1;
+  var promo = null;
+  var seq = 0;
+  var lastHeight = null;
+  var noticeText = '';
+  var lineError = '';
+  var promoError = false;
+
+  /* ---------- dom ---------- */
+  function $(id) { return document.querySelector('[data-testid="' + id + '"]'); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function show(el, text) { el.textContent = text; el.hidden = false; }
+  function hide(el) { el.hidden = true; el.textContent = ''; }
+
+  var heightInput = $('height-input');
+  var promoInput = $('promo-input');
+  var cards = {};
+
+  function buildCards() {
+    GROUPS.forEach(function (group) {
+      var box = document.getElementById('cards-' + group);
+      var html = '';
+      CATALOG[group].forEach(function (o) {
+        var type = group === 'accessory' ? 'checkbox' : 'radio';
+        var sub = '';
+        if (group === 'frame') sub = '<span class="sub">' + o.min + ' – ' + o.max + ' cm</span>';
+        if (group === 'drivetrain') sub = '<span class="sub">' + o.lead + ' business days</span>';
+        var swatch = group === 'color' ? '<span class="swatch" style="background-color:' + o.hex + '"></span>' : '';
+        html += '<label class="card' + (type === 'checkbox' ? ' check' : '') + '" data-testid="card-' + group + '-' + o.id + '">' +
+          '<input type="' + type + '" name="' + (type === 'radio' ? group : 'accessory-' + o.id) + '" value="' + o.id + '" data-group="' + group + '" aria-label="' + esc(o.name) + '">' +
+          '<span class="mark" aria-hidden="true"></span>' +
+          '<span class="body">' +
+          '<span>' + swatch + '<span data-role="name">' + esc(o.name) + '</span></span>' +
+          (group === 'frame' ? '<span data-role="badge" hidden>Recommended</span>' : '') +
+          sub +
+          '<span data-role="price"></span>' +
+          '<span data-role="reason" hidden></span>' +
+          '</span></label>';
+      });
+      box.innerHTML = html;
+      CATALOG[group].forEach(function (o) {
+        var card = $('card-' + group + '-' + o.id);
+        cards[group + ':' + o.id] = {
+          card: card,
+          input: card.querySelector('input'),
+          price: card.querySelector('[data-role="price"]'),
+          reason: card.querySelector('[data-role="reason"]'),
+          badge: card.querySelector('[data-role="badge"]')
+        };
+      });
+    });
+  }
+
+  /* ---------- rules ---------- */
+  function parseHeight() {
+    var v = heightInput.value.trim();
+    if (!/^[0-9]+$/.test(v)) return null;
+    var n = Number(v);
+    return n >= 150 && n <= 200 ? n : null;
+  }
+  function recommended(h) {
+    for (var i = 0; i < CATALOG.frame.length; i++) {
+      var f = CATALOG.frame[i];
+      if (h >= f.min && h <= f.max) return f.id;
+    }
+    return null;
+  }
+  function unavailableReason(group, id) {
+    if (cfg.frame === 'S' && ((group === 'wheels' && id === '29') || (group === 'drivetrain' && id === 'pro'))) return 'Not available with frame S';
+    if ((cfg.frame === 'S' || cfg.frame === 'XL') && group === 'color' && id === 'glacier') return 'Available with frames M and L only';
+    return '';
+  }
+  function optionPrice(group, id, c) {
+    if (group === 'color' && id === 'red' && c.drivetrain === 'pro') return 0;
+    return item(group, id).price;
+  }
+  function unitPrice(c) {
+    var p = item('frame', c.frame).price + optionPrice('wheels', c.wheels, c) +
+      optionPrice('drivetrain', c.drivetrain, c) + optionPrice('color', c.color, c);
+    CATALOG.accessory.forEach(function (a) { if (c.acc[a.id]) p += a.price; });
+    return p;
+  }
+  /* the frame becomes f (user or automatic): cascades C1 to C3 */
+  function frameCascades(f) {
+    var msgs = [];
+    if (f === 'S' && cfg.wheels === '29') { cfg.wheels = '275'; msgs.push(MSG.c1); }
+    if (f === 'S' && cfg.drivetrain === 'pro') { cfg.drivetrain = 'sport'; msgs.push(MSG.c2); }
+    if ((f === 'S' || f === 'XL') && cfg.color === 'glacier') { cfg.color = 'graphite'; msgs.push(MSG.c3); }
+    return msgs;
+  }
+  function resetConfigurator() {
+    cfg = defaults();
+    auto = true;
+    history = [];
+    noticeText = '';
+    var h = parseHeight();
+    if (h !== null) cfg.frame = recommended(h);
+    lastHeight = h;
+  }
+
+  /* ---------- order calculation ---------- */
+  function compute() {
+    var B = 0, bikes = 0, packSum = 0, perf = 0;
+    lines.forEach(function (l) {
+      var amount = unitPrice(l) * l.qty;
+      var pack = l.acc.mudguards && l.acc.rack && l.acc.lights ? 3000 * l.qty : 0;
+      B += l.qty; bikes += amount - pack; packSum += pack;
+      if (l.drivetrain === 'sport' || l.drivetrain === 'pro') perf += amount - pack;
+    });
+    var volume = B >= 6 ? roundDiv(bikes * 8, 100) : B >= 3 ? roundDiv(bikes * 5, 100) : 0;
+    var teamActive = promo === 'TEAM15' && B >= 4;
+    var team = teamActive ? roundDiv(perf * 15, 100) : 0;
+    var useTeam = team > volume;
+    var volumeUsed = useTeam ? 0 : volume;
+    var after = bikes - volumeUsed;
+    var promoDisc = 0, status = '';
+    if (promo === 'SPRING10') {
+      if (lines.length && after >= 300000) promoDisc = roundDiv(after * 10, 100);
+      else status = 'SPRING10 requires €3,000.00 or more after the volume discount.';
+    } else if (promo === 'WELCOME50') {
+      if (B === 1) promoDisc = 5000;
+      else status = 'WELCOME50 applies to an order of one bike only.';
+    } else if (promo === 'FREESHIP') {
+      if (B < 1) status = 'FREESHIP applies once the order holds a bike.';
+    } else if (promo === 'TEAM15') {
+      if (!teamActive) status = 'TEAM15 requires 4 bikes or more.';
+      else if (!useTeam) status = 'The volume discount applies instead of TEAM15.';
+      else promoDisc = team;
+    }
+    if (promo && !status) status = 'Code ' + promo + ' applied.';
+    var merch = after - promoDisc;
+    var shipping = promo === 'FREESHIP' || merch >= 500000 ? 0 : 4900 + 1500 * (B - 1);
+    var total = merch + shipping;
+    return { B: B, bikes: bikes, pack: packSum, volume: volumeUsed, promo: promoDisc, shipping: shipping,
+      total: total, vat: roundDiv(total * 20, 120), status: status };
+  }
+  function deliveryDate(now) {
+    var lead = 0;
+    lines.forEach(function (l) {
+      var t = item('drivetrain', l.drivetrain).lead + (l.color === 'red' ? 3 : 0) + (l.qty >= 3 ? 2 : 0);
+      if (t > lead) lead = t;
+    });
+    lead += lines.length - 1;
+    if (now.getHours() >= 14) lead += 1;
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var count = 0;
+    while (count < lead) {
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      var wd = d.getDay();
+      if (wd !== 0 && wd !== 6 && !CLOSED[isoDate(d)]) count++;
+    }
+    return d;
+  }
+
+  /* ---------- rendering ---------- */
+  function renderConfigurator() {
+    var h = parseHeight();
+    var raw = heightInput.value.trim();
+    var errEl = $('height-error'), recEl = $('height-recommendation');
+    if (raw !== '' && h === null) {
+      show(errEl, 'Enter a height between 150 and 200 cm.');
+      heightInput.setAttribute('aria-invalid', 'true');
+      heightInput.setAttribute('aria-describedby', 'height-error');
+    } else {
+      hide(errEl);
+      heightInput.removeAttribute('aria-invalid');
+      heightInput.removeAttribute('aria-describedby');
+    }
+    var rec = h === null ? null : recommended(h);
+    if (rec) show(recEl, 'Recommended frame: ' + rec); else hide(recEl);
+
+    GROUPS.forEach(function (group) {
+      CATALOG[group].forEach(function (o) {
+        var c = cards[group + ':' + o.id];
+        var selected = group === 'accessory' ? cfg.acc[o.id] : cfg[group] === o.id;
+        var reason = unavailableReason(group, o.id);
+        c.input.checked = selected;
+        c.input.disabled = !!reason;
+        c.card.classList.toggle('selected', selected);
+        c.card.classList.toggle('unavailable', !!reason);
+        if (reason) show(c.reason, reason); else hide(c.reason);
+        if (c.badge) c.badge.hidden = rec !== o.id;
+        var p = optionPrice(group, o.id, cfg);
+        c.price.textContent = group === 'frame' ? money(p) : p === 0 ? 'Included' : '+' + money(p);
+      });
+    });
+
+    $('qty-value').textContent = String(cfg.qty);
+    $('qty-decrease').disabled = cfg.qty <= 1;
+    $('qty-increase').disabled = cfg.qty >= 5;
+    $('bike-price').textContent = cfg.frame ? money(unitPrice(cfg) * cfg.qty) : '—';
+    $('undo-button').disabled = history.length === 0;
+
+    var editing = editIndex >= 0;
+    var add = $('add-to-order');
+    add.textContent = editing ? 'Update line ' + (editIndex + 1) : 'Add to order';
+    add.disabled = editing ? false : (h === null || !cfg.frame);
+    if (!editing && h === null) show($('add-hint'), "Enter the rider's height to add this bike."); else hide($('add-hint'));
+    $('cancel-edit').hidden = !editing;
+    if (lineError) show($('line-error'), lineError); else hide($('line-error'));
+    if (noticeText) show($('notice'), noticeText); else hide($('notice'));
+
+    document.getElementById('art-frame').setAttribute('stroke', item('color', cfg.color).hex);
+    var r = cfg.wheels === '29' ? 25 : 22;
+    document.getElementById('art-w1').setAttribute('r', r);
+    document.getElementById('art-w2').setAttribute('r', r);
+  }
+
+  function renderOrder() {
+    var list = document.getElementById('lines');
+    var html = '';
+    lines.forEach(function (l, i) {
+      var desc = [item('frame', l.frame).name, item('wheels', l.wheels).name, item('drivetrain', l.drivetrain).name, item('color', l.color).name].join(' · ');
+      var acc = CATALOG.accessory.filter(function (a) { return l.acc[a.id]; }).map(function (a) { return a.name; }).join(', ') || 'No accessories';
+      html += '<li class="line' + (i === editIndex ? ' editing' : '') + '" data-testid="order-line-' + (i + 1) + '">' +
+        '<span class="num">Line ' + (i + 1) + (i === editIndex ? ' — editing' : '') + '</span>' +
+        '<span data-role="description">' + esc(desc) + '</span>' +
+        '<span data-role="accessories">' + esc(acc) + '</span>' +
+        '<div class="foot">' +
+        '<span class="q">Qty <span data-role="qty">' + l.qty + '</span></span>' +
+        '<span data-role="amount">' + money(unitPrice(l) * l.qty) + '</span>' +
+        '<button type="button" class="small" data-role="edit" data-index="' + i + '">Edit</button>' +
+        '<button type="button" class="small danger" data-role="remove" data-index="' + i + '">Remove</button>' +
+        '</div></li>';
+    });
+    list.innerHTML = html;
+    list.hidden = lines.length === 0;
+    $('order-empty').hidden = lines.length !== 0;
+
+    var a = compute();
+    var has = lines.length > 0;
+    function row(key, visible, value, label) {
+      var el = $('summary-line-' + key);
+      el.hidden = !visible;
+      el.querySelector('[data-role="value"]').textContent = visible ? value : '';
+      if (label !== undefined) el.querySelector('[data-role="label"]').textContent = label;
+    }
+    document.getElementById('summary').hidden = !has;
+    row('bikes', has, money(a.bikes));
+    row('pack', has && a.pack > 0, discount(a.pack));
+    row('volume', has && a.volume > 0, discount(a.volume));
+    row('promo', has && a.promo > 0, discount(a.promo), promo ? 'Promo ' + promo : '');
+    row('shipping', has, a.shipping === 0 ? 'Free' : money(a.shipping));
+    row('total', has, money(a.total));
+    row('vat', has, money(a.vat));
+    row('delivery', has, has ? longDate(deliveryDate(new Date())) : '');
+
+    document.getElementById('promo-applied').hidden = !promo;
+    if (promo) show($('promo-status'), a.status); else hide($('promo-status'));
+    $('promo-remove').hidden = !promo;
+    var perr = $('promo-error');
+    if (promoError) {
+      show(perr, 'This code is not valid.');
+      promoInput.setAttribute('aria-invalid', 'true');
+      promoInput.setAttribute('aria-describedby', 'promo-error');
+    } else {
+      hide(perr);
+      promoInput.removeAttribute('aria-invalid');
+      promoInput.removeAttribute('aria-describedby');
+    }
+    $('promo-apply').disabled = promoInput.value.trim() === '';
+
+    var place = $('place-order');
+    place.textContent = a.B === 0 ? 'Place order' : 'Place order (' + bikesText(a.B) + ')';
+    place.disabled = !has || editIndex >= 0;
+    if (editIndex >= 0) show($('place-hint'), 'Save or cancel the line being edited.'); else hide($('place-hint'));
+  }
+  function render() { renderConfigurator(); renderOrder(); }
+
+  /* ---------- configurator events ---------- */
+  function userAction(change) {
+    var before = { cfg: copyCfg(cfg), auto: auto };
+    var beforeKey = fullKey(cfg, auto);
+    lineError = '';
+    var msgs = change() || [];
+    if (fullKey(cfg, auto) !== beforeKey) history.push(before);
+    noticeText = msgs.join(' ');
+    renderConfigurator();
+  }
+
+  $('configurator').addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || t.tagName !== 'INPUT' || !t.dataset.group || t.disabled) return;
+    var group = t.dataset.group, id = t.value;
+    userAction(function () {
+      var msgs = [];
+      if (group === 'frame') {
+        if (cfg.frame !== id) { cfg.frame = id; auto = false; msgs = frameCascades(id); }
+      } else if (group === 'wheels') {
+        if (cfg.wheels !== id) {
+          cfg.wheels = id;
+          if (id === '275' && cfg.drivetrain === 'pro') { cfg.drivetrain = 'sport'; msgs.push(MSG.c5); }
+        }
+      } else if (group === 'drivetrain') {
+        if (cfg.drivetrain !== id) {
+          cfg.drivetrain = id;
+          if (id === 'pro' && cfg.wheels === '275') { cfg.wheels = '29'; msgs.push(MSG.c4); }
+        }
+      } else if (group === 'color') {
+        cfg.color = id;
+      } else {
+        var on = !cfg.acc[id];
+        cfg.acc[id] = on;
+        if (id === 'rack' && on) {
+          if (!cfg.acc.mudguards) { cfg.acc.mudguards = true; msgs.push(MSG.c6); }
+          if (cfg.acc.kickstand) { cfg.acc.kickstand = false; msgs.push(MSG.c7); }
+        } else if (id === 'mudguards' && !on) {
+          if (cfg.acc.rack) { cfg.acc.rack = false; msgs.push(MSG.c8); }
+        } else if (id === 'kickstand' && on) {
+          if (cfg.acc.rack) { cfg.acc.rack = false; msgs.push(MSG.c9); }
+        }
+      }
+      return msgs;
+    });
+  });
+
+  $('qty-increase').addEventListener('click', function () {
+    userAction(function () { if (cfg.qty < 5) cfg.qty++; });
+  });
+  $('qty-decrease').addEventListener('click', function () {
+    userAction(function () { if (cfg.qty > 1) cfg.qty--; });
+  });
+
+  heightInput.addEventListener('input', function () {
+    var h = parseHeight();
+    if (h !== null && auto && h !== lastHeight) {
+      var rec = recommended(h);
+      if (rec !== cfg.frame) {
+        cfg.frame = rec;
+        noticeText = frameCascades(rec).join(' ');
+      }
+    }
+    lastHeight = h;
+    renderConfigurator();
+  });
+
+  $('undo-button').addEventListener('click', function () {
+    if (!history.length) return;
+    var s = history.pop();
+    cfg = s.cfg;
+    auto = s.auto;
+    noticeText = '';
+    renderConfigurator();
+  });
+
+  /* ---------- order events ---------- */
+  function findLine(key, except) {
+    for (var i = 0; i < lines.length; i++) if (i !== except && cfgKey(lines[i]) === key) return i;
+    return -1;
+  }
+  function totalBikes() { return lines.reduce(function (s, l) { return s + l.qty; }, 0); }
+  function refuse(msg) { lineError = msg; renderConfigurator(); }
+
+  $('add-to-order').addEventListener('click', function () {
+    if (!cfg.frame) return;
+    var key = cfgKey(cfg), B = totalBikes(), other;
+    if (editIndex >= 0) {
+      other = findLine(key, editIndex);
+      if (other >= 0 && lines[other].qty + cfg.qty > 5) return refuse('A line cannot hold more than 5 bikes.');
+      if (B - lines[editIndex].qty + cfg.qty > 10) return refuse('An order cannot hold more than 10 bikes.');
+      if (other >= 0) {
+        var keep = Math.min(other, editIndex), drop = Math.max(other, editIndex);
+        var merged = copyCfg(cfg);
+        merged.qty = lines[other].qty + cfg.qty;
+        lines[keep] = merged;
+        lines.splice(drop, 1);
+      } else {
+        lines[editIndex] = copyCfg(cfg);
+      }
+      editIndex = -1;
+    } else {
+      if (parseHeight() === null) return;
+      other = findLine(key, -1);
+      if (other >= 0) {
+        if (lines[other].qty + cfg.qty > 5) return refuse('A line cannot hold more than 5 bikes.');
+      } else if (lines.length >= 4) {
+        return refuse('An order cannot hold more than 4 lines.');
+      }
+      if (B + cfg.qty > 10) return refuse('An order cannot hold more than 10 bikes.');
+      if (other >= 0) lines[other].qty += cfg.qty; else lines.push(copyCfg(cfg));
+    }
+    lineError = '';
+    resetConfigurator();
+    render();
+  });
+
+  $('cancel-edit').addEventListener('click', function () {
+    editIndex = -1;
+    lineError = '';
+    resetConfigurator();
+    render();
+  });
+
+  document.getElementById('lines').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-role]') : null;
+    if (!b) return;
+    var i = Number(b.dataset.index);
+    if (!(i >= 0 && i < lines.length)) return;
+    if (b.dataset.role === 'edit') {
+      if (editIndex >= 0 && editIndex !== i) lineError = '';
+      editIndex = i;
+      cfg = copyCfg(lines[i]);
+      auto = false;
+      history = [];
+      noticeText = '';
+    } else {
+      lines.splice(i, 1);
+      lineError = '';
+      if (editIndex === i) { editIndex = -1; resetConfigurator(); }
+      else if (editIndex > i) editIndex--;
+    }
+    render();
+  });
+
+  /* ---------- promo ---------- */
+  function applyPromo() {
+    var v = promoInput.value.trim();
+    if (v === '') return;
+    var code = v.toUpperCase();
+    if (CODES.indexOf(code) >= 0) {
+      promo = code;
+      promoInput.value = '';
+      promoError = false;
+    } else {
+      promoError = true;
+    }
+    renderOrder();
+  }
+  $('promo-apply').addEventListener('click', applyPromo);
+  promoInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !$('promo-apply').disabled) { e.preventDefault(); applyPromo(); }
+  });
+  promoInput.addEventListener('input', function () {
+    promoError = false;
+    renderOrder();
+  });
+  $('promo-remove').addEventListener('click', function () {
+    promo = null;
+    renderOrder();
+  });
+
+  /* ---------- checkout ---------- */
+  $('place-order').addEventListener('click', function () {
+    if (!lines.length || editIndex >= 0) return;
+    var now = new Date();
+    var a = compute();
+    seq++;
+    var s = String(seq);
+    while (s.length < 3) s = '0' + s;
+    $('confirmation-reference').textContent = 'AT-' + now.getFullYear() + pad2(now.getMonth() + 1) + pad2(now.getDate()) + '-' + s;
+    $('confirmation-bikes').textContent = bikesText(a.B);
+    $('confirmation-total').textContent = money(a.total);
+    $('confirmation-delivery').textContent = longDate(deliveryDate(now));
+    document.getElementById('main').hidden = true;
+    $('notice').hidden = true;
+    document.getElementById('confirmation').hidden = false;
+    window.scrollTo(0, 0);
+    $('confirmation-title').focus();
+  });
+
+  $('confirmation-new').addEventListener('click', function () {
+    lines = [];
+    promo = null;
+    editIndex = -1;
+    lineError = '';
+    promoError = false;
+    heightInput.value = '';
+    promoInput.value = '';
+    resetConfigurator();
+    document.getElementById('confirmation').hidden = true;
+    document.getElementById('main').hidden = false;
+    render();
+    window.scrollTo(0, 0);
+  });
+
+  /* ---------- start ---------- */
+  buildCards();
+  heightInput.value = '';
+  promoInput.value = '';
+  render();
+})();
+</script>
+</body>
+</html>

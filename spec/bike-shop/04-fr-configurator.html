@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 04-fr-configurator</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <strong>04-fr-configurator</strong> · <a href="05-fr-order-lines.html">05-fr-order-lines</a> · <a href="06-fr-pricing.html">06-fr-pricing</a> · <a href="07-fr-checkout.html">07-fr-checkout</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="4-functional-requirements--configurator">4. Functional requirements — Configurator</h1>
+<h2 id="41-rider-and-frame">4.1 Rider and frame</h2>
+<h3 id="FR-FIT-01">FR-FIT-01 Height field and validation</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall treat the content of <code>height-input</code> as a valid height when, after removing leading and trailing whitespace, it consists only of the digits 0 to 9 and its value is from 150 to 200. While the content is not empty after that removal and is not a valid height, the system shall show <code>height-error</code> with MSG-01. While the height is valid, the system shall show <code>height-recommendation</code> with MSG-02 for the recommended frame. The system shall react on every <code>input</code> event of the field.</li>
+<li><strong>Rationale:</strong> Frames are sized from the rider&#39;s height; a wrong value is pointed out as it is typed.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Valid and invalid heights
+  When the user fills height-input with &quot;149&quot;
+  Then height-error reads &quot;Enter a height between 150 and 200 cm.&quot;
+  And height-recommendation is not visible
+  When the user fills height-input with &quot; 168 &quot;
+  Then height-error is not visible
+  And height-recommendation reads &quot;Recommended frame: M&quot;
+  When the user fills height-input with &quot;&quot;
+  Then height-error is not visible
+  And height-recommendation is not visible
+</code></pre>
+<h3 id="FR-FIT-02">FR-FIT-02 Frame recommendation</h3>
+<ul>
+<li><strong>Statement:</strong> While the height is valid, the system shall show the <code>[data-role=&quot;badge&quot;]</code> of the card of the recommended frame, and only that one. While the height is not valid, no badge shall be visible.</li>
+<li><strong>Rationale:</strong> The customer sees which size fits, whatever frame is selected.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Badge follows the height
+  When the user fills height-input with &quot;184&quot;
+  Then the badge of card-frame-L is visible
+  And the badges of card-frame-S, card-frame-M and card-frame-XL are not visible
+</code></pre>
+<h3 id="FR-FIT-03">FR-FIT-03 Automatic frame mode</h3>
+<ul>
+<li><strong>Statement:</strong> While automatic frame mode is on, when the height becomes valid or changes to another valid value, the system shall select the recommended frame; if this changes the selected frame (an automatic frame change), the system shall apply the cascades of 02-catalog-and-rules, section 2.3. When the height becomes not valid, the frame shall stay as it is. Automatic frame mode shall be on when the page loads and whenever the configurator is reset (FR-LIN-01, FR-LIN-06, FR-LIN-07, FR-CHK-04); it shall end when the user selects a frame card whose frame was not selected, and while a line is being edited (FR-LIN-05). Selecting the card of the frame already selected shall not end it.</li>
+<li><strong>Rationale:</strong> Most customers take the recommended size; one deliberate choice is enough to keep another one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Frame follows the height until a manual choice
+  When the user fills height-input with &quot;170&quot;
+  Then the radio &quot;Frame M&quot; is checked
+  When the user fills height-input with &quot;190&quot;
+  Then the radio &quot;Frame XL&quot; is checked
+  When the user selects card-frame-L
+  And the user fills height-input with &quot;160&quot;
+  Then the radio &quot;Frame L&quot; is checked
+</code></pre>
+<h2 id="42-options">4.2 Options</h2>
+<h3 id="FR-OPT-01">FR-OPT-01 Option groups and defaults</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall display one option card per catalog option in its section, in catalog order, and whenever the configurator is reset (page load included) shall select <code>27.5&quot; wheels</code>, <code>Essential 1×10</code> and <code>Graphite</code>, no accessory, quantity 1, and no frame unless automatic frame mode selects one.</li>
+<li><strong>Rationale:</strong> Every bike starts from the same cheapest configuration.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Defaults at load
+  When the page loads
+  Then the radios &quot;27.5\&quot; wheels&quot;, &quot;Essential 1×10&quot; and &quot;Graphite&quot; are checked
+  And no frame radio is checked
+  And no accessory checkbox is checked
+  And qty-value reads &quot;1&quot;
+</code></pre>
+<h3 id="FR-OPT-02">FR-OPT-02 Card price text</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in the <code>[data-role=&quot;price&quot;]</code> element of each card: for a frame, its price in amount format; for any other option, its surcharge or price in signed format (<code>+€120.00</code>, or <code>Included</code> when zero). The price of <code>Racing Red</code> shall read <code>Included</code> while <code>Pro Electronic 2×12</code> is selected, and <code>+€60.00</code> otherwise.</li>
+<li><strong>Rationale:</strong> Each card tells what it adds to the price of the bike.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Racing Red price follows the drivetrain
+  When the user selects card-frame-L
+  And the user selects card-drivetrain-pro
+  Then the price of card-color-red reads &quot;Included&quot;
+  And the price of card-wheels-29 reads &quot;+€120.00&quot;
+</code></pre>
+<h3 id="FR-OPT-03">FR-OPT-03 Unavailable options</h3>
+<ul>
+<li><strong>Statement:</strong> While an option is unavailable under 02-catalog-and-rules, section 2.3, the system shall disable its input and show the <code>[data-role=&quot;reason&quot;]</code> of its card with the reason of that table. While it is available, its input shall be enabled and its reason not visible. Clicking the card of an unavailable option shall change nothing.</li>
+<li><strong>Rationale:</strong> The customer sees at once what cannot be combined with the chosen frame, and why.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Frame XL and Glacier
+  When the user selects card-frame-XL
+  Then the radio &quot;Glacier&quot; is disabled
+  And the reason of card-color-glacier reads &quot;Available with frames M and L only&quot;
+  And the radio &quot;Pro Electronic 2×12&quot; is enabled
+</code></pre>
+<h3 id="FR-OPT-04">FR-OPT-04 Cascades</h3>
+<ul>
+<li><strong>Statement:</strong> After each user action and each automatic frame change, the system shall apply the cascades of 02-catalog-and-rules, section 2.3, so that the bike configuration satisfies every constraint of that section. The system shall not change any option that no cascade names.</li>
+<li><strong>Rationale:</strong> The configuration never holds an impossible combination, and it changes only where a rule requires it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Pro drivetrain brings 29-inch wheels
+  When the user selects card-frame-M
+  And the user selects card-drivetrain-pro
+  Then the radio &quot;29\&quot; wheels&quot; is checked
+  When the user selects card-wheels-275
+  Then the radio &quot;Sport 1×12&quot; is checked
+</code></pre>
+<h3 id="FR-OPT-05">FR-OPT-05 Notice</h3>
+<ul>
+<li><strong>Statement:</strong> When a user action or an automatic frame change applies one cascade or more, the system shall show <code>notice</code> with the messages of these cascades, in the order of the cascade table, separated by one space. The notice shall keep that text until the next user action, the next automatic frame change, an undo, or a reset of the configurator; then it shall show the messages of that new event if it applied cascades, and otherwise it shall be hidden.</li>
+<li><strong>Rationale:</strong> The customer is told every change the system made, and only the latest ones.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Rack replaces the kickstand and adds mudguards
+  When the user checks &quot;Kickstand&quot;
+  And the user checks &quot;Rear rack&quot;
+  Then notice reads &quot;Mudguards were added: required by the rear rack. Kickstand was removed: not compatible with the rear rack.&quot;
+  When the user checks &quot;Lights&quot;
+  Then notice is not visible
+</code></pre>
+<h3 id="FR-OPT-06">FR-OPT-06 Quantity of the bike</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>qty-increase</code> or <code>qty-decrease</code>, the system shall add or subtract 1 to the quantity of the current bike and show it in <code>qty-value</code>. While the quantity is 1, <code>qty-decrease</code> shall be disabled; while it is 5, <code>qty-increase</code> shall be disabled.</li>
+<li><strong>Rationale:</strong> Several identical bikes are ordered in one step, within the workshop&#39;s batch size.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Quantity limits
+  When the page loads
+  Then qty-decrease is disabled
+  When the user clicks qty-increase 4 times
+  Then qty-value reads &quot;5&quot;
+  And qty-increase is disabled
+</code></pre>
+<h3 id="FR-OPT-07">FR-OPT-07 Bike price</h3>
+<ul>
+<li><strong>Statement:</strong> While a frame is selected, the system shall show in <code>bike-price</code> the unit price of the current bike configuration (02-catalog-and-rules, section 2.5) multiplied by its quantity, in amount format. While no frame is selected, <code>bike-price</code> shall read <code>—</code> (U+2014 EM DASH).</li>
+<li><strong>Rationale:</strong> The customer sees what the bike being configured costs before adding it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Price of the current bike
+  When the page loads
+  Then bike-price reads &quot;—&quot;
+  When the user selects card-frame-M
+  And the user checks &quot;Lights&quot;
+  And the user clicks qty-increase
+  Then bike-price reads &quot;€2,459.80&quot;
+</code></pre>
+<h2 id="43-undo">4.3 Undo</h2>
+<h3 id="FR-UND-01">FR-UND-01 Undo history</h3>
+<ul>
+<li><strong>Statement:</strong> Before each user action that changes the bike configuration or the quantity, the system shall record in the undo history the frame, wheels, drivetrain, color, accessories, quantity and the state of automatic frame mode. A user action that changes nothing shall record nothing. Changes of the height field and automatic frame changes shall record nothing. The history shall be emptied whenever the configurator is reset and when an edit starts (FR-LIN-05). While the history is empty, <code>undo-button</code> shall be disabled.</li>
+<li><strong>Rationale:</strong> The customer can go back over any number of choices of the bike being configured.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Undo enabled by a choice
+  When the page loads
+  Then undo-button is disabled
+  When the user selects card-color-sand
+  Then undo-button is enabled
+</code></pre>
+<h3 id="FR-UND-02">FR-UND-02 Undo action</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>undo-button</code>, the system shall restore the last recorded state exactly, cascaded options included, remove it from the history, hide <code>notice</code>, and leave the height field unchanged. Restoring a state shall not apply any cascade, and shall not select a frame, even while automatic frame mode is on: a restored state with no frame keeps no frame until the height changes or the user selects a frame card.</li>
+<li><strong>Rationale:</strong> One undo reverts one user action with everything the system changed with it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Undo reverts a cascade
+  When the user selects card-frame-M
+  And the user selects card-drivetrain-pro
+  And the user clicks undo-button
+  Then the radio &quot;Essential 1×10&quot; is checked
+  And the radio &quot;27.5\&quot; wheels&quot; is checked
+  And the radio &quot;Frame M&quot; is checked
+  And undo-button is enabled
+  When the user clicks undo-button
+  Then no frame radio is checked
+  And undo-button is disabled
+</code></pre>
+
+</main>
+</body>
+</html>

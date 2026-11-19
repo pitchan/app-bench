@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Grid — 07-fr-history</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-grid">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <strong>07-fr-history</strong> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="7-functional-requirements--history">7. Functional requirements — History</h1>
+<p>The history is a list of <strong>steps</strong>. It is empty on a new sheet.</p>
+<h3 id="FR-HIS-01">FR-HIS-01 History steps</h3>
+<ul>
+<li><p><strong>Statement:</strong> The system shall record exactly one step for each of the actions below, and no step for anything else (moving or extending the selection, copying, cutting, cancelling an edit, an action that this specification says changes nothing).</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>A step is recorded</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Commit of an edit (FR-EDT-03)</td>
+<td>when the raw content of the cell changes</td>
+</tr>
+<tr>
+<td>Clear (FR-EDT-06)</td>
+<td>when one cell at least of the selection is not empty</td>
+</tr>
+<tr>
+<td>Format (FR-NUM-03)</td>
+<td>when the format of one cell at least of the selection changes</td>
+</tr>
+<tr>
+<td>Insert row, insert column, delete row, delete column (FR-STR-01, FR-STR-02)</td>
+<td>always</td>
+</tr>
+<tr>
+<td>Paste (FR-CLP-01, FR-CLP-03)</td>
+<td>always</td>
+</tr>
+</tbody></table>
+<p>A step holds the state of the sheet (the raw content and the format of every cell) and the selection (anchor and active cell), both <strong>before</strong> the action and <strong>after</strong> it. &quot;After&quot; is taken when the user action that caused the step is complete: for a commit by Enter or Tab, after the active cell has moved; for a commit caused by a click on a cell, after that click has set the selection. When a step is recorded, the steps that could be redone shall be discarded.</p>
+</li>
+<li><p><strong>Rationale:</strong> Every change of the sheet can be taken back, one user action at a time.</p>
+</li>
+<li><p><strong>Verification:</strong> Test</p>
+</li>
+<li><p><strong>Acceptance criteria:</strong></p>
+</li>
+</ul>
+<pre><code class="language-gherkin">Scenario: What counts
+  When the page loads
+  Then undo-button is disabled and redo-button is disabled
+  When the user clicks cell B2
+  And the user shift-clicks cell C3
+  And the user clicks button copy-button
+  And the user presses Delete on the grid
+  Then undo-button is disabled
+  When the user enters &quot;1&quot; in A1
+  Then undo-button is enabled
+  When the user enters &quot;1&quot; in A1
+  And the user clicks button undo-button
+  Then cell-A1 shows nothing
+  And undo-button is disabled
+</code></pre>
+<h3 id="FR-HIS-02">FR-HIS-02 Undo</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>undo-button</code>, or presses Control+Z on the grid, while a step can be undone, the system shall restore the state of the sheet and the selection that the most recent step that is not undone holds as &quot;before&quot;, and shall show every cell, <code>name-box</code>, <code>formula-input</code> and <code>format-select</code> accordingly. That step can then be redone. The clipboard shall not change. While no step can be undone, the system shall disable <code>undo-button</code>.</li>
+<li><strong>Rationale:</strong> The user goes back to exactly what was on the screen.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Undo a row deletion and a commit
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;=A1+A2&quot; in B1
+  And the user clicks cell A1
+  And the user shift-clicks cell H1
+  When the user clicks button delete-row
+  Then cell-B1 shows nothing
+  When the user clicks button undo-button
+  Then cell-A1 reads &quot;5&quot;
+  And the raw content of B1 is &quot;=A1+A2&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell H1
+  And the user clicks button undo-button
+  Then cell-B1 shows nothing
+  And cell-A1 reads &quot;5&quot;
+  And the selection is &quot;B1&quot;
+</code></pre>
+<p>In this scenario the first undo restores the selection <code>A1:H1</code>. The second undo takes back the commit of <code>B1</code>: the selection before that commit was <code>B1</code>.</p>
+<h3 id="FR-HIS-03">FR-HIS-03 Redo</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>redo-button</code>, or presses Control+Y on the grid, while a step can be redone, the system shall restore the state of the sheet and the selection that the most recently undone step holds as &quot;after&quot;. That step can then be undone again. While no step can be redone, the system shall disable <code>redo-button</code>.</li>
+<li><strong>Rationale:</strong> An undo made by mistake is taken back.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Undo twice, redo, new action
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;2&quot; in A2
+  When the user presses Control+Z on the grid
+  And the user presses Control+Z on the grid
+  Then cell-A1 and cell-A2 show nothing
+  When the user presses Control+Y on the grid
+  Then cell-A1 reads &quot;1&quot;
+  And cell-A2 shows nothing
+  And the selection is &quot;A2&quot;
+  And redo-button is enabled
+  When the user enters &quot;7&quot; in C3
+  Then redo-button is disabled
+  And cell-A2 shows nothing
+</code></pre>
+<h3 id="FR-HIS-04">FR-HIS-04 History limit</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall keep at most 20 steps that can be undone. When a step is recorded while 20 are kept, the system shall discard the oldest one.</li>
+<li><strong>Rationale:</strong> The memory used by the history is bounded.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Twenty-one commits
+  Given the user enters &quot;1&quot; in A1, &quot;2&quot; in A2, and so on up to &quot;12&quot; in A12
+  And the user enters &quot;13&quot; in B1, &quot;14&quot; in B2, and so on up to &quot;21&quot; in B9
+  When the user clicks button undo-button 20 times
+  Then undo-button is disabled
+  And cell-A1 reads &quot;1&quot;
+  And cell-A2 shows nothing
+</code></pre>
+
+</main>
+</body>
+</html>

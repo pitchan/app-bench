@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Grid — 02-values-and-formulas</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-grid">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <strong>02-values-and-formulas</strong> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="2-values-and-formulas">2. Values and formulas</h1>
+<p>This file defines the rules. The requirements of files 04 to 07 refer to them.</p>
+<h2 id="21-glossary">2.1 Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Grid</td>
+<td>8 columns named <code>A</code> to <code>H</code>, left to right, and 12 rows numbered <code>1</code> to <code>12</code>, top to bottom.</td>
+</tr>
+<tr>
+<td>Address</td>
+<td>A column letter followed by a row number, in capitals: <code>A1</code>, <code>H12</code>.</td>
+</tr>
+<tr>
+<td>Cell</td>
+<td>One position of the grid. It holds a raw content and a format.</td>
+</tr>
+<tr>
+<td>Raw content</td>
+<td>The string stored in the cell (section 2.2). The empty string for an empty cell.</td>
+</tr>
+<tr>
+<td>Empty cell</td>
+<td>A cell whose raw content is the empty string.</td>
+</tr>
+<tr>
+<td>Value</td>
+<td>What the raw content evaluates to: a number, a text, a logical value, an error or blank (section 2.3).</td>
+</tr>
+<tr>
+<td>Format</td>
+<td>One of <code>general</code>, <code>fixed2</code>, <code>percent1</code> (section 2.5). <code>general</code> on a new sheet.</td>
+</tr>
+<tr>
+<td>Anchor, active cell</td>
+<td>Two cells, possibly the same. They define the selection.</td>
+</tr>
+<tr>
+<td>Selection</td>
+<td>The rectangle of cells whose two opposite corners are the anchor and the active cell. Its <strong>top-left cell</strong> is the cell of its first row and first column.</td>
+</tr>
+<tr>
+<td>Visiting order</td>
+<td>The order of the cells of a rectangle: row by row from the top, and inside a row from left to right.</td>
+</tr>
+<tr>
+<td>Formula</td>
+<td>A raw content that starts with <code>=</code>.</td>
+</tr>
+<tr>
+<td>Valid formula</td>
+<td>A formula that follows the syntax of section 2.6.</td>
+</tr>
+</tbody></table>
+<h2 id="22-entered-content">2.2 Entered content</h2>
+<p>When a string <em>s</em> is committed to a cell (FR-EDT-03), the kind of content is decided by the first rule that applies, in this order:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Condition on <em>s</em></th>
+<th>Kind</th>
+<th>Raw content</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><em>s</em> is the empty string</td>
+<td>empty</td>
+<td>empty string</td>
+<td>blank</td>
+</tr>
+<tr>
+<td>2</td>
+<td><em>s</em> starts with <code>=</code></td>
+<td>formula</td>
+<td>the canonical form of <em>s</em> when the formula is valid (section 2.6.4); otherwise <em>s</em> unchanged</td>
+<td>the result of the formula; <code>#SYNTAX!</code> when the formula is not valid</td>
+</tr>
+<tr>
+<td>3</td>
+<td><em>s</em> starts with <code>&#39;</code> (U+0027)</td>
+<td>text</td>
+<td><em>s</em> unchanged</td>
+<td>the text <em>s</em> without its first character (possibly the empty text)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><em>s</em>, without its leading and trailing spaces, is an <strong>entry number</strong></td>
+<td>number</td>
+<td><em>s</em> unchanged</td>
+<td>that number</td>
+</tr>
+<tr>
+<td>5</td>
+<td><em>s</em>, without its leading and trailing spaces, is <code>TRUE</code> or <code>FALSE</code> in any letter case</td>
+<td>logical</td>
+<td><em>s</em> unchanged</td>
+<td>that logical value</td>
+</tr>
+<tr>
+<td>6</td>
+<td>otherwise</td>
+<td>text</td>
+<td><em>s</em> unchanged</td>
+<td>the text <em>s</em>, spaces included</td>
+</tr>
+</tbody></table>
+<p><strong>Entry number.</strong> A string that matches <code>^[+-]?(\d+(\.\d+)?|\.\d+)%?$</code> and whose number is below 10^15 in absolute value once normalized (section 2.4). The number is the decimal number written, divided by 100 when the string ends with <code>%</code>, then normalized. <code>12</code>, <code>-0.5</code>, <code>+3</code>, <code>.25</code>, <code>007</code> and <code>12.5%</code> are entry numbers. <code>1.</code>, <code>1e3</code>, <code>1,000</code>, <code>12 %</code> and <code>1000000000000000</code> are not: they are texts.</p>
+<p>&quot;Spaces&quot; are U+0020 characters only.</p>
+<h2 id="23-values">2.3 Values</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Examples</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>number</td>
+<td><code>12</code>, <code>-0.5</code></td>
+<td>Always normalized (section 2.4).</td>
+</tr>
+<tr>
+<td>text</td>
+<td><code>abc</code>, the empty text</td>
+<td>A sequence of UTF-16 code units.</td>
+</tr>
+<tr>
+<td>logical</td>
+<td><code>TRUE</code>, <code>FALSE</code></td>
+<td></td>
+</tr>
+<tr>
+<td>error</td>
+<td>see below</td>
+<td></td>
+</tr>
+<tr>
+<td>blank</td>
+<td></td>
+<td>The value of an empty cell, inside a formula that refers to it.</td>
+</tr>
+</tbody></table>
+<p>Error values, with the text they are shown as:</p>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>#SYNTAX!</code></td>
+<td>The formula does not follow the syntax.</td>
+</tr>
+<tr>
+<td><code>#NAME?</code></td>
+<td>Unknown function name, or name that is not a function call.</td>
+</tr>
+<tr>
+<td><code>#ARGS!</code></td>
+<td>Wrong number of arguments.</td>
+</tr>
+<tr>
+<td><code>#REF!</code></td>
+<td>Reference outside the grid, or reference to a row or a column that was removed.</td>
+</tr>
+<tr>
+<td><code>#VALUE!</code></td>
+<td>Operand or argument of the wrong type.</td>
+</tr>
+<tr>
+<td><code>#DIV/0!</code></td>
+<td>Division by zero.</td>
+</tr>
+<tr>
+<td><code>#NUM!</code></td>
+<td>Number out of range or not defined.</td>
+</tr>
+<tr>
+<td><code>#CYCLE!</code></td>
+<td>The cell is part of a circular reference.</td>
+</tr>
+</tbody></table>
+<p><strong>Value of a formula cell.</strong> The value of a cell that holds a valid formula is the result of its expression, with one exception: when the expression evaluates to blank, the value of the cell is the number 0.</p>
+<h2 id="24-number-normalization">2.4 Number normalization</h2>
+<p>Every number of the sheet is <strong>normalized</strong>: rounded to 12 significant digits, ties rounded away from zero. For a number <em>x</em> this is the JavaScript expression <code>Number(x.toPrecision(12))</code>. Negative zero is replaced by 0. The normalized number is written <em>N(x)</em>.</p>
+<p>Normalization applies to:</p>
+<ul>
+<li>every entry number (section 2.2);</li>
+<li>every number literal of a formula;</li>
+<li>the result of every arithmetic operator (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, unary <code>-</code>, unary <code>+</code>, <code>%</code>);</li>
+<li>the result of every function that returns a number.</li>
+</ul>
+<p>Inside one operator or one function, the computation is made with JavaScript numbers (IEEE 754 double precision) on the normalized operands, and only its result is normalized.</p>
+<p><strong>Range of numbers.</strong> If the result of an operator or of a function is not a finite number, or if its normalized absolute value is 10^15 or more, the result is the error <code>#NUM!</code>. A number literal of a formula in that case gives <code>#NUM!</code> as well.</p>
+<p>Examples: <code>=0.1+0.2</code> is 0.3. <code>=1/3</code> is 0.333333333333. The value of <code>=1/3*3</code> is 0.999999999999 (the division is normalized before the multiplication); a <code>general</code> cell shows it as <code>1</code>. <code>=123456789012345+0</code> is 123456789012000.</p>
+<p><strong>Decimal representation.</strong> The decimal representation <em>D(x)</em> of a normalized number <em>x</em> is its exact writing with 12 significant digits, in plain decimal notation without exponent: <code>Number.prototype.toPrecision(12)</code> expanded to plain notation. Examples: <em>D(1.005)</em> is <code>1.00500000000</code>, <em>D(0.1)</em> is <code>0.100000000000</code>, <em>D(-1250)</em> is <code>-1250.00000000</code>.</p>
+<p><strong>Decimal rounding.</strong> <em>R(x, d)</em>, for an integer <em>d</em>, is <em>x</em> rounded to <em>d</em> decimal places, <strong>computed on the digits of <em>D(x)</em></strong>, ties rounded away from zero. A negative <em>d</em> rounds to the left of the decimal point. Examples: <em>R(1.005, 2)</em> = 1.01, <em>R(2.675, 2)</em> = 2.68, <em>R(-2.5, 0)</em> = -3, <em>R(1250, -2)</em> = 1300, <em>R(1.0000005, 6)</em> = 1.000001, <em>R(0.0000004, 6)</em> = 0.</p>
+<p>Rounding the binary value of the number instead (for example with <code>toFixed</code> or <code>Math.round(x * 100) / 100</code>) gives other results on such ties and does not conform.</p>
+<h2 id="25-display">2.5 Display</h2>
+<p>The text shown in a cell depends on its value and, for a number, on the format of the cell.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Text shown</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>blank (empty cell)</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td>text</td>
+<td>the text, unchanged</td>
+</tr>
+<tr>
+<td>logical</td>
+<td><code>TRUE</code> or <code>FALSE</code></td>
+</tr>
+<tr>
+<td>error</td>
+<td>the error text, for example <code>#DIV/0!</code></td>
+</tr>
+<tr>
+<td>number</td>
+<td>according to the format, below</td>
+</tr>
+</tbody></table>
+<p>Number formats, for a number <em>x</em>:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Text shown</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>general</code></td>
+<td><em>R(x, 6)</em> written in plain decimal notation, without trailing zeros in the decimal part, and without decimal point when no decimal remains.</td>
+<td><code>12</code>, <code>-0.5</code>, <code>0.333333</code>, <code>1.000001</code>, <code>123456789012000</code></td>
+</tr>
+<tr>
+<td><code>fixed2</code></td>
+<td><em>R(x, 2)</em> written with exactly two decimals, the integer part grouped by three digits with <code>,</code>.</td>
+<td><code>1,234.50</code>, <code>-1,234,567.00</code>, <code>0.13</code></td>
+</tr>
+<tr>
+<td><code>percent1</code></td>
+<td><em>R(N(x × 100), 1)</em> written with exactly one decimal and no grouping, followed by <code>%</code>.</td>
+<td><code>12.5%</code>, <code>-0.3%</code>, <code>1250.0%</code></td>
+</tr>
+</tbody></table>
+<p>In the three formats: a negative result starts with <code>-</code> (U+002D); a result that rounds to zero is written without sign (<code>0</code>, <code>0.00</code>, <code>0.0%</code>); there is no exponent and no space.</p>
+<p>The format has no effect on values that are not numbers.</p>
+<p><strong>General text of a number.</strong> <em>G(x)</em> is the text of <em>x</em> in the <code>general</code> format, whatever the format of any cell. It is used when a number becomes a text inside a formula (section 2.7.3).</p>
+<h2 id="26-formula-language">2.6 Formula language</h2>
+<h3 id="261-tokens">2.6.1 Tokens</h3>
+<p>After the leading <code>=</code>, a formula is a sequence of tokens. Spaces between tokens are ignored; spaces inside a string literal belong to it. Any other character that starts none of the tokens below makes the formula not valid.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>number literal</td>
+<td><code>\d+(\.\d+)?</code> or <code>\.\d+</code>, the longest match. No sign, no exponent. <code>1.</code> is the number <code>1</code> followed by the character <code>.</code>, which makes the formula not valid.</td>
+</tr>
+<tr>
+<td>string literal</td>
+<td>Starts and ends with <code>&quot;</code>. Inside, <code>&quot;&quot;</code> stands for one <code>&quot;</code>. A string literal that is not closed makes the formula not valid.</td>
+</tr>
+<tr>
+<td>word</td>
+<td>A longest run of letters <code>A</code>–<code>Z</code>, <code>a</code>–<code>z</code>, digits and <code>$</code> that starts with a letter or <code>$</code>. Classified below.</td>
+</tr>
+<tr>
+<td><code>#REF!</code></td>
+<td>These five characters, in any letter case.</td>
+</tr>
+<tr>
+<td>operators</td>
+<td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>^</code> <code>&amp;</code> <code>%</code> <code>=</code> <code>&lt;&gt;</code> <code>&lt;=</code> <code>&gt;=</code> <code>&lt;</code> <code>&gt;</code> (the longest match)</td>
+</tr>
+<tr>
+<td>punctuation</td>
+<td><code>(</code> <code>)</code> <code>,</code> <code>:</code></td>
+</tr>
+</tbody></table>
+<p>A word is classified by the first rule that applies:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Word</th>
+<th>Token</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>TRUE</code> or <code>FALSE</code>, in any letter case</td>
+<td>logical literal</td>
+</tr>
+<tr>
+<td>2</td>
+<td>matches <code>^\$?[A-Za-z]+\$?[0-9]+$</code></td>
+<td>reference</td>
+</tr>
+<tr>
+<td>3</td>
+<td>letters and digits only (no <code>$</code>)</td>
+<td>name</td>
+</tr>
+<tr>
+<td>4</td>
+<td>anything else (for example <code>A$</code>, <code>$$A1</code>, <code>$A</code>)</td>
+<td>the formula is not valid</td>
+</tr>
+</tbody></table>
+<p>A <strong>reference</strong> has a column part and a row part, each with or without a leading <code>$</code>: <code>B7</code>, <code>$B7</code>, <code>B$7</code>, <code>$B$7</code>. The letter case is ignored. A reference is <strong>inside the grid</strong> when its column is <code>A</code> to <code>H</code> and its row is 1 to 12; otherwise it is <strong>outside the grid</strong> (<code>I1</code>, <code>AA3</code>, <code>A0</code>, <code>A13</code>, <code>B007</code> is <code>B7</code> and inside the grid).</p>
+<h3 id="262-grammar">2.6.2 Grammar</h3>
+<pre><code>formula    := &quot;=&quot; expression
+expression := comparison
+comparison := concat   { ( &quot;=&quot; | &quot;&lt;&gt;&quot; | &quot;&lt;&quot; | &quot;&lt;=&quot; | &quot;&gt;&quot; | &quot;&gt;=&quot; ) concat }
+concat     := sum      { &quot;&amp;&quot; sum }
+sum        := product  { ( &quot;+&quot; | &quot;-&quot; ) product }
+product    := signed   { ( &quot;*&quot; | &quot;/&quot; ) signed }
+signed     := ( &quot;-&quot; | &quot;+&quot; ) signed | power
+power      := percent  [ &quot;^&quot; signed ]
+percent    := primary  { &quot;%&quot; }
+primary    := number | string | logical | &quot;#REF!&quot; | range | reference | call | name
+            | &quot;(&quot; expression &quot;)&quot;
+range      := reference &quot;:&quot; reference
+call       := name &quot;(&quot; [ expression { &quot;,&quot; expression } ] &quot;)&quot;
+</code></pre>
+<p><code>{ x }</code> means zero or more times, <code>[ x ]</code> zero or one time. A formula is valid when the whole text after <code>=</code> is one <code>expression</code>. <code>=</code> alone is not valid.</p>
+<p>Consequences that the implementation shall respect:</p>
+<ul>
+<li><code>comparison</code>, <code>concat</code>, <code>sum</code> and <code>product</code> are left-associative: <code>=10-4-3</code> is 3, <code>=1&lt;2&lt;3</code> is <code>(1&lt;2)&lt;3</code>.</li>
+<li><code>^</code> is right-associative and binds tighter than the unary signs on its left: <code>=2^3^2</code> is 2^(3^2) = 512, <code>=-2^2</code> is -(2^2) = -4, <code>=2^-2</code> is 0.25.</li>
+<li><code>%</code> applies to the primary on its left and may be repeated: <code>=50%</code> is 0.5, <code>=-5%</code> is -(5%), <code>=2^3%</code> is 2^0.03, <code>=5%%</code> is 0.0005.</li>
+<li>A name followed by <code>(</code> is a call. A name that is not followed by <code>(</code> is a valid primary whose value is <code>#NAME?</code>.</li>
+<li>A reference or a logical literal followed by <code>(</code> is not valid.</li>
+<li>A call may have no argument: <code>=SUM()</code> is valid (its value is <code>#ARGS!</code>). An empty argument, as in <code>=SUM(1,,2)</code>, is not valid.</li>
+</ul>
+<h3 id="263-functions">2.6.3 Functions</h3>
+<p>25 functions exist: <code>SUM</code>, <code>AVERAGE</code>, <code>MIN</code>, <code>MAX</code>, <code>COUNT</code>, <code>COUNTA</code>, <code>ROUND</code>, <code>ABS</code>, <code>INT</code>, <code>MOD</code>, <code>IF</code>, <code>AND</code>, <code>OR</code>, <code>NOT</code>, <code>IFERROR</code>, <code>ISERROR</code>, <code>ISBLANK</code>, <code>LEN</code>, <code>UPPER</code>, <code>LEFT</code>, <code>RIGHT</code>, <code>MID</code>, <code>CONCAT</code>, <code>COUNTIF</code>, <code>SUMIF</code>. Their names are recognized in any letter case. Section 2.8 defines them.</p>
+<h3 id="264-canonical-form">2.6.4 Canonical form</h3>
+<p>The canonical form of a valid formula is <code>=</code> followed by its tokens, in order, with no space between them, each token written as follows:</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Written as</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>number literal</td>
+<td>as typed (<code>1.50</code> stays <code>1.50</code>, <code>.5</code> stays <code>.5</code>)</td>
+</tr>
+<tr>
+<td>string literal</td>
+<td>as typed, quotes included</td>
+</tr>
+<tr>
+<td>logical literal, name, <code>#REF!</code></td>
+<td>in capitals</td>
+</tr>
+<tr>
+<td>reference outside a range</td>
+<td>in capitals, <code>$</code> signs kept</td>
+</tr>
+<tr>
+<td>range</td>
+<td><strong>normalized</strong>: the top-left corner, <code>:</code>, the bottom-right corner, in capitals. Each <code>$</code> sign stays with the column part or the row part it was typed on. <code>=sum(b3:a1)</code> gives <code>=SUM(A1:B3)</code>; <code>$b3:a$1</code> gives <code>A$1:$B3</code>; <code>c2:c2</code> stays <code>C2:C2</code>. Columns are ordered <code>A</code> &lt; … &lt; <code>Z</code> &lt; <code>AA</code> &lt; …; rows by number. When the two references have the same column, their column parts keep the order typed; when they have the same row, their row parts keep the order typed (<code>$b$2:b1</code> gives <code>$B1:B$2</code>).</td>
+</tr>
+<tr>
+<td>operators, punctuation</td>
+<td>as typed</td>
+</tr>
+</tbody></table>
+<p>Row numbers are written without leading zeros (<code>b007</code> gives <code>B7</code>).</p>
+<p>Example: <code>= if( a1 &gt;= 10 , &quot;big&quot; , sum( $b$2:b1 ) )</code> gives <code>=IF(A1&gt;=10,&quot;big&quot;,SUM($B1:B$2))</code>.</p>
+<h2 id="27-evaluation">2.7 Evaluation</h2>
+<h3 id="271-primaries">2.7.1 Primaries</h3>
+<table>
+<thead>
+<tr>
+<th>Primary</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>number literal</td>
+<td>the normalized number, or <code>#NUM!</code> (section 2.4)</td>
+</tr>
+<tr>
+<td>string literal</td>
+<td>the text</td>
+</tr>
+<tr>
+<td>logical literal</td>
+<td>the logical value</td>
+</tr>
+<tr>
+<td><code>#REF!</code></td>
+<td>the error <code>#REF!</code></td>
+</tr>
+<tr>
+<td>reference inside the grid</td>
+<td>the value of that cell; blank when the cell is empty</td>
+</tr>
+<tr>
+<td>reference outside the grid</td>
+<td><code>#REF!</code></td>
+</tr>
+<tr>
+<td>name not followed by <code>(</code></td>
+<td><code>#NAME?</code></td>
+</tr>
+<tr>
+<td>range, anywhere but as a range argument of a function (section 2.8.1)</td>
+<td><code>#VALUE!</code></td>
+</tr>
+</tbody></table>
+<h3 id="272-errors-first">2.7.2 Errors first</h3>
+<p>An operator evaluates its left operand, then its right operand. If the left operand is an error, the result is that error. Otherwise, if the right operand is an error, the result is that error. This is checked before any type rule below. The rules for function arguments are in section 2.8.</p>
+<h3 id="273-conversions">2.7.3 Conversions</h3>
+<table>
+<thead>
+<tr>
+<th>Conversion</th>
+<th>number</th>
+<th>logical</th>
+<th>blank</th>
+<th>text</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>to number</strong></td>
+<td>itself</td>
+<td><code>TRUE</code> → 1, <code>FALSE</code> → 0</td>
+<td>0</td>
+<td><code>#VALUE!</code> (always, even when the text looks like a number)</td>
+</tr>
+<tr>
+<td><strong>to text</strong></td>
+<td><em>G(x)</em></td>
+<td><code>TRUE</code> or <code>FALSE</code></td>
+<td>the empty text</td>
+<td>itself</td>
+</tr>
+<tr>
+<td><strong>to logical</strong></td>
+<td>0 → <code>FALSE</code>, any other → <code>TRUE</code></td>
+<td>itself</td>
+<td><code>FALSE</code></td>
+<td><code>#VALUE!</code></td>
+</tr>
+<tr>
+<td><strong>to integer</strong></td>
+<td><strong>to number</strong>, then truncated toward zero</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>When both operands of an operator fail their conversion, the error of the left operand is the result.</p>
+<h3 id="274-arithmetic">2.7.4 Arithmetic</h3>
+<p><code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, unary <code>-</code>, unary <code>+</code> and <code>%</code> convert their operands <strong>to number</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>a + b</code>, <code>a - b</code>, <code>a * b</code></td>
+<td><em>N</em> of the sum, difference, product</td>
+</tr>
+<tr>
+<td><code>a / b</code></td>
+<td><code>#DIV/0!</code> when <em>b</em> is 0; otherwise <em>N(a / b)</em></td>
+</tr>
+<tr>
+<td><code>a ^ b</code></td>
+<td><code>#NUM!</code> when <em>a</em> is 0 and <em>b</em> is 0; <code>#DIV/0!</code> when <em>a</em> is 0 and <em>b</em> is negative; <code>#NUM!</code> when <em>a</em> is negative and <em>b</em> is not an integer; otherwise <em>N(a^b)</em> (<code>Math.pow</code>)</td>
+</tr>
+<tr>
+<td><code>-a</code>, <code>+a</code></td>
+<td><em>N(-a)</em>, <em>N(a)</em></td>
+</tr>
+<tr>
+<td><code>a%</code></td>
+<td><em>N(a / 100)</em></td>
+</tr>
+</tbody></table>
+<p>The range rule of section 2.4 applies to every result.</p>
+<h3 id="275-concatenation">2.7.5 Concatenation</h3>
+<p><code>a &amp; b</code> converts both operands <strong>to text</strong> and gives the text made of <em>a</em> followed by <em>b</em>.</p>
+<h3 id="276-comparison">2.7.6 Comparison</h3>
+<p><code>=</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code> give a logical value.</p>
+<ol>
+<li>A blank operand is first replaced, according to the other operand: by the number 0 when the other is a number or is blank too; by the empty text when the other is a text; by <code>FALSE</code> when the other is a logical value.</li>
+<li>Operands of the same type are compared:<ul>
+<li>numbers: by value;</li>
+<li>texts: after converting both to capitals (JavaScript <code>toUpperCase()</code>), UTF-16 code unit by code unit; a text that is a prefix of another comes first;</li>
+<li>logical values: <code>FALSE</code> is less than <code>TRUE</code>.</li>
+</ul>
+</li>
+<li>Operands of different types: any number is less than any text, and any text is less than any logical value. They are never equal.</li>
+</ol>
+<h2 id="28-functions">2.8 Functions</h2>
+<h3 id="281-arguments">2.8.1 Arguments</h3>
+<ul>
+<li>An argument is a <strong>range argument</strong> when it consists of exactly one reference, exactly one range or exactly the <code>#REF!</code> token, with nothing else: no parentheses, no operator. A single reference is a range of one cell. Any other argument is a <strong>value argument</strong>: it is evaluated as an expression.</li>
+<li>Only the functions and argument positions marked &quot;range&quot; in section 2.8.3 treat a range argument as a range. Everywhere else, the argument is evaluated as an expression: a reference gives the value of its cell and a range gives <code>#VALUE!</code> (section 2.7.1).</li>
+<li>A range argument used as a range gives the error <code>#REF!</code> when it is the <code>#REF!</code> token or when one of its corners is outside the grid. Otherwise its cells are taken in visiting order (section 2.1).</li>
+</ul>
+<h3 id="282-order-of-checks-in-a-call">2.8.2 Order of checks in a call</h3>
+<ol>
+<li>The name is not one of the 25 functions: <code>#NAME?</code>. No argument is evaluated.</li>
+<li>The number of arguments is not allowed for the function: <code>#ARGS!</code>. No argument is evaluated.</li>
+<li>The arguments are processed in order, from the first to the last, as section 2.8.3 states for the function. The first error met is the result, unless the function states otherwise (<code>IF</code>, <code>IFERROR</code>, <code>ISERROR</code>). A cell of a range whose value is an error is &quot;an error met&quot; when that cell is visited.</li>
+</ol>
+<h3 id="283-definitions">2.8.3 Definitions</h3>
+<p>The number of arguments allowed is the number of parameters of the signature shown; <code>…</code> after a parameter means that one or more arguments are allowed.</p>
+<p>&quot;Number&quot;, &quot;text&quot;, &quot;logical&quot;, &quot;integer&quot; mean: the argument is evaluated as an expression and converted with section 2.7.3; an error value or a failed conversion is the result of the function. Results that are numbers are normalized and follow the range rule of section 2.4.</p>
+<p><strong>Aggregates.</strong> <code>SUM</code>, <code>AVERAGE</code>, <code>MIN</code>, <code>MAX</code>, <code>COUNT</code>, <code>COUNTA</code> take one argument or more. Each argument is a range (when it is a range argument) or a value.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Range argument</th>
+<th>Value argument</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SUM</code></td>
+<td>each number cell contributes; text, logical and empty cells are ignored</td>
+<td>converted <strong>to number</strong>, contributes</td>
+<td>the contributions added in order, starting from 0</td>
+</tr>
+<tr>
+<td><code>AVERAGE</code></td>
+<td>as <code>SUM</code></td>
+<td>as <code>SUM</code></td>
+<td>the sum divided by the number of contributions; <code>#DIV/0!</code> when there is none</td>
+</tr>
+<tr>
+<td><code>MIN</code>, <code>MAX</code></td>
+<td>as <code>SUM</code></td>
+<td>as <code>SUM</code></td>
+<td>the smallest, the largest contribution; 0 when there is none</td>
+</tr>
+<tr>
+<td><code>COUNT</code></td>
+<td>each number cell counts 1</td>
+<td>counts 1 when its value is a number, 0 otherwise</td>
+<td>the count</td>
+</tr>
+<tr>
+<td><code>COUNTA</code></td>
+<td>each cell that is not empty counts 1</td>
+<td>counts 1</td>
+<td>the count</td>
+</tr>
+</tbody></table>
+<p>A &quot;number cell&quot; is a cell whose value is a number; so a formula cell whose result is a number is a number cell, and a formula cell whose expression is blank is a number cell of value 0 (section 2.3). In a range, an error cell is an error met (section 2.8.2). A value argument that is an error is an error met, for the six functions.</p>
+<p><strong>Numbers.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Arguments</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ROUND(x, d)</code></td>
+<td>number, integer</td>
+<td><code>#NUM!</code> when <em>d</em> is below -9 or above 9; otherwise <em>N(R(x, d))</em></td>
+</tr>
+<tr>
+<td><code>ABS(x)</code></td>
+<td>number</td>
+<td>the absolute value</td>
+</tr>
+<tr>
+<td><code>INT(x)</code></td>
+<td>number</td>
+<td>the largest integer less than or equal to <em>x</em> (<code>INT(-2.5)</code> is -3)</td>
+</tr>
+<tr>
+<td><code>MOD(a, b)</code></td>
+<td>number, number</td>
+<td><code>#DIV/0!</code> when <em>b</em> is 0; otherwise <em>N(a - b × floor(a / b))</em>, where <em>a / b</em> is not normalized (<code>MOD(-7, 3)</code> is 2, <code>MOD(7, -3)</code> is -2)</td>
+</tr>
+</tbody></table>
+<p><strong>Logic.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Arguments</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>IF(c, a, b)</code></td>
+<td>exactly three</td>
+<td><em>c</em> is converted <strong>to logical</strong> (an error or a failed conversion is the result). When <code>TRUE</code> the result is the value of <em>a</em>, otherwise the value of <em>b</em>. Only the chosen one of <em>a</em> and <em>b</em> is evaluated; the result may be blank.</td>
+</tr>
+<tr>
+<td><code>AND(a, …)</code>, <code>OR(a, …)</code></td>
+<td>one or more</td>
+<td>Every argument is evaluated and converted <strong>to logical</strong>, in order; the first error is the result. Otherwise <code>AND</code> is <code>TRUE</code> when all are <code>TRUE</code>, <code>OR</code> is <code>TRUE</code> when one at least is <code>TRUE</code>.</td>
+</tr>
+<tr>
+<td><code>NOT(a)</code></td>
+<td>logical</td>
+<td>the opposite logical value</td>
+</tr>
+<tr>
+<td><code>IFERROR(x, y)</code></td>
+<td>exactly two</td>
+<td><em>x</em> is evaluated. When it is an error, the result is the value of <em>y</em> (which may be an error); otherwise the result is the value of <em>x</em> and <em>y</em> is not evaluated.</td>
+</tr>
+<tr>
+<td><code>ISERROR(x)</code></td>
+<td>exactly one</td>
+<td><code>TRUE</code> when <em>x</em> evaluates to an error, otherwise <code>FALSE</code>. Never an error.</td>
+</tr>
+<tr>
+<td><code>ISBLANK(x)</code></td>
+<td>exactly one, range</td>
+<td>When the argument is a range argument: <code>#REF!</code> under the rule of section 2.8.1; <code>#VALUE!</code> when it is a range of two references (even for the same cell); otherwise <code>TRUE</code> when the cell is empty, <code>FALSE</code> when it is not. When the argument is a value argument: its error when it evaluates to an error, otherwise <code>FALSE</code>.</td>
+</tr>
+</tbody></table>
+<p><strong>Texts.</strong> Lengths and positions are counted in UTF-16 code units.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Arguments</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>LEN(t)</code></td>
+<td>text</td>
+<td>the length of <em>t</em>, a number</td>
+</tr>
+<tr>
+<td><code>UPPER(t)</code></td>
+<td>text</td>
+<td><em>t</em> in capitals (JavaScript <code>toUpperCase()</code>)</td>
+</tr>
+<tr>
+<td><code>LEFT(t, n)</code></td>
+<td>text, integer</td>
+<td><code>#VALUE!</code> when <em>n</em> is negative; otherwise the first <em>n</em> code units of <em>t</em>, or all of <em>t</em> when it is shorter</td>
+</tr>
+<tr>
+<td><code>RIGHT(t, n)</code></td>
+<td>text, integer</td>
+<td><code>#VALUE!</code> when <em>n</em> is negative; otherwise the last <em>n</em> code units of <em>t</em>, or all of <em>t</em> when it is shorter</td>
+</tr>
+<tr>
+<td><code>MID(t, s, n)</code></td>
+<td>text, integer, integer</td>
+<td><code>#VALUE!</code> when <em>s</em> is below 1 or <em>n</em> is negative; otherwise at most <em>n</em> code units of <em>t</em> starting at position <em>s</em> (the first position is 1); the empty text when <em>s</em> is beyond the end</td>
+</tr>
+<tr>
+<td><code>CONCAT(a, …)</code></td>
+<td>one or more, each a range or a value</td>
+<td>For a range: the value of each cell converted <strong>to text</strong> (an empty cell gives the empty text), in visiting order. For a value: converted <strong>to text</strong>. The result is all these texts in order.</td>
+</tr>
+</tbody></table>
+<p><strong>Conditional aggregates.</strong></p>
+<p><code>COUNTIF(range, criterion)</code> — exactly two arguments. <code>SUMIF(range, criterion, sum_range)</code> — exactly three arguments.</p>
+<p>The steps are made in this order; the first step that gives an error ends the function:</p>
+<ol>
+<li>If <code>range</code> is not a range argument: <code>#VALUE!</code>. For <code>SUMIF</code>, if <code>sum_range</code> is not a range argument: <code>#VALUE!</code>.</li>
+<li>If <code>range</code> gives <code>#REF!</code> under section 2.8.1: <code>#REF!</code>. For <code>SUMIF</code>, the same for <code>sum_range</code>.</li>
+<li>For <code>SUMIF</code>, if <code>range</code> and <code>sum_range</code> do not have the same number of rows and the same number of columns: <code>#VALUE!</code>.</li>
+<li><code>criterion</code> is evaluated as an expression. An error is the result.</li>
+<li>The criterion is turned into an operator and an operand:<ul>
+<li>a number or a logical value: operator <code>=</code>, that value as operand;</li>
+<li>blank: operator <code>=</code>, the empty text as operand;</li>
+<li>a text that starts with <code>&gt;=</code>, <code>&lt;=</code>, <code>&lt;&gt;</code>, <code>&gt;</code>, <code>&lt;</code> or <code>=</code> (the longest match): that operator; the rest of the text gives the operand: a number when the rest is an entry number (section 2.2, without removing spaces), a logical value when the rest is <code>TRUE</code> or <code>FALSE</code> in any letter case, otherwise the rest as a text;</li>
+<li>any other text: operator <code>=</code>, that text as operand.</li>
+</ul>
+</li>
+<li>The cells of <code>range</code> are visited in order. For each cell:<ul>
+<li>an error cell is an error met: it is the result;</li>
+<li>an empty cell never matches;</li>
+<li>otherwise the cell <strong>matches</strong> as follows. Operator <code>=</code>: its value and the operand have the same type and are equal under section 2.7.6. Operator <code>&lt;&gt;</code>: it does not match <code>=</code>. Operators <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>: its value and the operand have the same type and the comparison of section 2.7.6 is <code>TRUE</code>.</li>
+<li><code>COUNTIF</code> counts the matching cells.</li>
+<li><code>SUMIF</code> looks at the cell at the same position in <code>sum_range</code> for each matching cell: an error cell is an error met; a number cell contributes; any other cell is ignored.</li>
+</ul>
+</li>
+<li>The result is the count, or the contributions added in order starting from 0.</li>
+</ol>
+<h2 id="29-circular-references">2.9 Circular references</h2>
+<ul>
+<li>The <strong>precedents</strong> of a cell that holds a valid formula are all the cells inside the grid named by a reference of the formula, and all the cells of the grid inside the rectangle of each of its ranges whose two corners are inside the grid. Every reference and range of the formula counts, wherever it stands, including in an argument that the evaluation does not reach (the branch of an <code>IF</code> that is not chosen, the second argument of <code>IFERROR</code>).</li>
+<li>Any other cell (empty, number, text, logical, formula that is not valid) has no precedent.</li>
+<li>A cell is <strong>circular</strong> when it can be reached from itself by following precedents one or more times. A formula that refers to its own cell is circular.</li>
+<li>The value of a circular cell is <code>#CYCLE!</code>, whatever its formula.</li>
+<li>A cell that is not circular is evaluated normally. When it refers to a circular cell, it reads the error <code>#CYCLE!</code>, which follows the rules of every error: it propagates, and <code>IFERROR</code> and <code>ISERROR</code> can catch it.</li>
+</ul>
+<p>Example: <code>A1</code> holds <code>=B1+1</code>, <code>B1</code> holds <code>=A1+1</code>, <code>C1</code> holds <code>=A1+1</code>, <code>D1</code> holds <code>=IFERROR(A1,5)</code>, <code>E1</code> holds <code>=IF(FALSE,E1,1)</code>. <code>A1</code>, <code>B1</code> and <code>E1</code> are circular and show <code>#CYCLE!</code>. <code>C1</code> is not circular and shows <code>#CYCLE!</code>. <code>D1</code> is not circular and shows <code>5</code>.</p>
+<h2 id="210-rewriting-references">2.10 Rewriting references</h2>
+<p>Sections 2.10.1 and 2.10.2 apply to every valid formula of the sheet when a row or a column is inserted or deleted. Section 2.10.3 applies to the valid formulas that are pasted. Formulas that are not valid, and contents that are not formulas, are never rewritten.</p>
+<p>In the three sections:</p>
+<ul>
+<li><code>$</code> signs are kept on the part they belong to.</li>
+<li>A reference outside the grid as it was typed (for example <code>Z9</code> or <code>A40</code>) is left unchanged, and a range with such a corner is left unchanged.</li>
+<li>A reference outside a range that has to be removed is replaced by the token <code>#REF!</code>. A range that has to be removed is replaced, as a whole, by the token <code>#REF!</code>.</li>
+<li>The rewritten formula is stored in canonical form (section 2.6.4).</li>
+</ul>
+<h3 id="2101-insertion">2.10.1 Insertion</h3>
+<p>A row inserted at row <em>r</em> (the cells of rows <em>r</em> to 11 move down by one row, FR-STR-01):</p>
+<ul>
+<li>Reference outside a range, of row <em>n</em>: unchanged when <em>n</em> &lt; <em>r</em>; row <em>n</em> + 1 when <em>n</em> ≥ <em>r</em>; removed when <em>n</em> + 1 is 13.</li>
+<li>Range of rows <em>t</em> to <em>b</em> (<em>t</em> ≤ <em>b</em>): both are moved by the rule above, giving <em>t&#39;</em> and <em>b&#39;</em>. Removed when <em>t&#39;</em> is 13. Otherwise <em>b&#39;</em> is limited to 12.</li>
+</ul>
+<p><code>$</code> signs do not prevent the move. The rule for a column inserted at column <em>c</em> is the same with columns, <code>H</code> being the limit.</p>
+<p>Examples, for a row inserted at row 3: <code>=A2+A3</code> becomes <code>=A2+A4</code>; <code>=$A$12</code> becomes <code>=#REF!</code>; <code>=SUM(A1:A12)</code> stays <code>=SUM(A1:A12)</code>; <code>=SUM(A3:B12)</code> becomes <code>=SUM(A4:B12)</code>; <code>=SUM(A12:B12)</code> becomes <code>=SUM(#REF!)</code>.</p>
+<h3 id="2102-deletion">2.10.2 Deletion</h3>
+<p>Row <em>r</em> deleted (the cells of rows <em>r</em> + 1 to 12 move up by one row, FR-STR-02):</p>
+<ul>
+<li>Reference outside a range, of row <em>n</em>: unchanged when <em>n</em> &lt; <em>r</em>; removed when <em>n</em> = <em>r</em>; row <em>n</em> - 1 when <em>n</em> &gt; <em>r</em>.</li>
+<li>Range of rows <em>t</em> to <em>b</em> (<em>t</em> ≤ <em>b</em>): unchanged when <em>r</em> &gt; <em>b</em>; rows <em>t</em> - 1 to <em>b</em> - 1 when <em>r</em> &lt; <em>t</em>; when <em>t</em> ≤ <em>r</em> ≤ <em>b</em>: removed when <em>t</em> = <em>b</em>, otherwise rows <em>t</em> to <em>b</em> - 1.</li>
+</ul>
+<p>The rule for a deleted column is the same with columns.</p>
+<p>Examples, for row 3 deleted: <code>=A2+A4</code> becomes <code>=A2+A3</code>; <code>=A3*2</code> becomes <code>=#REF!*2</code>; <code>=SUM(A1:A5)</code> becomes <code>=SUM(A1:A4)</code>; <code>=SUM(A3:B3)</code> becomes <code>=SUM(#REF!)</code>; <code>=SUM(A3:A4)</code> becomes <code>=SUM(A3:A3)</code>.</p>
+<h3 id="2103-paste-adjustment">2.10.3 Paste adjustment</h3>
+<p>A formula copied from a source cell and pasted into a destination cell is adjusted by the offset between the two cells: <em>dc</em> columns and <em>dr</em> rows (destination minus source).</p>
+<ul>
+<li>In each reference, inside or outside a range: a column part without <code>$</code> moves by <em>dc</em> columns; a row part without <code>$</code> moves by <em>dr</em> rows. Parts with <code>$</code> do not move.</li>
+<li>A reference outside a range that ends outside the grid is removed. A range with one corner at least that ends outside the grid is removed.</li>
+<li>A range is normalized again after the move (section 2.6.4), since its corners may have moved differently.</li>
+</ul>
+<p>Examples, for a formula copied from <code>B2</code> and pasted into <code>D5</code> (<em>dc</em> = 2, <em>dr</em> = 3): <code>=A1+$A1+A$1+$A$1</code> becomes <code>=C4+$A4+C$1+$A$1</code>; <code>=SUM(A1:$B2)</code> becomes <code>=SUM($B4:C5)</code>; <code>=G1</code> becomes <code>=#REF!</code>; <code>=SUM(A1:G1)</code> becomes <code>=SUM(#REF!)</code>. For a formula copied from <code>B2</code> and pasted into <code>A1</code>: <code>=A1</code> becomes <code>=#REF!</code>.</p>
+
+</main>
+</body>
+</html>

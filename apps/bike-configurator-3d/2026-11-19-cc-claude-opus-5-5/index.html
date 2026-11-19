@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+:root{
+  --color-bg:#F6F4F0;--color-surface:#FFFFFF;--color-text:#1B1A18;--color-muted:#67625B;--color-border:#DCD6CC;
+  --color-accent:#0E6B58;--color-accent-contrast:#FFFFFF;--color-danger:#B42318;--color-disabled-bg:#ECE8E1;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;
+  --radius-control:8px;--radius-card:12px;--radius-pill:999px;
+  --text-sm:14px;--text-md:16px;--text-lg:20px;--text-xl:28px;
+  --duration-fast:150ms;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --color-bg:#121110;--color-surface:#1D1B19;--color-text:#F3F0EA;--color-muted:#A59F96;--color-border:#38342F;
+    --color-accent:#3BC4A5;--color-accent-contrast:#0B0A09;--color-danger:#F97066;--color-disabled-bg:#2A2724;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background-color:var(--color-bg);color:var(--color-text);font-size:16px;line-height:24px;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+[hidden]{display:none !important}
+header{max-width:1200px;margin:0 auto;padding:var(--space-5) var(--space-5) var(--space-4)}
+header h1{margin:0;font-size:var(--text-xl);line-height:36px;font-weight:700}
+main{max-width:1200px;margin:0 auto;padding:0 24px 48px;display:grid;grid-template-columns:minmax(0,1fr) 360px;column-gap:32px;align-items:start}
+#configurator{display:flex;flex-direction:column;gap:16px;min-width:0}
+section.panel,aside.panel{background-color:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:24px}
+section.panel h2{margin:0 0 var(--space-4);font-size:20px;font-weight:600;line-height:28px}
+aside.panel{position:sticky;top:24px}
+@media (max-width:1023.98px){
+  header{padding:var(--space-4) 16px}
+  main{padding:0 16px 48px;grid-template-columns:minmax(0,1fr);row-gap:32px}
+  aside.panel{position:static}
+}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:1023.98px){
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(1,minmax(0,1fr))}
+}
+.card{position:relative;display:flex;flex-direction:column;gap:4px;min-height:128px;background-color:var(--color-surface);
+  border:1px solid var(--color-border);border-radius:var(--radius-card);padding:16px;cursor:pointer;color:var(--color-text);
+  transition:border-color var(--duration-fast),background-color var(--duration-fast),color var(--duration-fast)}
+.card.color{min-height:164px}
+.card input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.card [data-role="name"]{font-size:16px;font-weight:600;color:var(--color-text);padding-right:24px}
+.card [data-role="price"]{font-size:14px;line-height:20px;color:var(--color-muted);font-variant-numeric:tabular-nums}
+.card [data-role="reason"]{font-size:14px;line-height:20px;color:var(--color-text)}
+.card [data-role="check"]{position:absolute;top:10px;right:12px;width:22px;height:22px;border-radius:50%;
+  background:var(--color-accent);color:var(--color-accent-contrast);font-size:13px;line-height:22px;text-align:center;font-weight:700}
+.card [data-role="swatch"]{display:block;width:32px;height:32px;border-radius:50%;border:1px solid var(--color-border);margin-bottom:4px}
+.card [data-role="badge"]{position:absolute;top:-1px;left:50%;transform:translate(-50%,-50%);background-color:var(--color-accent);
+  color:var(--color-accent-contrast);border-radius:var(--radius-pill);font-size:14px;line-height:20px;font-weight:600;padding:2px 8px;white-space:nowrap}
+.card:hover:not(:has(input:checked)):not(:has(input:disabled)){border-color:var(--color-muted)}
+.card:has(input:checked){border:2px solid var(--color-accent);padding:15px}
+.card:has(input:checked) [data-role="badge"]{top:-2px}
+.card:has(input:checked) [data-role="check"]{top:9px;right:11px}
+.card:has(input:disabled){opacity:.45;cursor:not-allowed}
+.card:has(input:focus-visible){outline:2px solid var(--color-accent);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:14px;font-weight:600}
+input[type="text"]{font:inherit;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-control);height:40px;padding:0 12px;min-width:0}
+input[type="text"]:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+#height-input{max-width:200px}
+#height-input[aria-invalid="true"]{border-color:var(--color-danger)}
+.error{color:var(--color-danger);font-size:14px;line-height:20px}
+.info{font-size:14px;line-height:20px;color:var(--color-muted)}
+.warning{font-size:14px;line-height:20px;color:var(--color-danger);font-weight:600}
+button{font:inherit;cursor:pointer;transition:border-color var(--duration-fast),background-color var(--duration-fast),color var(--duration-fast)}
+button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+.btn2{background-color:transparent;border:1px solid var(--color-border);color:var(--color-text);height:40px;border-radius:var(--radius-control);padding:0 16px}
+.btn2:disabled{opacity:.45;cursor:not-allowed}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper .btn2{width:40px;padding:0;font-size:20px}
+#qty-value{min-width:24px;text-align:center;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+#bike-preview{display:block;width:100%;height:260px;border:0;padding:0;background:#EDEDF2;cursor:grab;touch-action:none;user-select:none;margin-bottom:16px}
+#bike-preview:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+.lines{display:flex;flex-direction:column;gap:2px;margin-bottom:16px}
+.line{display:flex;align-items:baseline;gap:12px;font-size:14px}
+.line [data-role="label"]{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-muted)}
+.line [data-role="value"]{flex:0 0 auto;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.line.sep{border-top:1px solid var(--color-border);padding-top:6px;margin-top:6px}
+.line.total{border-top:1px solid var(--color-border);padding-top:8px;margin-top:8px}
+.line.total [data-role="label"],.line.total [data-role="value"]{font-size:28px;font-weight:700;line-height:36px;color:var(--color-text)}
+.line.discount [data-role="value"]{color:var(--color-accent)}
+.promo{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.promo-row{display:flex;gap:8px}
+.promo-row input{flex:1}
+#promo-status{font-size:14px;line-height:20px;color:var(--color-muted)}
+#promo-status.active{color:var(--color-accent)}
+#promo-remove{align-self:flex-start}
+#order-button{width:100%;height:48px;border:none;border-radius:var(--radius-control);font-size:16px;font-weight:600;
+  background-color:var(--color-accent);color:var(--color-accent-contrast)}
+#order-button:disabled{background-color:var(--color-disabled-bg);color:var(--color-muted);cursor:not-allowed}
+#order-hint{margin-top:8px;font-size:14px;line-height:20px;color:var(--color-muted);text-align:center}
+#live{position:fixed;left:0;right:0;bottom:24px;height:0;z-index:10}
+#notice{position:fixed;left:0;right:0;bottom:24px;margin:0 auto;width:fit-content;max-width:min(480px,calc(100vw - 32px));
+  background-color:var(--color-surface);border:1px solid var(--color-border);border-left:4px solid var(--color-accent);padding:12px 16px;
+  border-radius:var(--radius-control);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:14px;line-height:20px}
+#confirmation{max-width:560px;margin:48px auto;text-align:center;background-color:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:32px 24px}
+#confirmation h2{margin:0 0 16px;font-size:28px;line-height:36px}
+#confirmation h2:focus{outline:none}
+#confirmation dl{display:grid;grid-template-columns:auto auto;justify-content:center;gap:4px 16px;margin:0 0 24px;text-align:left}
+#confirmation dt{color:var(--color-muted)}
+#confirmation dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+@media (max-width:600px){#confirmation{margin:24px 16px}}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition-duration:0s !important;animation-duration:0s !important}
+}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+<main id="main">
+  <div id="configurator" data-testid="configurator">
+    <section class="panel" data-testid="section-rider">
+      <h2>1. Rider</h2>
+      <div class="field">
+        <label for="height-input">Your height (cm)</label>
+        <input id="height-input" data-testid="height-input" type="text" inputmode="numeric" autocomplete="off">
+        <div id="height-error" class="error" data-testid="height-error" hidden></div>
+        <div id="height-recommendation" class="info" data-testid="height-recommendation" hidden></div>
+      </div>
+    </section>
+    <section class="panel" data-testid="section-frame">
+      <h2>2. Frame</h2>
+      <div class="grid g4" id="grid-frame"></div>
+      <div id="frame-warning" class="warning" data-testid="frame-warning" hidden style="margin-top:12px"></div>
+    </section>
+    <section class="panel" data-testid="section-wheels"><h2>3. Wheels</h2><div class="grid g2" id="grid-wheels"></div></section>
+    <section class="panel" data-testid="section-drivetrain"><h2>4. Drivetrain</h2><div class="grid g3" id="grid-drivetrain"></div></section>
+    <section class="panel" data-testid="section-color"><h2>5. Color</h2><div class="grid g4" id="grid-color"></div></section>
+    <section class="panel" data-testid="section-accessories"><h2>6. Accessories</h2><div class="grid g2" id="grid-accessory"></div></section>
+    <section class="panel" data-testid="section-quantity">
+      <h2>7. Quantity</h2>
+      <div class="stepper">
+        <button type="button" class="btn2" id="qty-decrease" data-testid="qty-decrease" aria-label="Decrease quantity">−</button>
+        <span id="qty-value" data-testid="qty-value">1</span>
+        <button type="button" class="btn2" id="qty-increase" data-testid="qty-increase" aria-label="Increase quantity">+</button>
+      </div>
+    </section>
+  </div>
+  <aside class="panel" id="summary" data-testid="summary">
+    <canvas id="bike-preview" data-testid="bike-preview" tabindex="0" role="img" aria-label="Bike preview"></canvas>
+    <div class="lines" id="lines"></div>
+    <div class="promo">
+      <label for="promo-input" style="font-size:14px;font-weight:600">Promo code</label>
+      <div class="promo-row">
+        <input id="promo-input" data-testid="promo-input" type="text" autocomplete="off">
+        <button type="button" class="btn2" id="promo-apply" data-testid="promo-apply" disabled>Apply</button>
+      </div>
+      <div id="promo-error" class="error" data-testid="promo-error" hidden></div>
+      <div id="promo-status" data-testid="promo-status" hidden></div>
+      <button type="button" class="btn2" id="promo-remove" data-testid="promo-remove" hidden>Remove code</button>
+    </div>
+    <button type="button" id="order-button" data-testid="order-button">Order 1 bike</button>
+    <div id="order-hint" data-testid="order-hint" hidden></div>
+  </aside>
+</main>
+<section id="confirmation" data-testid="confirmation" hidden>
+  <h2 id="confirmation-title" data-testid="confirmation-title" tabindex="-1">Order confirmed</h2>
+  <dl>
+    <dt>Reference</dt><dd id="confirmation-reference" data-testid="confirmation-reference"></dd>
+    <dt>Total</dt><dd id="confirmation-total" data-testid="confirmation-total"></dd>
+    <dt>Delivery</dt><dd id="confirmation-delivery" data-testid="confirmation-delivery"></dd>
+  </dl>
+  <button type="button" class="btn2" id="confirmation-new" data-testid="confirmation-new">Configure another bike</button>
+</section>
+<div id="live" role="status"><div id="notice" data-testid="notice" hidden></div></div>
+<script>
+(function(){
+"use strict";
+var CAT={
+  frame:[{id:"S",name:"Frame S",min:150,max:164,price:119000,L:430},{id:"M",name:"Frame M",min:165,max:174,price:119000,L:470},
+         {id:"L",name:"Frame L",min:175,max:184,price:124000,L:510},{id:"XL",name:"Frame XL",min:185,max:200,price:129000,L:550}],
+  wheels:[{id:"275",name:'27.5" wheels',price:0,R:350},{id:"29",name:'29" wheels',price:12000,R:375}],
+  drivetrain:[{id:"essential",name:"Essential 1×10",price:0,lead:5},{id:"sport",name:"Sport 1×12",price:24000,lead:7},{id:"pro",name:"Pro Electronic 2×12",price:69000,lead:12}],
+  color:[{id:"graphite",name:"Graphite",hex:"#3A3A3C",price:0},{id:"sand",name:"Sand",hex:"#D8C7A6",price:0},
+         {id:"red",name:"Racing Red",hex:"#C8102E",price:6000},{id:"glacier",name:"Glacier",hex:"#A9D6E5",price:0}],
+  accessory:[{id:"mudguards",name:"Mudguards",price:4500},{id:"rack",name:"Rear rack",price:6900},{id:"lights",name:"Lights",price:3990},{id:"kickstand",name:"Kickstand",price:2450}]
+};
+var CODES=["SPRING10","WELCOME50","FREESHIP"];
+var CLOSED={"2026-12-24":1,"2026-12-25":1,"2026-12-31":1,"2027-01-01":1};
+var ORDER=["S","M","L","XL"];
+function find(g,id){for(var i=0;i<CAT[g].length;i++)if(CAT[g][i].id===id)return CAT[g][i];return null;}
+function $(id){return document.getElementById(id);}
+
+var st,orderSeq=0;
+function initState(){st={heightText:"",auto:true,frame:null,wheels:"275",drivetrain:"essential",color:"graphite",acc:{},qty:1,code:null,promoError:false};}
+initState();
+
+// formats
+function amt(c){var e=Math.floor(c/100),r=c%100,s=String(e).replace(/\B(?=(\d{3})+(?!\d))/g,",");return "€"+s+"."+(r<10?"0":"")+r;}
+function signed(c){return c===0?"Included":"+"+amt(c);}
+function disc(c){return "−"+amt(c);}
+function rhu(n,d){return (n*2+d-((n*2+d)%(2*d)))/(2*d);} // floor(n/d + 1/2) on integers
+var WD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+var MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function p2(n){return (n<10?"0":"")+n;}
+function iso(d){return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());}
+function fmtDate(d){return WD[d.getDay()]+", "+d.getDate()+" "+MN[d.getMonth()]+" "+d.getFullYear();}
+
+function heightInfo(){
+  var t=st.heightText.trim();
+  if(t==="")return {empty:true,valid:false};
+  if(!/^\d+$/.test(t))return {valid:false};
+  var v=parseInt(t,10);
+  if(v<150||v>200)return {valid:false};
+  var rec=null;CAT.frame.forEach(function(f){if(v>=f.min&&v<=f.max)rec=f.id;});
+  return {valid:true,rec:rec};
+}
+
+function compute(){
+  var r={},q=st.qty;
+  var redWaived=st.drivetrain==="pro";
+  r.colorSur=st.color==="red"&&!redWaived?6000:0;
+  r.hasFrame=!!st.frame;
+  var accs=CAT.accessory.filter(function(a){return st.acc[a.id];});
+  r.accs=accs;
+  var lead=find("drivetrain",st.drivetrain).lead+(st.color==="red"?3:0)+(q>=3?2:0);
+  var d=new Date();d=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var n=0;while(n<lead){d.setDate(d.getDate()+1);var w=d.getDay();if(w!==0&&w!==6&&!CLOSED[iso(d)])n++;}
+  r.delivery=fmtDate(d);
+  var unit=0;
+  if(r.hasFrame){
+    unit=find("frame",st.frame).price+find("wheels",st.wheels).price+find("drivetrain",st.drivetrain).price+r.colorSur;
+    accs.forEach(function(a){unit+=a.price;});
+  }
+  var sub=unit*q,qd=q>=3?rhu(sub*5,100):0,aq=sub-qd;
+  var active=false,pd=0;
+  if(st.code==="SPRING10"){active=r.hasFrame&&aq>=150000;if(active)pd=rhu(aq*10,100);}
+  else if(st.code==="WELCOME50"){active=q<3;if(active)pd=5000;}
+  else if(st.code==="FREESHIP"){active=true;}
+  var merch=aq-pd,ship=(st.code==="FREESHIP"||merch>=200000)?0:4900,total=merch+ship;
+  r.unit=unit;r.sub=sub;r.qd=qd;r.active=active;r.pd=pd;r.ship=ship;r.total=total;r.vat=rhu(total*20,120);
+  return r;
+}
+
+// build cards
+var inputs={};
+["frame","wheels","drivetrain","color","accessory"].forEach(function(g){
+  var grid=$("grid-"+g);inputs[g]={};
+  CAT[g].forEach(function(o){
+    var lab=document.createElement("label");
+    lab.className="card"+(g==="color"?" color":"");
+    lab.setAttribute("data-testid","card-"+g+"-"+o.id);
+    var inp=document.createElement("input");
+    inp.type=g==="accessory"?"checkbox":"radio";
+    inp.name=g;inp.value=o.id;inp.setAttribute("aria-label",o.name);
+    lab.appendChild(inp);
+    if(g==="color"){var sw=document.createElement("span");sw.setAttribute("data-role","swatch");sw.style.backgroundColor=o.hex;lab.appendChild(sw);}
+    var nm=document.createElement("span");nm.setAttribute("data-role","name");nm.textContent=o.name;lab.appendChild(nm);
+    var pr=document.createElement("span");pr.setAttribute("data-role","price");lab.appendChild(pr);
+    var ck=document.createElement("span");ck.setAttribute("data-role","check");ck.setAttribute("aria-hidden","true");ck.textContent="✓";ck.hidden=true;lab.appendChild(ck);
+    var rs=document.createElement("span");rs.setAttribute("data-role","reason");rs.hidden=true;lab.appendChild(rs);
+    if(g==="frame"){var bd=document.createElement("span");bd.setAttribute("data-role","badge");bd.textContent="Recommended";bd.hidden=true;lab.appendChild(bd);}
+    grid.appendChild(lab);
+    inputs[g][o.id]={input:inp,card:lab,price:pr,check:ck,reason:rs,badge:lab.querySelector('[data-role="badge"]')};
+  });
+});
+
+// summary lines
+var LINEKEYS=["frame","wheels","drivetrain","color"].concat(CAT.accessory.map(function(a){return "accessory-"+a.id;}),["unit","quantity","subtotal","qty-discount","promo","shipping","total","vat","delivery"]);
+var lines={};
+LINEKEYS.forEach(function(k){
+  var row=document.createElement("div");row.className="line";row.setAttribute("data-testid","summary-line-"+k);
+  if(k==="unit")row.className+=" sep";
+  if(k==="total")row.className+=" total";
+  if(k==="qty-discount"||k==="promo")row.className+=" discount";
+  var l=document.createElement("span");l.setAttribute("data-role","label");
+  var v=document.createElement("span");v.setAttribute("data-role","value");
+  row.appendChild(l);row.appendChild(v);$("lines").appendChild(row);
+  lines[k]={row:row,label:l,value:v};
+});
+function setLine(k,label,value,show){var L=lines[k];L.row.hidden=!show;if(show){L.label.textContent=label;L.value.textContent=value;}}
+
+// notice
+var notice=$("notice");
+function showNotice(t){notice.textContent=t;notice.hidden=false;}
+function clearNotice(){notice.hidden=true;notice.textContent="";}
+
+function render(){
+  var h=heightInfo(),r=compute();
+  var hi=$("height-input"),he=$("height-error");
+  var err=!h.empty&&!h.valid;
+  he.hidden=!err;he.textContent=err?"Enter a height between 150 and 200 cm.":"";
+  if(err){hi.setAttribute("aria-invalid","true");hi.setAttribute("aria-describedby","height-error");}
+  else{hi.removeAttribute("aria-invalid");hi.removeAttribute("aria-describedby");}
+  var hr=$("height-recommendation");hr.hidden=!h.valid;hr.textContent=h.valid?"Recommended frame: "+h.rec:"";
+  var fw=$("frame-warning"),showW=false;
+  if(h.valid&&st.frame){
+    var gap=ORDER.indexOf(st.frame)-ORDER.indexOf(h.rec);
+    if(Math.abs(gap)>=2){showW=true;fw.textContent="Frame "+st.frame+" is "+Math.abs(gap)+" sizes "+(gap>0?"larger":"smaller")+" than recommended.";}
+  }
+  fw.hidden=!showW;
+  // cards
+  CAT.frame.forEach(function(o){var c=inputs.frame[o.id];c.input.checked=st.frame===o.id;c.price.textContent=amt(o.price);c.badge.hidden=!(h.valid&&h.rec===o.id);});
+  CAT.wheels.forEach(function(o){var c=inputs.wheels[o.id];c.input.checked=st.wheels===o.id;c.price.textContent=signed(o.price);
+    var dis=o.id==="29"&&st.frame==="S";c.input.disabled=dis;c.reason.hidden=!dis;c.reason.textContent=dis?"Not available with frame S":"";});
+  CAT.drivetrain.forEach(function(o){var c=inputs.drivetrain[o.id];c.input.checked=st.drivetrain===o.id;c.price.textContent=signed(o.price);});
+  CAT.color.forEach(function(o){var c=inputs.color[o.id];c.input.checked=st.color===o.id;
+    c.price.textContent=(o.id==="red"&&st.drivetrain==="pro")?"Included with Pro":signed(o.price);
+    var dis=o.id==="glacier";c.input.disabled=dis;c.reason.hidden=!dis;c.reason.textContent=dis?"Out of stock":"";});
+  CAT.accessory.forEach(function(o){var c=inputs.accessory[o.id];c.input.checked=!!st.acc[o.id];c.price.textContent=signed(o.price);});
+  ["frame","wheels","drivetrain","color","accessory"].forEach(function(g){for(var id in inputs[g]){var c=inputs[g][id];c.check.hidden=!c.input.checked;}});
+  // qty
+  $("qty-value").textContent=String(st.qty);
+  $("qty-decrease").disabled=st.qty<=1;$("qty-increase").disabled=st.qty>=5;
+  // summary
+  var F=r.hasFrame,D="—";
+  setLine("frame",F?"Frame "+st.frame:"Frame",F?amt(find("frame",st.frame).price):D,true);
+  var w=find("wheels",st.wheels),dt=find("drivetrain",st.drivetrain),co=find("color",st.color);
+  setLine("wheels",w.name,signed(w.price),true);
+  setLine("drivetrain",dt.name,signed(dt.price),true);
+  setLine("color",co.name,signed(r.colorSur),true);
+  CAT.accessory.forEach(function(a){setLine("accessory-"+a.id,a.name,signed(a.price),!!st.acc[a.id]);});
+  setLine("unit","Unit price",F?amt(r.unit):D,true);
+  setLine("quantity","Quantity","× "+st.qty,true);
+  setLine("subtotal","Subtotal",F?amt(r.sub):D,true);
+  setLine("qty-discount","Quantity discount (5%)",disc(r.qd),F&&st.qty>=3);
+  setLine("promo","Code "+st.code,disc(r.pd),F&&r.active&&r.pd>0);
+  setLine("shipping","Shipping",F?(r.ship===0?"Free":amt(r.ship)):D,true);
+  setLine("total","Total",F?amt(r.total):D,true);
+  setLine("vat","Including VAT (20%)",F?amt(r.vat):D,true);
+  setLine("delivery","Estimated delivery",r.delivery,true);
+  // promo
+  var pi=$("promo-input"),pe=$("promo-error"),ps=$("promo-status");
+  $("promo-apply").disabled=pi.value.trim()==="";
+  pe.hidden=!st.promoError;pe.textContent=st.promoError?"This code is not valid.":"";
+  if(st.promoError){pi.setAttribute("aria-invalid","true");pi.setAttribute("aria-describedby","promo-error");}
+  else{pi.removeAttribute("aria-invalid");pi.removeAttribute("aria-describedby");}
+  if(st.code){
+    ps.hidden=false;$("promo-remove").hidden=false;
+    ps.textContent=r.active?"Code "+st.code+" applied.":(st.code==="SPRING10"?"SPRING10 requires €1,500.00 or more after the quantity discount.":"WELCOME50 cannot be combined with the quantity discount.");
+    ps.classList.toggle("active",r.active);
+  }else{ps.hidden=true;ps.textContent="";$("promo-remove").hidden=true;}
+  // order
+  var ob=$("order-button");
+  ob.textContent=st.qty===1?"Order 1 bike":"Order "+st.qty+" bikes";
+  ob.disabled=!(h.valid&&F);
+  var oh=$("order-hint");oh.hidden=h.valid;oh.textContent=h.valid?"":"Enter your height to continue.";
+  st._r=r;
+  scheduleDraw();
+}
+
+// frame selection logic, returns true if cascade notice shown
+function selectFrame(id){
+  st.frame=id;
+  if(id==="S"&&st.wheels==="29"){st.wheels="275";showNotice('29" wheels were replaced by 27.5" wheels: not available with frame S.');return true;}
+  return false;
+}
+
+$("height-input").addEventListener("input",function(e){
+  var changed=e.target.value!==st.heightText;
+  st.heightText=e.target.value;
+  if(!changed){render();return;}
+  clearNotice();
+  var h=heightInfo();
+  if(st.auto&&h.valid&&st.frame!==h.rec)selectFrame(h.rec);
+  render();
+});
+CAT.frame.forEach(function(o){
+  var inp=inputs.frame[o.id].input;
+  inp.addEventListener("click",function(){
+    if(!inp.checked)return;
+    st.auto=false;
+    if(st.frame===o.id){render();return;}
+    clearNotice();selectFrame(o.id);render();
+  });
+});
+["wheels","drivetrain","color"].forEach(function(g){
+  CAT[g].forEach(function(o){
+    var inp=inputs[g][o.id].input;
+    inp.addEventListener("change",function(){
+      if(!inp.checked||inp.disabled){render();return;}
+      if(st[g]===o.id){render();return;}
+      clearNotice();st[g]=o.id;render();
+    });
+  });
+});
+CAT.accessory.forEach(function(o){
+  var inp=inputs.accessory[o.id].input;
+  inp.addEventListener("change",function(){
+    var on=inp.checked;
+    if(!!st.acc[o.id]===on){render();return;}
+    clearNotice();
+    st.acc[o.id]=on;
+    if(o.id==="rack"&&on&&!st.acc.mudguards){st.acc.mudguards=true;showNotice("Mudguards were added: required by the rear rack.");}
+    if(o.id==="mudguards"&&!on&&st.acc.rack){st.acc.rack=false;showNotice("Rear rack was removed: it requires mudguards.");}
+    render();
+  });
+});
+$("qty-decrease").addEventListener("click",function(){if(st.qty>1){st.qty--;clearNotice();render();}});
+$("qty-increase").addEventListener("click",function(){if(st.qty<5){st.qty++;clearNotice();render();}});
+$("promo-input").addEventListener("input",function(){st.promoError=false;render();});
+function applyCode(){
+  var pi=$("promo-input"),c=pi.value.trim().toUpperCase();
+  if(c==="")return;
+  if(CODES.indexOf(c)>=0){st.code=c;st.promoError=false;pi.value="";}
+  else{st.promoError=true;}
+  render();
+}
+$("promo-apply").addEventListener("click",applyCode);
+$("promo-input").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();if(!$("promo-apply").disabled)applyCode();}});
+$("promo-remove").addEventListener("click",function(){st.code=null;render();$("promo-input").focus();});
+$("order-button").addEventListener("click",function(){
+  if($("order-button").disabled)return;
+  var r=compute();orderSeq++;
+  var d=new Date(),seq=String(orderSeq);while(seq.length<3)seq="0"+seq;
+  $("confirmation-reference").textContent="BK-"+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+"-"+seq;
+  $("confirmation-total").textContent=amt(r.total);
+  $("confirmation-delivery").textContent=r.delivery;
+  clearNotice();
+  $("main").hidden=true;$("confirmation").hidden=false;
+  $("confirmation-title").focus();
+});
+$("confirmation-new").addEventListener("click",function(){
+  initState();
+  $("height-input").value="";$("promo-input").value="";
+  clearNotice();
+  $("confirmation").hidden=true;$("main").hidden=false;
+  render();
+  $("height-input").focus();
+});
+
+/* ---------------- 3D preview ---------------- */
+var cam={yaw:0,pitch:10};
+var PART_ORDER=["frame","saddle","wheel-rear","wheel-front","mudguard-rear","mudguard-front","rack","light","kickstand"];
+function v(x,y,z){return [x,y,z];}
+function add(a,b){return [a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function nrm(a){var l=Math.sqrt(dot(a,a));return [a[0]/l,a[1]/l,a[2]/l];}
+function rad(d){return d*Math.PI/180;}
+function hexRgb(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];}
+function cap(P,Q,r){return {t:0,a:P,b:Q,r:r};}
+function box(mn,mx){return {t:1,mn:mn,mx:mx};}
+
+function buildModel(){
+  var R=find("wheels",st.wheels).R,L=st.frame?find("frame",st.frame).L:470,C=find("color",st.color).hex;
+  var RA=v(0,R,0),FA=v(1080,R,0),BB=v(420,300,0),ST=v(420-0.25*L,300+L,0),HT=v(1000,340+L,0),HB=v(1020,220+L,0);
+  var SP=add(ST,v(-15,60,0)),HS=add(HT,v(-60,60,0));
+  var parts=[];
+  function part(name,color,prims){
+    // bounding sphere
+    var mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
+    prims.forEach(function(p){
+      var pts=p.t===0?[p.a,p.b]:[p.mn,p.mx],pad=p.t===0?p.r:0;
+      pts.forEach(function(q){for(var i=0;i<3;i++){mn[i]=Math.min(mn[i],q[i]-pad);mx[i]=Math.max(mx[i],q[i]+pad);}});
+    });
+    var c=[(mn[0]+mx[0])/2,(mn[1]+mx[1])/2,(mn[2]+mx[2])/2],rr=Math.sqrt(dot(sub(mx,c),sub(mx,c)))+1;
+    parts.push({name:name,rgb:hexRgb(color),prims:prims,c:c,r:rr});
+  }
+  part("frame",C,[cap(BB,ST,18),cap(ST,HT,18),cap(BB,HB,20),cap(HB,HT,20),cap(ST,RA,16),cap(BB,RA,16),cap(HB,FA,16),cap(ST,SP,13),cap(HT,HS,15),cap(add(HS,v(0,0,-260)),add(HS,v(0,0,260)),16)]);
+  part("saddle","#1C1C1E",[cap(add(SP,v(-90,0,0)),add(SP,v(80,0,0)),24)]);
+  function wheel(A){var pr=[];for(var k=0;k<36;k++){var k2=(k+1)%36;pr.push(cap(add(A,v(R*Math.cos(rad(10*k)),R*Math.sin(rad(10*k)),0)),add(A,v(R*Math.cos(rad(10*k2)),R*Math.sin(rad(10*k2)),0)),22));}
+    pr.push(cap(add(A,v(0,0,-50)),add(A,v(0,0,50)),15));return pr;}
+  function guard(A){var pr=[],G=R+45;for(var k=0;k<12;k++){var a1=rad(30+10*k),a2=rad(30+10*(k+1));pr.push(cap(add(A,v(G*Math.cos(a1),G*Math.sin(a1),0)),add(A,v(G*Math.cos(a2),G*Math.sin(a2),0)),25));}return pr;}
+  part("wheel-rear","#1C1C1E",wheel(RA));
+  part("wheel-front","#1C1C1E",wheel(FA));
+  if(st.acc.mudguards){part("mudguard-rear","#2C2C2E",guard(RA));part("mudguard-front","#2C2C2E",guard(FA));}
+  if(st.acc.rack)part("rack","#48484A",[box(v(-120,2*R+80,-90),v(260,2*R+92,90)),cap(v(-100,2*R+86,0),RA,14)]);
+  if(st.acc.lights)part("light","#FFD60A",[box(add(HT,v(20,-60,-25)),add(HT,v(70,-20,25)))]);
+  if(st.acc.kickstand)part("kickstand","#8E8E93",[cap(v(380,300,60),v(300,0,160),20)]);
+  return parts;
+}
+function camera(W,H){
+  var th=rad(cam.yaw),ph=rad(cam.pitch),D=3600,T=[540,450,0];
+  var E=[T[0]+D*Math.sin(th)*Math.cos(ph),T[1]+D*Math.sin(ph),T[2]+D*Math.cos(th)*Math.cos(ph)];
+  var f=nrm(sub(T,E)),r=nrm(cross(f,[0,1,0])),u=cross(r,f);
+  return {E:E,f:f,r:r,u:u,F:(H/2)/Math.tan(rad(15)),W:W,H:H};
+}
+// returns {t, part, n} or null
+function trace(parts,o,d){
+  var best=Infinity,bp=null,bprim=null,ox=o[0],oy=o[1],oz=o[2],dx=d[0],dy=d[1],dz=d[2];
+  for(var i=0;i<parts.length;i++){
+    var P=parts[i];
+    var cx=ox-P.c[0],cy=oy-P.c[1],cz=oz-P.c[2];
+    var b=cx*dx+cy*dy+cz*dz,c=cx*cx+cy*cy+cz*cz-P.r*P.r,hh=b*b-c;
+    if(hh<0)continue;
+    if(-b-Math.sqrt(hh)>best)continue;
+    for(var j=0;j<P.prims.length;j++){
+      var q=P.prims[j],t=-1;
+      if(q.t===0){
+        var pa=q.a,pb=q.b;
+        var bax=pb[0]-pa[0],bay=pb[1]-pa[1],baz=pb[2]-pa[2];
+        var oax=ox-pa[0],oay=oy-pa[1],oaz=oz-pa[2];
+        var baba=bax*bax+bay*bay+baz*baz,bard=bax*dx+bay*dy+baz*dz,baoa=bax*oax+bay*oay+baz*oaz;
+        var rdoa=dx*oax+dy*oay+dz*oaz,oaoa=oax*oax+oay*oay+oaz*oaz,rr=q.r*q.r;
+        var A=baba-bard*bard,B=baba*rdoa-baoa*bard,Cc=baba*oaoa-baoa*baoa-rr*baba,h=B*B-A*Cc;
+        if(h>=0&&A>1e-9){
+          var tt=(-B-Math.sqrt(h))/A,y=baoa+tt*bard;
+          if(y>0&&y<baba)t=tt;
+          else{
+            var ocx,ocy,ocz;
+            if(y<=0){ocx=oax;ocy=oay;ocz=oaz;}else{ocx=ox-pb[0];ocy=oy-pb[1];ocz=oz-pb[2];}
+            var b2=dx*ocx+dy*ocy+dz*ocz,c2=ocx*ocx+ocy*ocy+ocz*ocz-rr,h2=b2*b2-c2;
+            if(h2>0)t=-b2-Math.sqrt(h2);
+          }
+        }else if(A<=1e-9){
+          // ray parallel to axis: test end spheres
+          [pa,pb].forEach(function(s){var sx=ox-s[0],sy=oy-s[1],sz=oz-s[2],b3=dx*sx+dy*sy+dz*sz,h3=b3*b3-(sx*sx+sy*sy+sz*sz-rr);if(h3>0){var t3=-b3-Math.sqrt(h3);if(t3>0&&(t<0||t3<t))t=t3;}});
+        }
+      }else{
+        var tmin=-Infinity,tmax=Infinity,ok=true,os=[ox,oy,oz],ds=[dx,dy,dz];
+        for(var k=0;k<3;k++){
+          if(Math.abs(ds[k])<1e-12){if(os[k]<q.mn[k]||os[k]>q.mx[k]){ok=false;break;}}
+          else{var t1=(q.mn[k]-os[k])/ds[k],t2=(q.mx[k]-os[k])/ds[k];if(t1>t2){var tm=t1;t1=t2;t2=tm;}if(t1>tmin)tmin=t1;if(t2<tmax)tmax=t2;}
+        }
+        if(ok&&tmin<=tmax&&tmax>0)t=tmin>0?tmin:tmax;
+      }
+      if(t>0&&t<best){best=t;bp=P;bprim=q;}
+    }
+  }
+  if(!bp)return null;
+  var p=[ox+dx*best,oy+dy*best,oz+dz*best],n;
+  if(bprim.t===0){
+    var ba=sub(bprim.b,bprim.a),pa2=sub(p,bprim.a),hh2=Math.max(0,Math.min(1,dot(pa2,ba)/dot(ba,ba)));
+    n=nrm(sub(pa2,[ba[0]*hh2,ba[1]*hh2,ba[2]*hh2]));
+  }else{
+    var bestd=Infinity;n=[0,0,1];
+    for(var k2=0;k2<3;k2++){
+      var e1=Math.abs(p[k2]-bprim.mn[k2]),e2=Math.abs(p[k2]-bprim.mx[k2]);
+      if(e1<bestd){bestd=e1;n=[0,0,0];n[k2]=-1;}
+      if(e2<bestd){bestd=e2;n=[0,0,0];n[k2]=1;}
+    }
+  }
+  return {t:best,part:bp,n:n};
+}
+function rayDir(C,px,py){
+  var a=(px-C.W/2)/C.F,b=(py-C.H/2)/C.F;
+  return nrm([C.f[0]+a*C.r[0]-b*C.u[0],C.f[1]+a*C.r[1]-b*C.u[1],C.f[2]+a*C.r[2]-b*C.u[2]]);
+}
+var canvas=$("bike-preview"),ctx=canvas.getContext("2d");
+function size(){return {W:canvas.clientWidth,H:canvas.clientHeight};}
+function draw(){
+  var s=size(),W=s.W,H=s.H;
+  if(W<=0||H<=0)return;
+  if(canvas.width!==W)canvas.width=W;
+  if(canvas.height!==H)canvas.height=H;
+  var parts=buildModel(),C=camera(W,H),img=ctx.createImageData(W,H),data=img.data;
+  var L=nrm([0.4,0.8,0.45]);
+  for(var j=0;j<H;j++)for(var i=0;i<W;i++){
+    var d=rayDir(C,i+0.5,j+0.5),hit=trace(parts,C.E,d),o=(j*W+i)*4;
+    if(!hit){data[o]=0xED;data[o+1]=0xED;data[o+2]=0xF2;data[o+3]=255;continue;}
+    var n=hit.n,face=Math.abs(dot(n,d)),lam=Math.max(0,dot(n,L));
+    var sh=0.45+0.35*face+0.2*lam;if(sh>1)sh=1;
+    var c=hit.part.rgb;
+    data[o]=Math.round(c[0]*sh);data[o+1]=Math.round(c[1]*sh);data[o+2]=Math.round(c[2]*sh);data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+var drawPending=false;
+function scheduleDraw(){
+  if(drawPending)return;drawPending=true;
+  var run=function(){if(!drawPending)return;drawPending=false;draw();};
+  requestAnimationFrame(run);setTimeout(run,60);
+}
+window.bikePreviewState=function(){
+  var parts=buildModel().map(function(p){return p.name;});
+  parts.sort(function(a,b){return PART_ORDER.indexOf(a)-PART_ORDER.indexOf(b);});
+  return {yaw:cam.yaw,pitch:cam.pitch,parts:parts};
+};
+window.bikePickAt=function(px,py){
+  var s=size(),C=camera(s.W,s.H),hit=trace(buildModel(),C.E,rayDir(C,px,py));
+  return hit?hit.part.name:null;
+};
+function turn(dy,dp){
+  var y=(cam.yaw+dy)%360;if(y<0)y+=360;if(y>=360)y-=360;
+  cam.yaw=y;cam.pitch=Math.max(-20,Math.min(60,cam.pitch+dp));
+  scheduleDraw();
+}
+var drag=null;
+canvas.addEventListener("pointerdown",function(e){
+  if(e.button!==0)return;
+  e.preventDefault();
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+  try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+  canvas.focus({preventScroll:true});
+});
+canvas.addEventListener("pointermove",function(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  if(!(e.buttons&1)){drag=null;return;}
+  e.preventDefault();
+  var dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  if(dx||dy)turn(0.9*dx,0.5*dy);
+});
+function endDrag(e){if(drag&&e.pointerId===drag.id)drag=null;}
+canvas.addEventListener("pointerup",endDrag);
+canvas.addEventListener("pointercancel",endDrag);
+canvas.addEventListener("lostpointercapture",endDrag);
+canvas.addEventListener("dragstart",function(e){e.preventDefault();});
+canvas.addEventListener("keydown",function(e){
+  switch(e.key){
+    case "ArrowRight":e.preventDefault();turn(15,0);break;
+    case "ArrowLeft":e.preventDefault();turn(-15,0);break;
+    case "ArrowUp":e.preventDefault();turn(0,5);break;
+    case "ArrowDown":e.preventDefault();turn(0,-5);break;
+    case "Home":e.preventDefault();cam.yaw=0;cam.pitch=10;scheduleDraw();break;
+  }
+});
+if(window.ResizeObserver)new ResizeObserver(function(){scheduleDraw();}).observe(canvas);
+
+render();
+draw();
+})();
+</script>
+</body>
+</html>

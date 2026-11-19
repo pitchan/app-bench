@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 07-fr-checkout</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-configurator.html">04-fr-configurator</a> · <a href="05-fr-order-lines.html">05-fr-order-lines</a> · <a href="06-fr-pricing.html">06-fr-pricing</a> · <strong>07-fr-checkout</strong> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="7-functional-requirements--checkout">7. Functional requirements — Checkout</h1>
+<h3 id="FR-CHK-01">FR-CHK-01 Place order button</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in <code>place-order</code> the text MSG-27 for the current number of bikes in the order. While the order has no line or a line is being edited, the system shall disable <code>place-order</code>; while a line is being edited, it shall also show <code>place-hint</code> with MSG-31.</li>
+<li><strong>Rationale:</strong> An order is placed only with bikes in it and no change pending.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Label follows the number of bikes
+  When the page loads
+  Then place-order reads &quot;Place order&quot;
+  And place-order is disabled
+  When the user adds a bike &quot;Frame M, quantity 3&quot;
+  Then place-order reads &quot;Place order (3 bikes)&quot;
+  And place-order is enabled
+</code></pre>
+<h3 id="FR-CHK-02">FR-CHK-02 Confirmation</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates the enabled <code>place-order</code>, the system shall hide <code>main</code> and <code>notice</code>, and show <code>confirmation</code> with <code>confirmation-title</code> (MSG-28), <code>confirmation-reference</code> (MSG-29), <code>confirmation-bikes</code> (MSG-30), <code>confirmation-total</code> (the order total, amount format), <code>confirmation-delivery</code> (the delivery date, date format) and <code>confirmation-new</code>. The values shall be those of the order at the moment it was placed.</li>
+<li><strong>Rationale:</strong> The customer gets a clear record of the placed order.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Confirmation of a single bike
+  When the user adds a bike &quot;Frame M&quot;
+  And the user clicks place-order
+  Then confirmation-title reads &quot;Order confirmed&quot;
+  And confirmation-bikes reads &quot;1 bike&quot;
+  And confirmation-total reads &quot;€1,239.00&quot;
+  And configurator is not visible
+</code></pre>
+<h3 id="FR-CHK-03">FR-CHK-03 Order reference</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall number placed orders from 1 when the page loads and add 1 at each placed order, and shall build <code>confirmation-reference</code> with MSG-29 from today and that number. A reload starts again at 1.</li>
+<li><strong>Rationale:</strong> Each order placed in one visit has its own reference.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Second order of the visit
+  Given now is 2026-11-20 09:30
+  When the user places an order
+  And the user clicks confirmation-new
+  And the user places an order
+  Then confirmation-reference reads &quot;AT-20261120-002&quot;
+</code></pre>
+<p>&quot;The user places an order&quot; means: the user adds a bike &quot;Frame M&quot; and clicks place-order.</p>
+<h3 id="FR-CHK-04">FR-CHK-04 New order</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>confirmation-new</code>, the system shall hide <code>confirmation</code>, show <code>main</code>, empty the order, remove the applied code, empty <code>height-input</code> and <code>promo-input</code>, hide every error, and reset the configurator.</li>
+<li><strong>Rationale:</strong> The next order starts from scratch, with only the order number kept.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Back to an empty order
+  When the user applies &quot;FREESHIP&quot;
+  And the user places an order
+  And the user clicks confirmation-new
+  Then order-empty is visible
+  And promo-status is not visible
+  And height-input has the value &quot;&quot;
+  And no frame radio is checked
+</code></pre>
+
+</main>
+</body>
+</html>

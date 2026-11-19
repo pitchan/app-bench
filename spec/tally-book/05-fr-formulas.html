@@ -1,0 +1,1586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Book — 05-fr-formulas</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-book">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <strong>05-fr-formulas</strong> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a> · <a href="10-fr-sheets-and-names.html">10-fr-sheets-and-names</a> · <a href="11-fr-sort-fill-find-csv.html">11-fr-sort-fill-find-csv</a> · <a href="12-fr-persistence.html">12-fr-persistence</a></nav>
+<h1 id="5-functional-requirements--formulas">5. Functional requirements — Formulas</h1>
+<h2 id="51-language">5.1 Language</h2>
+<h3 id="FR-FML-01">FR-FML-01 Formula syntax</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall treat a committed string that starts with <code>=</code> as a formula and shall decide whether it is valid with the tokens and the grammar of 02, section 2.6. If the formula is not valid, then the system shall give the cell the value <code>#SYNTAX!</code> and keep the string unchanged as raw content.</li>
+<li><strong>Rationale:</strong> A formula that cannot be read is shown as such and can be corrected as it was typed.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Not valid
+  When the user enters &quot;=1+&quot; in A1
+  And the user enters &quot;=(1+2&quot; in A2
+  And the user enters &quot;=1 2&quot; in A3
+  And the user enters &quot;=SUM(1,,2)&quot; in A4
+  And the user enters &quot;=A1(2)&quot; in A5
+  And the user enters &quot;=1.&quot; in A6
+  And the user enters &quot;=A$+1&quot; in A7
+  And the user enters &quot;=&quot; in A8
+  Then cell-A1 to cell-A8 all read &quot;#SYNTAX!&quot;
+  And the raw content of A3 is &quot;=1 2&quot;
+
+Scenario: Valid, with an error value
+  When the user enters &quot;=foo&quot; in B1
+  And the user enters &quot;=foo(1)&quot; in B2
+  And the user enters &quot;=SUM()&quot; in B3
+  Then cell-B1 reads &quot;#NAME?&quot;
+  And cell-B2 reads &quot;#NAME?&quot;
+  And cell-B3 reads &quot;#ARGS!&quot;
+  And the raw content of B1 is &quot;=FOO&quot;
+</code></pre>
+<h3 id="FR-FML-02">FR-FML-02 Canonical form</h3>
+<ul>
+<li><strong>Statement:</strong> When a valid formula is committed, the system shall store its canonical form (02, section 2.6.4) as raw content: no space outside string literals, names, references, logical literals and <code>#REF!</code> in capitals, number and string literals as typed, ranges normalized with each <code>$</code> sign kept on its column part or row part.</li>
+<li><strong>Rationale:</strong> A formula has one writing, which the rewriting rules and the formula bar share.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Canonical writing
+  When the user enters &quot;= if( a1 &gt;= 10 , &quot;&quot;big&quot;&quot; , sum( $b$2:b1 ) )&quot; in D1
+  And the user enters &quot;=Sum( c3:a1 ) + 1.50 + .5&quot; in D2
+  And the user enters &quot;=&quot;&quot;a  b&quot;&quot; &amp; true&quot; in D3
+  And the user enters &quot;=b007&quot; in D4
+  Then the raw content of D1 is &quot;=IF(A1&gt;=10,&quot;&quot;big&quot;&quot;,SUM($B1:B$2))&quot;
+  And the raw content of D2 is &quot;=SUM(A1:C3)+1.50+.5&quot;
+  And the raw content of D3 is &quot;=&quot;&quot;a  b&quot;&quot;&amp;TRUE&quot;
+  And the raw content of D4 is &quot;=B7&quot;
+</code></pre>
+<h3 id="FR-FML-03">FR-FML-03 Arithmetic operators</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, the unary signs and <code>%</code> with the precedence and the associativity of the grammar of 02, section 2.6.2, and the results of 02, section 2.7.4.</li>
+<li><strong>Rationale:</strong> An expression has one meaning.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Precedence and associativity
+  When the user enters &quot;=2+3*4&quot; in A1
+  And the user enters &quot;=-2^2&quot; in A2
+  And the user enters &quot;=2^3^2&quot; in A3
+  And the user enters &quot;=2^-2&quot; in A4
+  And the user enters &quot;=10-4-3&quot; in A5
+  And the user enters &quot;=50%*200&quot; in A6
+  And the user enters &quot;=-5%&quot; in A7
+  And the user enters &quot;=2*-3&quot; in A8
+  And the user enters &quot;=--3&quot; in A9
+  And the user enters &quot;=100/8/5&quot; in A10
+  Then cell-A1 reads &quot;14&quot;
+  And cell-A2 reads &quot;-4&quot;
+  And cell-A3 reads &quot;512&quot;
+  And cell-A4 reads &quot;0.25&quot;
+  And cell-A5 reads &quot;3&quot;
+  And cell-A6 reads &quot;100&quot;
+  And cell-A7 reads &quot;-0.05&quot;
+  And cell-A8 reads &quot;-6&quot;
+  And cell-A9 reads &quot;3&quot;
+  And cell-A10 reads &quot;2.5&quot;
+</code></pre>
+<h3 id="FR-FML-04">FR-FML-04 Operands of arithmetic</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall convert the operands of the arithmetic operators to numbers as 02, section 2.7.3 states: a logical value to 1 or 0, blank to 0. If an operand is a text, then the system shall give <code>#VALUE!</code>, even when the text is written like a number.</li>
+<li><strong>Rationale:</strong> A text is never silently read as a number.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Conversions
+  Given the user enters &quot;&#39;5&quot; in B1
+  When the user enters &quot;=B2+1&quot; in A1
+  And the user enters &quot;=TRUE+1&quot; in A2
+  And the user enters &quot;=&quot;&quot;3&quot;&quot;+1&quot; in A3
+  And the user enters &quot;=B1*2&quot; in A4
+  And the user enters &quot;=-B2&quot; in A5
+  And the user enters &quot;=+&quot;&quot;a&quot;&quot;&quot; in A6
+  Then cell-A1 reads &quot;1&quot;
+  And cell-A2 reads &quot;2&quot;
+  And cell-A3 reads &quot;#VALUE!&quot;
+  And cell-A4 reads &quot;#VALUE!&quot;
+  And cell-A5 reads &quot;0&quot;
+  And cell-A6 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FML-05">FR-FML-05 Concatenation</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>&amp;</code> by converting both operands to text (02, section 2.7.3) and joining them: a number gives its general text whatever the format of any cell, a logical value gives <code>TRUE</code> or <code>FALSE</code>, blank gives the empty text.</li>
+<li><strong>Rationale:</strong> Labels are built from values.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Joining
+  Given the user enters &quot;0.5&quot; in B1
+  And the user clicks cell B1
+  And the user sets the format to &quot;percent1&quot;
+  When the user enters &quot;=&quot;&quot;a&quot;&quot;&amp;1.50&amp;TRUE&amp;B2&quot; in A1
+  And the user enters &quot;=1/3&amp;&quot;&quot;&quot;&quot;&quot; in A2
+  And the user enters &quot;=B1&amp;&quot;&quot; rate&quot;&quot;&quot; in A3
+  And the user enters &quot;=1&amp;2+3&quot; in A4
+  Then cell-B1 reads &quot;50.0%&quot;
+  And cell-A1 reads &quot;a1.5TRUE&quot;
+  And cell-A2 reads &quot;0.333333&quot; and has data-kind &quot;text&quot;
+  And cell-A3 reads &quot;0.5 rate&quot;
+  And cell-A4 reads &quot;15&quot;
+</code></pre>
+<h3 id="FR-FML-06">FR-FML-06 Comparison</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>=</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code> and <code>&gt;=</code> as 02, section 2.7.6 states: a blank operand takes the type of the other one, texts are compared without regard to letter case, and across types any number is less than any text, which is less than any logical value.</li>
+<li><strong>Rationale:</strong> Every pair of values can be compared, with one result.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Same type and across types
+  When the user enters &quot;=&quot;&quot;abc&quot;&quot;=&quot;&quot;ABC&quot;&quot;&quot; in A1
+  And the user enters &quot;=1&lt;2&lt;3&quot; in A2
+  And the user enters &quot;=B1=0&quot; in A3
+  And the user enters &quot;=B1=&quot;&quot;&quot;&quot;&quot; in A4
+  And the user enters &quot;=B1=FALSE&quot; in A5
+  And the user enters &quot;=1=&quot;&quot;1&quot;&quot;&quot; in A6
+  And the user enters &quot;=10&lt;&quot;&quot;9&quot;&quot;&quot; in A7
+  And the user enters &quot;=&quot;&quot;z&quot;&quot;&lt;TRUE&quot; in A8
+  And the user enters &quot;=&quot;&quot;ab&quot;&quot;&lt;&quot;&quot;abc&quot;&quot;&quot; in A9
+  And the user enters &quot;=B1=B2&quot; in A10
+  Then cell-A1 reads &quot;TRUE&quot;
+  And cell-A2 reads &quot;FALSE&quot;
+  And cell-A3, cell-A4 and cell-A5 read &quot;TRUE&quot;
+  And cell-A6 reads &quot;FALSE&quot;
+  And cell-A7, cell-A8, cell-A9 and cell-A10 read &quot;TRUE&quot;
+</code></pre>
+<h3 id="FR-FML-07">FR-FML-07 Cell references</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate a reference inside the grid to the value of its cell, blank for an empty cell, the <code>$</code> signs having no effect on the value. A reference without sheet prefix names a cell of the sheet that holds the formula (FR-FML-12). If a reference is outside the grid, then the system shall give <code>#REF!</code>. If a range stands anywhere but as a range argument of a function that accepts ranges, then the system shall give <code>#VALUE!</code>. When the expression of a formula evaluates to blank, the value of the cell shall be the number 0.</li>
+<li><strong>Rationale:</strong> A formula reads other cells; a missing cell is an error and an empty one is not.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: References
+  Given the user enters &quot;4&quot; in B1
+  When the user enters &quot;=$B$1+b1&quot; in A1
+  And the user enters &quot;=I1&quot; in A2
+  And the user enters &quot;=A13+1&quot; in A3
+  And the user enters &quot;=B1:B2&quot; in A4
+  And the user enters &quot;=B5&quot; in A5
+  And the user enters &quot;=(B1:B2)+1&quot; in A6
+  Then cell-A1 reads &quot;8&quot;
+  And cell-A2 reads &quot;#REF!&quot;
+  And cell-A3 reads &quot;#REF!&quot;
+  And cell-A4 reads &quot;#VALUE!&quot;
+  And cell-A5 reads &quot;0&quot; and has data-kind &quot;number&quot;
+  And cell-A6 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FML-08">FR-FML-08 Error propagation</h3>
+<ul>
+<li><strong>Statement:</strong> When an operand of an operator is an error, the system shall give that error as the result of the operator, the error of the left operand when both are errors, and shall check this before any type rule (02, section 2.7.2). When both operands fail their conversion, the system shall give the error of the left operand.</li>
+<li><strong>Rationale:</strong> The first cause of a failure is the one shown.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Left first, errors before types
+  When the user enters &quot;=1/0+foo&quot; in A1
+  And the user enters &quot;=foo+1/0&quot; in A2
+  And the user enters &quot;=&quot;&quot;a&quot;&quot;+1/0&quot; in A3
+  And the user enters &quot;=&quot;&quot;a&quot;&quot;&amp;1/0&quot; in A4
+  And the user enters &quot;=(1/0)=(1/0)&quot; in A5
+  Then cell-A1 reads &quot;#DIV/0!&quot;
+  And cell-A2 reads &quot;#NAME?&quot;
+  And cell-A3 reads &quot;#DIV/0!&quot;
+  And cell-A4 reads &quot;#DIV/0!&quot;
+  And cell-A5 reads &quot;#DIV/0!&quot;
+</code></pre>
+<h3 id="FR-FML-09">FR-FML-09 Numeric errors</h3>
+<ul>
+<li><strong>Statement:</strong> If a division has a divisor of 0, then the system shall give <code>#DIV/0!</code>. If a power has a base of 0 and an exponent of 0, or a negative base and an exponent that is not an integer, then the system shall give <code>#NUM!</code>; if it has a base of 0 and a negative exponent, then the system shall give <code>#DIV/0!</code>.</li>
+<li><strong>Rationale:</strong> An operation without a result says why.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Division and power
+  When the user enters &quot;=5/0&quot; in A1
+  And the user enters &quot;=0^0&quot; in A2
+  And the user enters &quot;=0^-1&quot; in A3
+  And the user enters &quot;=(-8)^(1/3)&quot; in A4
+  And the user enters &quot;=(-2)^3&quot; in A5
+  And the user enters &quot;=2^0.5&quot; in A6
+  Then cell-A1 reads &quot;#DIV/0!&quot;
+  And cell-A2 reads &quot;#NUM!&quot;
+  And cell-A3 reads &quot;#DIV/0!&quot;
+  And cell-A4 reads &quot;#NUM!&quot;
+  And cell-A5 reads &quot;-8&quot;
+  And cell-A6 reads &quot;1.414214&quot;
+</code></pre>
+<h3 id="FR-FML-10">FR-FML-10 Circular references</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give the value <code>#CYCLE!</code> to every circular cell and only to circular cells, as 02, section 2.9 defines them: a cell that can be reached from itself through the references, the ranges and the defined names of valid formulas, including those in arguments that are not evaluated. A cell that is not circular shall be evaluated normally, reading <code>#CYCLE!</code> as an error value from the circular cells it refers to. When a change of the workbook breaks a cycle, the cells that are no longer circular shall be evaluated normally.</li>
+<li><strong>Rationale:</strong> A loop has no result, and it is shown where it is, not everywhere downstream.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Loop, dependents, break
+  When the user enters &quot;=B1+1&quot; in A1
+  And the user enters &quot;=A1+1&quot; in B1
+  And the user enters &quot;=A1+1&quot; in C1
+  And the user enters &quot;=IFERROR(A1,5)&quot; in D1
+  And the user enters &quot;=IF(FALSE,E1,1)&quot; in E1
+  And the user enters &quot;=SUM(A2:F2)&quot; in F2
+  Then cell-A1, cell-B1, cell-E1 and cell-F2 read &quot;#CYCLE!&quot;
+  And cell-C1 reads &quot;#CYCLE!&quot;
+  And cell-D1 reads &quot;5&quot;
+  When the user enters &quot;10&quot; in B1
+  Then cell-A1 reads &quot;11&quot;
+  And cell-C1 reads &quot;12&quot;
+  And cell-D1 reads &quot;11&quot;
+</code></pre>
+<h3 id="FR-FML-11">FR-FML-11 Recalculation</h3>
+<ul>
+<li><strong>Statement:</strong> When the raw content of a cell changes, by any action of this specification, the system shall show at once the new value of every cell whose value depends on it, directly or through other cells, in any sheet. The system shall do the same when the sheets or the defined names change: a sheet added, renamed or deleted, a name defined or deleted.</li>
+<li><strong>Rationale:</strong> The workbook is always consistent with its contents.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Chain
+  Given the user enters &quot;=A1*2&quot; in B1
+  And the user enters &quot;=B1+1&quot; in C1
+  And the user enters &quot;=SUM(A1:C1)&quot; in D1
+  When the user enters &quot;5&quot; in A1
+  Then cell-B1 reads &quot;10&quot;
+  And cell-C1 reads &quot;11&quot;
+  And cell-D1 reads &quot;26&quot;
+  When the user enters &quot;x&quot; in A1
+  Then cell-B1 reads &quot;#VALUE!&quot;
+  And cell-C1 reads &quot;#VALUE!&quot;
+  And cell-D1 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FML-12">FR-FML-12 Sheet prefixes</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall accept a sheet prefix, bare or quoted, before a reference or a range, as 02, sections 2.6.1 and 2.6.2 define it, and shall evaluate that reference or range in the sheet the prefix names, letter case ignored. The system shall evaluate a reference or a range without prefix in the sheet that holds the formula, whatever the active sheet. If a prefix names no sheet, then the system shall give <code>#REF!</code>; the sheets are looked up at each evaluation, so the value changes as soon as a sheet takes that name. If a sheet prefix stands before anything other than a reference or a range, or if a quoted sheet name is not closed, is empty or is not immediately followed by <code>!</code>, then the formula is not valid.</li>
+<li><strong>Rationale:</strong> A sheet reads the cells of another sheet, and says so when that sheet does not exist.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Reading another sheet
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;7&quot; in A2
+  And the user clicks button add-sheet
+  And the user enters &quot;100&quot; in A1
+  When the user enters &quot;=Sheet1!A1+A1&quot; in B1
+  And the user enters &quot;=SUM(sheet1!A1:A2)&quot; in B2
+  And the user enters &quot;=&#39;Sheet1&#39;!A2*2&quot; in B3
+  And the user enters &quot;=Sheet3!A1&quot; in B4
+  And the user enters &quot;=SUM(Sheet3!A1:A2)&quot; in B5
+  And the user enters &quot;=Sheet1!I1&quot; in B6
+  And the user enters &quot;=Sheet1!A1:A2&quot; in B7
+  Then cell-B1 reads &quot;105&quot;
+  And cell-B2 reads &quot;12&quot;
+  And cell-B3 reads &quot;14&quot;
+  And cell-B4 reads &quot;#REF!&quot;
+  And cell-B5 reads &quot;#REF!&quot;
+  And cell-B6 reads &quot;#REF!&quot;
+  And cell-B7 reads &quot;#VALUE!&quot;
+  When the user clicks button add-sheet
+  And the user enters &quot;9&quot; in A1
+  And the user clicks sheet tab 2
+  Then cell-B4 reads &quot;9&quot;
+  And cell-B5 reads &quot;9&quot;
+
+Scenario: Not valid
+  When the user enters &quot;=Sheet1!&quot; in A1
+  And the user enters &quot;=Sheet1!Total&quot; in A2
+  And the user enters &quot;=Sheet1!B1:Sheet1!B2&quot; in A3
+  And the user enters &quot;=Sheet1 !B1&quot; in A4
+  And the user enters &quot;=&#39;Sheet1!B1&quot; in A5
+  And the user enters &quot;=&#39;&#39;!B1&quot; in A6
+  And the user enters &quot;=&#39;Sheet1&#39;B1&quot; in A7
+  And the user enters &quot;=$Sheet1!B1&quot; in A8
+  Then cell-A1 to cell-A8 all read &quot;#SYNTAX!&quot;
+  When the user enters &quot;=Sheet1! B1 + 1&quot; in A9
+  Then the raw content of A9 is &quot;=Sheet1!B1+1&quot;
+  And cell-A9 reads &quot;1&quot;
+</code></pre>
+<h3 id="FR-FML-13">FR-FML-13 Canonical form of sheet prefixes</h3>
+<ul>
+<li><strong>Statement:</strong> When a valid formula is committed, the system shall write each sheet prefix as 02, section 2.6.4 states: with the exact name of the sheet it names when such a sheet exists at that moment, and as typed otherwise; bare when the name matches <code>^[A-Za-z_][A-Za-z0-9_]*$</code>, and otherwise between <code>&#39;</code> with each <code>&#39;</code> of the name doubled. The system shall not write a stored formula again when a sheet is added later.</li>
+<li><strong>Rationale:</strong> A reference to a sheet has one writing, which the rewriting rules rely on.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Quotes and letter case
+  Given the user renames the sheet to &quot;My sheet&quot;
+  And the user clicks button add-sheet
+  And the user renames the sheet to &quot;Bob&#39;s&quot;
+  And the user clicks button add-sheet
+  When the user enters &quot;=sum(&#39;my sheet&#39;!$b$2:a1)+&#39;SHEET1&#39;!a1&quot; in C1
+  And the user enters &quot;=&#39;bob&#39;&#39;s&#39;!a1&amp;nosuch!c3&quot; in C2
+  And the user enters &quot;=&#39;No Such&#39;!a1&quot; in C3
+  And the user enters &quot;=&#39;nosuch&#39;!a1&quot; in C4
+  Then the active sheet is &quot;Sheet1&quot;
+  And the raw content of C1 is &quot;=SUM(&#39;My sheet&#39;!A1:$B$2)+Sheet1!A1&quot;
+  And the raw content of C2 is &quot;=&#39;Bob&#39;&#39;s&#39;!A1&amp;nosuch!C3&quot;
+  And the raw content of C3 is &quot;=&#39;No Such&#39;!A1&quot;
+  And the raw content of C4 is &quot;=nosuch!A1&quot;
+  And cell-C1 reads &quot;0&quot;
+  And cell-C2 reads &quot;#REF!&quot;
+
+Scenario: Letter case decided at the commit
+  Given the user enters &quot;=sheet2!A1+1&quot; in B1
+  Then cell-B1 reads &quot;#REF!&quot;
+  When the user clicks button add-sheet
+  And the user enters &quot;4&quot; in A1
+  And the user clicks sheet tab 1
+  Then cell-B1 reads &quot;5&quot;
+  And the raw content of B1 is &quot;=sheet2!A1+1&quot;
+  When the user enters &quot;=sheet2!A1+2&quot; in B2
+  Then the raw content of B2 is &quot;=Sheet2!A1+2&quot;
+</code></pre>
+<p>In the first scenario the first sheet was renamed <code>My sheet</code>, so the third sheet added takes the default name <code>Sheet1</code> (02, section 2.12).</p>
+<h3 id="FR-FML-14">FR-FML-14 Circular references across sheets</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall look for circular cells over the whole workbook, as 02, section 2.9 defines them: the precedents of a formula include the cells of the other sheets that its references and ranges point to, and the cells of the targets of the defined names it uses. The system shall give <code>#CYCLE!</code> to every circular cell of every sheet and only to them, and shall evaluate the cells again when a change in any sheet creates or breaks a cycle.</li>
+<li><strong>Rationale:</strong> A loop that goes through another sheet is still a loop.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Loop through two sheets
+  Given the user enters &quot;=Sheet2!A1+1&quot; in A1
+  And the user enters &quot;=A1*2&quot; in B1
+  And the user clicks button add-sheet
+  When the user enters &quot;=SUM(Sheet1!A1:A2)&quot; in A1
+  And the user enters &quot;=IFERROR(Sheet1!A1,0)&quot; in B1
+  Then cell-A1 reads &quot;#CYCLE!&quot;
+  And cell-B1 reads &quot;0&quot;
+  When the user clicks sheet tab 1
+  Then cell-A1 reads &quot;#CYCLE!&quot;
+  And cell-B1 reads &quot;#CYCLE!&quot;
+  When the user clicks sheet tab 2
+  And the user enters &quot;3&quot; in A1
+  And the user clicks sheet tab 1
+  Then cell-A1 reads &quot;4&quot;
+  And cell-B1 reads &quot;8&quot;
+</code></pre>
+<h2 id="52-functions">5.2 Functions</h2>
+<h3 id="FR-FUN-01">FR-FUN-01 Function calls and arguments</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall recognize the 47 function names of 02, section 2.6.3 in any letter case. If the name of a call is not one of them, then the system shall give <code>#NAME?</code>. If the number of arguments is not allowed for the function, then the system shall give <code>#ARGS!</code>. These two checks shall be made in this order and before any argument is evaluated. The system shall then process the arguments in order and give the first error met, unless the function states otherwise (02, section 2.8.2). A parameter that 02, section 2.8.3 writes between <code>[</code> and <code>]</code> may be left out; any other number of arguments gives <code>#ARGS!</code>.</li>
+<li><strong>Rationale:</strong> A wrong call is reported before its arguments are.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Name, count, then arguments
+  When the user enters &quot;=abs(-2)&quot; in A1
+  And the user enters &quot;=FOO(1/0)&quot; in A2
+  And the user enters &quot;=ABS(1/0,2)&quot; in A3
+  And the user enters &quot;=ROUND(1)&quot; in A4
+  And the user enters &quot;=MOD(foo,1/0)&quot; in A5
+  And the user enters &quot;=NOT()&quot; in A6
+  And the user enters &quot;=FIND(&quot;&quot;a&quot;&quot;,&quot;&quot;abc&quot;&quot;,1,1)&quot; in A7
+  And the user enters &quot;=WEEKDAY(1/0,2,3)&quot; in A8
+  And the user enters &quot;=vlookup(1/0,A1:B2)&quot; in A9
+  And the user enters &quot;=TODAY()&quot; in A10
+  Then cell-A1 reads &quot;2&quot;
+  And cell-A2 reads &quot;#NAME?&quot;
+  And cell-A3 reads &quot;#ARGS!&quot;
+  And cell-A4 reads &quot;#ARGS!&quot;
+  And cell-A5 reads &quot;#NAME?&quot;
+  And cell-A6 reads &quot;#ARGS!&quot;
+  And cell-A7 reads &quot;#ARGS!&quot;
+  And cell-A8 reads &quot;#ARGS!&quot;
+  And cell-A9 reads &quot;#ARGS!&quot;
+  And cell-A10 reads &quot;#NAME?&quot;
+</code></pre>
+<h3 id="FR-FUN-02">FR-FUN-02 SUM, AVERAGE, MIN, MAX</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>SUM</code>, <code>AVERAGE</code>, <code>MIN</code> and <code>MAX</code> as 02, section 2.8.3 states: in a range argument (a single reference included) only number cells contribute and an error cell is an error met; a value argument is converted to number. <code>AVERAGE</code> divides the sum of the contributions, before its normalization, by their number, and without contribution shall give <code>#DIV/0!</code>; <code>MIN</code> and <code>MAX</code> without contribution shall give 0.</li>
+<li><strong>Rationale:</strong> Totals skip labels; a typed argument is not skipped.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Ranges and values
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;x&quot; in A2
+  And the user enters &quot;TRUE&quot; in A3
+  And the user enters &quot;3&quot; in A5
+  When the user enters &quot;=SUM(A1:A5)&quot; in B1
+  And the user enters &quot;=AVERAGE(A1:A5)&quot; in B2
+  And the user enters &quot;=SUM(A1:A5,TRUE,2)&quot; in B3
+  And the user enters &quot;=SUM(A2)&quot; in B4
+  And the user enters &quot;=SUM(A2+0)&quot; in B5
+  And the user enters &quot;=MAX(A2:A4)&quot; in B6
+  And the user enters &quot;=AVERAGE(A2:A4)&quot; in B7
+  And the user enters &quot;=MIN(A1:A5,-2)&quot; in B8
+  And the user enters &quot;=SUM(&quot;&quot;3&quot;&quot;)&quot; in B9
+  Then cell-B1 reads &quot;4&quot;
+  And cell-B2 reads &quot;2&quot;
+  And cell-B3 reads &quot;7&quot;
+  And cell-B4 reads &quot;0&quot;
+  And cell-B5 reads &quot;#VALUE!&quot;
+  And cell-B6 reads &quot;0&quot;
+  And cell-B7 reads &quot;#DIV/0!&quot;
+  And cell-B8 reads &quot;-2&quot;
+  And cell-B9 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-03">FR-FUN-03 COUNT and COUNTA</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>COUNT</code> and <code>COUNTA</code> as 02, section 2.8.3 states: <code>COUNT</code> counts the number cells of its range arguments and its value arguments whose value is a number; <code>COUNTA</code> counts the cells of its range arguments that are not empty and each of its value arguments. An error cell or an error value is an error met.</li>
+<li><strong>Rationale:</strong> The user counts entries, numeric or not.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Counting
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;x&quot; in A2
+  And the user enters &quot;TRUE&quot; in A3
+  And the user enters &quot;&#39;&quot; in A4
+  And the user enters &quot;=A6&quot; in A5
+  When the user enters &quot;=COUNT(A1:A6)&quot; in B1
+  And the user enters &quot;=COUNTA(A1:A6)&quot; in B2
+  And the user enters &quot;=COUNT(A1:A6,7,&quot;&quot;x&quot;&quot;,TRUE)&quot; in B3
+  And the user enters &quot;=COUNTA(A6,&quot;&quot;&quot;&quot;)&quot; in B4
+  And the user enters &quot;=COUNT(A1:A6,1/0)&quot; in B5
+  Then cell-B1 reads &quot;2&quot;
+  And cell-B2 reads &quot;5&quot;
+  And cell-B3 reads &quot;3&quot;
+  And cell-B4 reads &quot;1&quot;
+  And cell-B5 reads &quot;#DIV/0!&quot;
+</code></pre>
+<h3 id="FR-FUN-04">FR-FUN-04 ROUND, ABS, INT, MOD</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>ROUND</code>, <code>ABS</code>, <code>INT</code> and <code>MOD</code> as 02, section 2.8.3 states. <code>ROUND</code> shall round on the decimal representation of the number, ties away from zero (02, section 2.4), after truncating its second argument toward zero.</li>
+<li><strong>Rationale:</strong> Rounding gives the result a person expects from the digits shown.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Rounding and remainders
+  When the user enters &quot;=ROUND(1.005,2)&quot; in A1
+  And the user enters &quot;=ROUND(-2.5,0)&quot; in A2
+  And the user enters &quot;=ROUND(1250,-2)&quot; in A3
+  And the user enters &quot;=ROUND(2.675,2)&quot; in A4
+  And the user enters &quot;=ROUND(1,10)&quot; in A5
+  And the user enters &quot;=ROUND(1.2345,2.9)&quot; in A6
+  And the user enters &quot;=INT(-2.5)&quot; in A7
+  And the user enters &quot;=MOD(-7,3)&quot; in A8
+  And the user enters &quot;=MOD(7,-3)&quot; in A9
+  And the user enters &quot;=MOD(5,0)&quot; in A10
+  And the user enters &quot;=ABS(-3.2)&quot; in A11
+  Then cell-A1 reads &quot;1.01&quot;
+  And cell-A2 reads &quot;-3&quot;
+  And cell-A3 reads &quot;1300&quot;
+  And cell-A4 reads &quot;2.68&quot;
+  And cell-A5 reads &quot;#NUM!&quot;
+  And cell-A6 reads &quot;1.23&quot;
+  And cell-A7 reads &quot;-3&quot;
+  And cell-A8 reads &quot;2&quot;
+  And cell-A9 reads &quot;-2&quot;
+  And cell-A10 reads &quot;#DIV/0!&quot;
+  And cell-A11 reads &quot;3.2&quot;
+</code></pre>
+<h3 id="FR-FUN-05">FR-FUN-05 IF</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>IF</code> as 02, section 2.8.3 states: the first argument is converted to logical, and only the chosen one of the two other arguments is evaluated. The result may be blank.</li>
+<li><strong>Rationale:</strong> A branch that is not taken cannot fail.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Branches
+  When the user enters &quot;=IF(1,&quot;&quot;y&quot;&quot;,1/0)&quot; in A1
+  And the user enters &quot;=IF(B9,&quot;&quot;y&quot;&quot;,&quot;&quot;n&quot;&quot;)&quot; in A2
+  And the user enters &quot;=IF(&quot;&quot;x&quot;&quot;,1,2)&quot; in A3
+  And the user enters &quot;=IF(1/0,1,2)&quot; in A4
+  And the user enters &quot;=IF(TRUE,B9,1)&amp;&quot;&quot;x&quot;&quot;&quot; in A5
+  And the user enters &quot;=IF(TRUE,B9,1)&quot; in A6
+  Then cell-A1 reads &quot;y&quot;
+  And cell-A2 reads &quot;n&quot;
+  And cell-A3 reads &quot;#VALUE!&quot;
+  And cell-A4 reads &quot;#DIV/0!&quot;
+  And cell-A5 reads &quot;x&quot;
+  And cell-A6 reads &quot;0&quot;
+</code></pre>
+<h3 id="FR-FUN-06">FR-FUN-06 AND, OR, NOT</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>AND</code>, <code>OR</code> and <code>NOT</code> as 02, section 2.8.3 states: every argument is evaluated and converted to logical in order, and the first error is the result, whatever the logical values before it.</li>
+<li><strong>Rationale:</strong> The result does not depend on a shortcut of the evaluation.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Logic
+  When the user enters &quot;=AND(1,TRUE)&quot; in A1
+  And the user enters &quot;=AND(FALSE,1/0)&quot; in A2
+  And the user enters &quot;=OR(0,B9)&quot; in A3
+  And the user enters &quot;=OR(TRUE,&quot;&quot;x&quot;&quot;)&quot; in A4
+  And the user enters &quot;=NOT(0)&quot; in A5
+  And the user enters &quot;=AND(B1:B2)&quot; in A6
+  Then cell-A1 reads &quot;TRUE&quot;
+  And cell-A2 reads &quot;#DIV/0!&quot;
+  And cell-A3 reads &quot;FALSE&quot;
+  And cell-A4 reads &quot;#VALUE!&quot;
+  And cell-A5 reads &quot;TRUE&quot;
+  And cell-A6 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-07">FR-FUN-07 IFERROR, ISERROR, ISBLANK</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>IFERROR</code>, <code>ISERROR</code> and <code>ISBLANK</code> as 02, section 2.8.3 states. <code>IFERROR</code> shall evaluate its second argument only when the first is an error. <code>ISBLANK</code> shall give <code>TRUE</code> only for a single reference to an empty cell.</li>
+<li><strong>Rationale:</strong> Errors and empty cells can be handled by the sheet itself.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Errors and blanks
+  Given the user enters &quot;=B9&quot; in B1
+  When the user enters &quot;=IFERROR(1/0,&quot;&quot;none&quot;&quot;)&quot; in A1
+  And the user enters &quot;=IFERROR(5,1/0)&quot; in A2
+  And the user enters &quot;=IFERROR(1/0,foo)&quot; in A3
+  And the user enters &quot;=ISERROR(1/0)&quot; in A4
+  And the user enters &quot;=ISERROR(B9)&quot; in A5
+  And the user enters &quot;=ISBLANK(B9)&quot; in A6
+  And the user enters &quot;=ISBLANK(B9:B9)&quot; in A7
+  And the user enters &quot;=ISBLANK(I1)&quot; in A8
+  And the user enters &quot;=ISBLANK((B9))&quot; in A9
+  And the user enters &quot;=ISBLANK(B1)&quot; in A10
+  Then cell-A1 reads &quot;none&quot;
+  And cell-A2 reads &quot;5&quot;
+  And cell-A3 reads &quot;#NAME?&quot;
+  And cell-A4 reads &quot;TRUE&quot;
+  And cell-A5 reads &quot;FALSE&quot;
+  And cell-A6 reads &quot;TRUE&quot;
+  And cell-A7 reads &quot;#VALUE!&quot;
+  And cell-A8 reads &quot;#REF!&quot;
+  And cell-A9 reads &quot;FALSE&quot;
+  And cell-A10 reads &quot;FALSE&quot;
+</code></pre>
+<h3 id="FR-FUN-08">FR-FUN-08 Text functions</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>LEN</code>, <code>UPPER</code>, <code>LEFT</code>, <code>RIGHT</code>, <code>MID</code> and <code>CONCAT</code> as 02, section 2.8.3 states, converting their text arguments to text and their count arguments to integers.</li>
+<li><strong>Rationale:</strong> Texts are measured, cut and joined.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Texts
+  Given the user enters &quot;a&quot; in B1
+  And the user enters &quot;2&quot; in C1
+  And the user enters &quot;TRUE&quot; in C2
+  When the user enters &quot;=LEN(12.50)&quot; in A1
+  And the user enters &quot;=LEFT(&quot;&quot;hello&quot;&quot;,2)&quot; in A2
+  And the user enters &quot;=RIGHT(&quot;&quot;hello&quot;&quot;,10)&quot; in A3
+  And the user enters &quot;=MID(&quot;&quot;hello&quot;&quot;,2,3)&quot; in A4
+  And the user enters &quot;=MID(&quot;&quot;hello&quot;&quot;,6,2)&quot; in A5
+  And the user enters &quot;=MID(&quot;&quot;hello&quot;&quot;,0,2)&quot; in A6
+  And the user enters &quot;=UPPER(&quot;&quot;abc&quot;&quot;)&amp;LEN(B9)&quot; in A7
+  And the user enters &quot;=CONCAT(B1:C2,&quot;&quot;-&quot;&quot;,1/4)&quot; in A8
+  And the user enters &quot;=LEFT(&quot;&quot;abc&quot;&quot;,1.9)&quot; in A9
+  And the user enters &quot;=LEFT(&quot;&quot;abc&quot;&quot;,-1)&quot; in A10
+  Then cell-A1 reads &quot;4&quot;
+  And cell-A2 reads &quot;he&quot;
+  And cell-A3 reads &quot;hello&quot;
+  And cell-A4 reads &quot;ell&quot;
+  And cell-A5 shows nothing and has data-kind &quot;text&quot;
+  And cell-A6 reads &quot;#VALUE!&quot;
+  And cell-A7 reads &quot;ABC0&quot;
+  And cell-A8 reads &quot;a2TRUE-0.25&quot;
+  And cell-A9 reads &quot;a&quot;
+  And cell-A10 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-09">FR-FUN-09 COUNTIF</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>COUNTIF</code> with the steps of 02, section 2.8.3, in their order: the first argument shall be a range argument, the criterion gives an operator and an operand, empty cells never match, and a cell matches an ordering operator only when its value has the type of the operand.</li>
+<li><strong>Rationale:</strong> Entries are counted by a condition written as a text.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Criteria
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;10&quot; in A2
+  And the user enters &quot;apple&quot; in A3
+  And the user enters &quot;Apple&quot; in A4
+  And the user enters &quot;TRUE&quot; in A6
+  And the user enters &quot;&#39;10&quot; in A7
+  When the user enters &quot;=COUNTIF(A1:A7,&quot;&quot;&gt;5&quot;&quot;)&quot; in B1
+  And the user enters &quot;=COUNTIF(A1:A7,&quot;&quot;apple&quot;&quot;)&quot; in B2
+  And the user enters &quot;=COUNTIF(A1:A7,&quot;&quot;&lt;&gt;apple&quot;&quot;)&quot; in B3
+  And the user enters &quot;=COUNTIF(A1:A7,10)&quot; in B4
+  And the user enters &quot;=COUNTIF(A1:A7,&quot;&quot;=10&quot;&quot;)&quot; in B5
+  And the user enters &quot;=COUNTIF(A1:A7,&quot;&quot;10&quot;&quot;)&quot; in B6
+  And the user enters &quot;=COUNTIF(A1:A7,TRUE)&quot; in B7
+  And the user enters &quot;=COUNTIF(A1:A7,&quot;&quot;&gt;=a&quot;&quot;)&quot; in B8
+  And the user enters &quot;=COUNTIF(5,5)&quot; in B9
+  And the user enters &quot;=COUNTIF(A1:A7,A5)&quot; in B10
+  Then cell-B1 reads &quot;1&quot;
+  And cell-B2 reads &quot;2&quot;
+  And cell-B3 reads &quot;4&quot;
+  And cell-B4 reads &quot;1&quot;
+  And cell-B5 reads &quot;1&quot;
+  And cell-B6 reads &quot;1&quot;
+  And cell-B7 reads &quot;1&quot;
+  And cell-B8 reads &quot;2&quot;
+  And cell-B9 reads &quot;#VALUE!&quot;
+  And cell-B10 reads &quot;0&quot;
+</code></pre>
+<p>In this scenario <code>B5</code> counts the number cell <code>A2</code> (the operand of <code>=10</code> is a number) and <code>B6</code> counts the text cell <code>A7</code> (the operand of <code>10</code> written as a string literal is a text).</p>
+<h3 id="FR-FUN-10">FR-FUN-10 SUMIF</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>SUMIF</code> with the steps of 02, section 2.8.3, in their order: both ranges shall be range arguments of the same size, and for each matching cell of the first range the number cell at the same position of the second range contributes, an error cell at that position being an error met.</li>
+<li><strong>Rationale:</strong> Amounts are totalled by category.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Sum by criterion
+  Given the user enters &quot;a&quot; in A1
+  And the user enters &quot;b&quot; in A2
+  And the user enters &quot;a&quot; in A3
+  And the user enters &quot;3&quot; in A4
+  And the user enters &quot;1&quot; in B1
+  And the user enters &quot;=1/0&quot; in B2
+  And the user enters &quot;x&quot; in B3
+  And the user enters &quot;4&quot; in B4
+  When the user enters &quot;=SUMIF(A1:A4,&quot;&quot;a&quot;&quot;,B1:B4)&quot; in C1
+  And the user enters &quot;=SUMIF(A1:A4,&quot;&quot;b&quot;&quot;,B1:B4)&quot; in C2
+  And the user enters &quot;=SUMIF(A1:A4,&quot;&quot;a&quot;&quot;,B1:B3)&quot; in C3
+  And the user enters &quot;=SUMIF(A1:A4,&quot;&quot;&gt;2&quot;&quot;,A1:A4)&quot; in C4
+  And the user enters &quot;=SUMIF(A1:A4,&quot;&quot;&lt;&gt;a&quot;&quot;,A1:A4)&quot; in C5
+  Then cell-C1 reads &quot;1&quot;
+  And cell-C2 reads &quot;#DIV/0!&quot;
+  And cell-C3 reads &quot;#VALUE!&quot;
+  And cell-C4 reads &quot;3&quot;
+  And cell-C5 reads &quot;3&quot;
+</code></pre>
+<h3 id="FR-FUN-11">FR-FUN-11 ROUNDUP and ROUNDDOWN</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>ROUNDUP</code> and <code>ROUNDDOWN</code> as 02, section 2.8.3 states: on the decimal representation of the number (02, section 2.4), <code>ROUNDDOWN</code> drops the digits beyond the place asked, toward zero, and <code>ROUNDUP</code> moves away from zero as soon as one dropped digit is not <code>0</code>. The second argument is truncated toward zero; if it is below -9 or above 9, then the system shall give <code>#NUM!</code>.</li>
+<li><strong>Rationale:</strong> Prices and quantities are rounded in a chosen direction, on the digits the user sees.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Directed rounding
+  When the user enters &quot;=ROUNDUP(1.2001,2)&quot; in A1
+  And the user enters &quot;=ROUNDUP(-1.2001,2)&quot; in A2
+  And the user enters &quot;=ROUNDUP(1.2,2)&quot; in A3
+  And the user enters &quot;=ROUNDDOWN(1.299,2)&quot; in A4
+  And the user enters &quot;=ROUNDDOWN(-1.299,2)&quot; in A5
+  And the user enters &quot;=ROUNDUP(1234,-2)&quot; in A6
+  And the user enters &quot;=ROUNDDOWN(1299,-2)&quot; in A7
+  And the user enters &quot;=ROUNDUP(0.1+0.2,1)&quot; in A8
+  And the user enters &quot;=ROUNDDOWN(2.675*100,0)&quot; in A9
+  And the user enters &quot;=ROUNDUP(1,10)&quot; in A10
+  And the user enters &quot;=ROUNDDOWN(5.99,0.9)&quot; in A11
+  And the user enters &quot;=ROUNDUP(-0.0001,2)&quot; in A12
+  Then cell-A1 reads &quot;1.21&quot;
+  And cell-A2 reads &quot;-1.21&quot;
+  And cell-A3 reads &quot;1.2&quot;
+  And cell-A4 reads &quot;1.29&quot;
+  And cell-A5 reads &quot;-1.29&quot;
+  And cell-A6 reads &quot;1300&quot;
+  And cell-A7 reads &quot;1200&quot;
+  And cell-A8 reads &quot;0.3&quot;
+  And cell-A9 reads &quot;267&quot;
+  And cell-A10 reads &quot;#NUM!&quot;
+  And cell-A11 reads &quot;5&quot;
+  And cell-A12 reads &quot;-0.01&quot;
+</code></pre>
+<p>In this scenario <code>A8</code> is 0.3 because <code>0.1+0.2</code> is normalized to 0.3 before the rounding, and <code>A9</code> is 267 because <code>2.675*100</code> is normalized to 267.5.</p>
+<h3 id="FR-FUN-12">FR-FUN-12 CHOOSE</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>CHOOSE</code> as 02, section 2.8.3 states: the first argument is converted to an integer, and only the value argument of that position is evaluated. If the position is below 1 or above the number of value arguments, then the system shall give <code>#VALUE!</code>. The result may be blank.</li>
+<li><strong>Rationale:</strong> One value is picked by its position, and the others cannot fail.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Picking a value
+  When the user enters &quot;=CHOOSE(2,&quot;&quot;a&quot;&quot;,&quot;&quot;b&quot;&quot;,1/0)&quot; in A1
+  And the user enters &quot;=CHOOSE(3,&quot;&quot;a&quot;&quot;,&quot;&quot;b&quot;&quot;,1/0)&quot; in A2
+  And the user enters &quot;=CHOOSE(0,1,2)&quot; in A3
+  And the user enters &quot;=CHOOSE(3,1,2)&quot; in A4
+  And the user enters &quot;=CHOOSE(2.9,10,20,30)&quot; in A5
+  And the user enters &quot;=CHOOSE(TRUE,10,20)&quot; in A6
+  And the user enters &quot;=CHOOSE(&quot;&quot;1&quot;&quot;,10,20)&quot; in A7
+  And the user enters &quot;=CHOOSE(1/0,foo)&quot; in A8
+  And the user enters &quot;=CHOOSE(1)&quot; in A9
+  And the user enters &quot;=CHOOSE(1,B9)&quot; in A10
+  And the user enters &quot;=CHOOSE(1,B9)&amp;&quot;&quot;x&quot;&quot;&quot; in A11
+  And the user enters &quot;=CHOOSE(1,5,A12)&quot; in A12
+  Then cell-A1 reads &quot;b&quot;
+  And cell-A2 reads &quot;#DIV/0!&quot;
+  And cell-A3 reads &quot;#VALUE!&quot;
+  And cell-A4 reads &quot;#VALUE!&quot;
+  And cell-A5 reads &quot;20&quot;
+  And cell-A6 reads &quot;10&quot;
+  And cell-A7 reads &quot;#VALUE!&quot;
+  And cell-A8 reads &quot;#DIV/0!&quot;
+  And cell-A9 reads &quot;#ARGS!&quot;
+  And cell-A10 reads &quot;0&quot;
+  And cell-A11 reads &quot;x&quot;
+  And cell-A12 reads &quot;#CYCLE!&quot;
+</code></pre>
+<h3 id="FR-FUN-13">FR-FUN-13 LOWER, TRIM, REPT</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>LOWER</code>, <code>TRIM</code> and <code>REPT</code> as 02, section 2.8.3 states. <code>TRIM</code> shall remove the leading and trailing spaces and reduce each run of spaces inside the text to one space. If the count of <code>REPT</code> is negative, or if the result would be longer than 255 code units, then the system shall give <code>#VALUE!</code>.</li>
+<li><strong>Rationale:</strong> Texts are cleaned and repeated, within a bounded length.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Cleaning and repeating
+  When the user enters &quot;=LOWER(&quot;&quot;AbC&quot;&quot;)&quot; in A1
+  And the user enters &quot;=LOWER(TRUE)&quot; in A2
+  And the user enters &quot;=LEN(TRIM(&quot;&quot;  a   b  &quot;&quot;))&quot; in A3
+  And the user enters &quot;=TRIM(&quot;&quot;  a   b  &quot;&quot;)&amp;&quot;&quot;|&quot;&quot;&quot; in A4
+  And the user enters &quot;=REPT(&quot;&quot;ab&quot;&quot;,3)&quot; in A5
+  And the user enters &quot;=REPT(&quot;&quot;ab&quot;&quot;,0)&quot; in A6
+  And the user enters &quot;=REPT(&quot;&quot;ab&quot;&quot;,-1)&quot; in A7
+  And the user enters &quot;=LEN(REPT(&quot;&quot;abc&quot;&quot;,85))&quot; in A8
+  And the user enters &quot;=REPT(&quot;&quot;abc&quot;&quot;,86)&quot; in A9
+  And the user enters &quot;=REPT(&quot;&quot;a&quot;&quot;,2.9)&quot; in A10
+  And the user enters &quot;=REPT(5,3)&quot; in A11
+  And the user enters &quot;=LEN(REPT(&quot;&quot;&quot;&quot;,1000))&quot; in A12
+  Then cell-A1 reads &quot;abc&quot;
+  And cell-A2 reads &quot;true&quot;
+  And cell-A3 reads &quot;3&quot;
+  And cell-A4 reads &quot;a b|&quot;
+  And cell-A5 reads &quot;ababab&quot;
+  And cell-A6 shows nothing and has data-kind &quot;text&quot;
+  And cell-A7 reads &quot;#VALUE!&quot;
+  And cell-A8 reads &quot;255&quot;
+  And cell-A9 reads &quot;#VALUE!&quot;
+  And cell-A10 reads &quot;aa&quot;
+  And cell-A11 reads &quot;555&quot;
+  And cell-A12 reads &quot;0&quot;
+</code></pre>
+<h3 id="FR-FUN-14">FR-FUN-14 FIND</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>FIND</code> as 02, section 2.8.3 states: the position of the first occurrence of the first text in the second, at or after the start position, letter case respected. If the start position is below 1 or above the length of the text plus 1, or if there is no occurrence, then the system shall give <code>#VALUE!</code>. The empty text shall be found at the start position.</li>
+<li><strong>Rationale:</strong> A text is located inside another one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Positions
+  When the user enters &quot;=FIND(&quot;&quot;b&quot;&quot;,&quot;&quot;abcabc&quot;&quot;)&quot; in A1
+  And the user enters &quot;=FIND(&quot;&quot;b&quot;&quot;,&quot;&quot;abcabc&quot;&quot;,3)&quot; in A2
+  And the user enters &quot;=FIND(&quot;&quot;B&quot;&quot;,&quot;&quot;abcabc&quot;&quot;)&quot; in A3
+  And the user enters &quot;=FIND(&quot;&quot;&quot;&quot;,&quot;&quot;abc&quot;&quot;)&quot; in A4
+  And the user enters &quot;=FIND(&quot;&quot;&quot;&quot;,&quot;&quot;abc&quot;&quot;,4)&quot; in A5
+  And the user enters &quot;=FIND(&quot;&quot;&quot;&quot;,&quot;&quot;abc&quot;&quot;,5)&quot; in A6
+  And the user enters &quot;=FIND(&quot;&quot;a&quot;&quot;,&quot;&quot;abc&quot;&quot;,0)&quot; in A7
+  And the user enters &quot;=FIND(&quot;&quot;c&quot;&quot;,&quot;&quot;abc&quot;&quot;,4)&quot; in A8
+  And the user enters &quot;=FIND(1,2105)&quot; in A9
+  And the user enters &quot;=FIND(&quot;&quot;bc&quot;&quot;,&quot;&quot;abcabc&quot;&quot;,2.9)&quot; in A10
+  And the user enters &quot;=FIND(&quot;&quot;a&quot;&quot;,1/0,foo)&quot; in A11
+  And the user enters &quot;=FIND(&quot;&quot;a&quot;&quot;)&quot; in A12
+  Then cell-A1 reads &quot;2&quot;
+  And cell-A2 reads &quot;5&quot;
+  And cell-A3 reads &quot;#VALUE!&quot;
+  And cell-A4 reads &quot;1&quot;
+  And cell-A5 reads &quot;4&quot;
+  And cell-A6 reads &quot;#VALUE!&quot;
+  And cell-A7 reads &quot;#VALUE!&quot;
+  And cell-A8 reads &quot;#VALUE!&quot;
+  And cell-A9 reads &quot;2&quot;
+  And cell-A10 reads &quot;2&quot;
+  And cell-A11 reads &quot;#DIV/0!&quot;
+  And cell-A12 reads &quot;#ARGS!&quot;
+</code></pre>
+<h3 id="FR-FUN-15">FR-FUN-15 SUBSTITUTE</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>SUBSTITUTE</code> as 02, section 2.8.3 states: the occurrences of the old text are found from left to right without overlap, letter case respected; without a fourth argument every occurrence is replaced, with it only the occurrence of that rank. If the fourth argument is below 1, then the system shall give <code>#VALUE!</code>. When the old text is empty, or when the rank is above the number of occurrences, the result is the text unchanged.</li>
+<li><strong>Rationale:</strong> A part of a text is replaced, everywhere or at one place.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Replacing
+  When the user enters &quot;=SUBSTITUTE(&quot;&quot;a-b-c&quot;&quot;,&quot;&quot;-&quot;&quot;,&quot;&quot;+&quot;&quot;)&quot; in A1
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;a-b-c&quot;&quot;,&quot;&quot;-&quot;&quot;,&quot;&quot;+&quot;&quot;,2)&quot; in A2
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;a-b-c&quot;&quot;,&quot;&quot;-&quot;&quot;,&quot;&quot;+&quot;&quot;,3)&quot; in A3
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;aaaa&quot;&quot;,&quot;&quot;aa&quot;&quot;,&quot;&quot;b&quot;&quot;)&quot; in A4
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;aaaaa&quot;&quot;,&quot;&quot;aa&quot;&quot;,&quot;&quot;b&quot;&quot;,2)&quot; in A5
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;abc&quot;&quot;,&quot;&quot;&quot;&quot;,&quot;&quot;x&quot;&quot;)&quot; in A6
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;abc&quot;&quot;,&quot;&quot;B&quot;&quot;,&quot;&quot;x&quot;&quot;)&quot; in A7
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;abc&quot;&quot;,&quot;&quot;b&quot;&quot;,&quot;&quot;x&quot;&quot;,0)&quot; in A8
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;abc&quot;&quot;,&quot;&quot;&quot;&quot;,&quot;&quot;x&quot;&quot;,0)&quot; in A9
+  And the user enters &quot;=SUBSTITUTE(1212,1,&quot;&quot;-&quot;&quot;)&quot; in A10
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;aXa&quot;&quot;,&quot;&quot;a&quot;&quot;,&quot;&quot;aa&quot;&quot;)&quot; in A11
+  And the user enters &quot;=SUBSTITUTE(&quot;&quot;abc&quot;&quot;,&quot;&quot;b&quot;&quot;,&quot;&quot;x&quot;&quot;,1.9)&quot; in A12
+  Then cell-A1 reads &quot;a+b+c&quot;
+  And cell-A2 reads &quot;a-b+c&quot;
+  And cell-A3 reads &quot;a-b-c&quot;
+  And cell-A4 reads &quot;bb&quot;
+  And cell-A5 reads &quot;aaba&quot;
+  And cell-A6 reads &quot;abc&quot;
+  And cell-A7 reads &quot;abc&quot;
+  And cell-A8 reads &quot;#VALUE!&quot;
+  And cell-A9 reads &quot;#VALUE!&quot;
+  And cell-A10 reads &quot;-2-2&quot;
+  And cell-A11 reads &quot;aaXaa&quot;
+  And cell-A12 reads &quot;axc&quot;
+</code></pre>
+<h3 id="FR-FUN-16">FR-FUN-16 TEXT with number patterns</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>TEXT</code> with a number pattern as 02, section 2.8.3 states: the pattern matches <code>^(#,##)?0(\.0{1,6})?%?$</code>; the number, multiplied by 100 and normalized when the pattern ends with <code>%</code>, is rounded on its decimal representation to the number of <code>0</code> after the point, ties away from zero, written with exactly that many decimals, grouped by three digits when the pattern starts with <code>#,##</code>, without sign when it rounds to zero, and followed by <code>%</code> when the pattern ends with it. The result shall be a text. The first argument is converted to a number: if it is a text, then the system shall give <code>#VALUE!</code>.</li>
+<li><strong>Rationale:</strong> A number is written into a label the way a format would show it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Number patterns
+  When the user enters &quot;=TEXT(1234.565,&quot;&quot;#,##0.00&quot;&quot;)&quot; in A1
+  And the user enters &quot;=TEXT(0.285,&quot;&quot;0.0%&quot;&quot;)&quot; in A2
+  And the user enters &quot;=TEXT(2.5,&quot;&quot;0&quot;&quot;)&quot; in A3
+  And the user enters &quot;=TEXT(-0.4,&quot;&quot;0&quot;&quot;)&quot; in A4
+  And the user enters &quot;=TEXT(1234567.891,&quot;&quot;#,##0&quot;&quot;)&quot; in A5
+  And the user enters &quot;=TEXT(1.005,&quot;&quot;0.00&quot;&quot;)&quot; in A6
+  And the user enters &quot;=TEXT(-1234.5,&quot;&quot;#,##0.0&quot;&quot;)&quot; in A7
+  And the user enters &quot;=TEXT(0.5,&quot;&quot;0%&quot;&quot;)&quot; in A8
+  And the user enters &quot;=TEXT(1/3,&quot;&quot;0.000000&quot;&quot;)&quot; in A9
+  And the user enters &quot;=TEXT(1234.5,0)&quot; in A10
+  And the user enters &quot;=TEXT(TRUE,&quot;&quot;0.0&quot;&quot;)&quot; in A11
+  And the user enters &quot;=TEXT(B9,&quot;&quot;0.00&quot;&quot;)&quot; in A12
+  And the user enters &quot;=TEXT(12345678,&quot;&quot;#,##0.00%&quot;&quot;)&quot; in B1
+  And the user enters &quot;=TEXT(99999999999999,&quot;&quot;0%&quot;&quot;)&quot; in B2
+  And the user enters &quot;=TEXT(5,&quot;&quot;0&quot;&quot;)+1&quot; in B3
+  And the user enters &quot;=TEXT(&quot;&quot;5&quot;&quot;,&quot;&quot;0&quot;&quot;)&quot; in B4
+  Then cell-A1 reads &quot;1,234.57&quot; and has data-kind &quot;text&quot;
+  And cell-A2 reads &quot;28.5%&quot;
+  And cell-A3 reads &quot;3&quot;
+  And cell-A4 reads &quot;0&quot;
+  And cell-A5 reads &quot;1,234,568&quot;
+  And cell-A6 reads &quot;1.01&quot;
+  And cell-A7 reads &quot;-1,234.5&quot;
+  And cell-A8 reads &quot;50%&quot;
+  And cell-A9 reads &quot;0.333333&quot;
+  And cell-A10 reads &quot;1235&quot;
+  And cell-A11 reads &quot;1.0&quot;
+  And cell-A12 reads &quot;0.00&quot;
+  And cell-B1 reads &quot;1,234,567,800.00%&quot;
+  And cell-B2 reads &quot;#NUM!&quot;
+  And cell-B3 reads &quot;#VALUE!&quot;
+  And cell-B4 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-17">FR-FUN-17 TEXT with the date pattern, and other patterns</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>TEXT</code> with the pattern <code>yyyy-mm-dd</code> as 02, section 2.8.3 states: the day whose serial number is the largest integer less than or equal to the number, written <code>YYYY-MM-DD</code>. If that integer is not a serial number, then the system shall give <code>#NUM!</code>. If the pattern is neither <code>yyyy-mm-dd</code>, letter case respected, nor a number pattern, then the system shall give <code>#VALUE!</code>. Both arguments are converted, in order, before the pattern is checked.</li>
+<li><strong>Rationale:</strong> A date is written into a label; the set of patterns is closed, so every pattern has one known result.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Dates and unknown patterns
+  When the user enters &quot;=TEXT(45350,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A1
+  And the user enters &quot;=TEXT(45350.99,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A2
+  And the user enters &quot;=TEXT(DATE(2024,12,31)+1,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A3
+  And the user enters &quot;=TEXT(1,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A4
+  And the user enters &quot;=TEXT(60,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A5
+  And the user enters &quot;=TEXT(0,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A6
+  And the user enters &quot;=TEXT(2958465,&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A7
+  And the user enters &quot;=TEXT(5,&quot;&quot;YYYY-MM-DD&quot;&quot;)&quot; in A8
+  And the user enters &quot;=TEXT(5,&quot;&quot;0.0000000&quot;&quot;)&quot; in A9
+  And the user enters &quot;=TEXT(5,&quot;&quot;#0&quot;&quot;)&quot; in A10
+  And the user enters &quot;=TEXT(5,&quot;&quot;&quot;&quot;)&quot; in A11
+  And the user enters &quot;=TEXT(1/0,&quot;&quot;bad&quot;&quot;)&quot; in A12
+  And the user enters &quot;=TEXT(&quot;&quot;x&quot;&quot;,1/0)&quot; in B1
+  And the user enters &quot;=TEXT(5,1/0)&quot; in B2
+  And the user enters &quot;=TEXT(5,&quot;&quot; 0&quot;&quot;)&quot; in B3
+  Then cell-A1 reads &quot;2024-02-29&quot; and has data-kind &quot;text&quot;
+  And cell-A2 reads &quot;2024-02-29&quot;
+  And cell-A3 reads &quot;2025-01-01&quot;
+  And cell-A4 reads &quot;1900-01-01&quot;
+  And cell-A5 reads &quot;1900-03-01&quot;
+  And cell-A6 reads &quot;#NUM!&quot;
+  And cell-A7 reads &quot;#NUM!&quot;
+  And cell-A8 reads &quot;#VALUE!&quot;
+  And cell-A9 reads &quot;#VALUE!&quot;
+  And cell-A10 reads &quot;#VALUE!&quot;
+  And cell-A11 reads &quot;#VALUE!&quot;
+  And cell-A12 reads &quot;#DIV/0!&quot;
+  And cell-B1 reads &quot;#VALUE!&quot;
+  And cell-B2 reads &quot;#DIV/0!&quot;
+  And cell-B3 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-18">FR-FUN-18 MATCH with an exact search</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>MATCH</code> with the steps of 02, section 2.8.3, in their order: the list shall be a range argument of one row or one column, and the type shall be -1, 0 or 1. With the type 0, the system shall give the position of the first cell that has the type of the key and is equal to it, texts being compared without regard to letter case; empty cells are never found; an error cell visited before the cell found is an error met, and the cells after the cell found are not visited. If no cell is found, then the system shall give <code>#N/A</code>. A blank key is the number 0.</li>
+<li><strong>Rationale:</strong> The position of an entry is found whatever the order of the list.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Exact positions
+  Given the user enters &quot;10&quot; in A1
+  And the user enters &quot;apple&quot; in A2
+  And the user enters &quot;20&quot; in A3
+  And the user enters &quot;Apple&quot; in A4
+  And the user enters &quot;TRUE&quot; in A6
+  And the user enters &quot;&#39;20&quot; in A7
+  And the user enters &quot;=1/0&quot; in A8
+  When the user enters &quot;=MATCH(20,A1:A7,0)&quot; in B1
+  And the user enters &quot;=MATCH(&quot;&quot;APPLE&quot;&quot;,A1:A7,0)&quot; in B2
+  And the user enters &quot;=MATCH(&quot;&quot;20&quot;&quot;,A1:A7,0)&quot; in B3
+  And the user enters &quot;=MATCH(TRUE,A1:A7,0)&quot; in B4
+  And the user enters &quot;=MATCH(30,A1:A7,0)&quot; in B5
+  And the user enters &quot;=MATCH(20,A1:A8,0)&quot; in B6
+  And the user enters &quot;=MATCH(30,A1:A8,0)&quot; in B7
+  And the user enters &quot;=MATCH(H9,A1:A7,0)&quot; in B8
+  And the user enters &quot;=MATCH(20,A1:B7,0)&quot; in B9
+  And the user enters &quot;=MATCH(20,5,0)&quot; in B10
+  And the user enters &quot;=MATCH(20,A1:A7,2)&quot; in B11
+  And the user enters &quot;=MATCH(10,A1:H1,0)&quot; in B12
+  And the user enters &quot;=MATCH(1/0,A1:B7,0)&quot; in C1
+  And the user enters &quot;=MATCH(20,nolist,0)&quot; in C2
+  And the user enters &quot;=MATCH(1/0,A1:A7,foo)&quot; in C3
+  Then cell-B1 reads &quot;3&quot;
+  And cell-B2 reads &quot;2&quot;
+  And cell-B3 reads &quot;7&quot;
+  And cell-B4 reads &quot;6&quot;
+  And cell-B5 reads &quot;#N/A&quot;
+  And cell-B6 reads &quot;3&quot;
+  And cell-B7 reads &quot;#DIV/0!&quot;
+  And cell-B8 reads &quot;#N/A&quot;
+  And cell-B9 reads &quot;#VALUE!&quot;
+  And cell-B10 reads &quot;#VALUE!&quot;
+  And cell-B11 reads &quot;#VALUE!&quot;
+  And cell-B12 reads &quot;1&quot;
+  And cell-C1 reads &quot;#VALUE!&quot;
+  And cell-C2 reads &quot;#NAME?&quot;
+  And cell-C3 reads &quot;#DIV/0!&quot;
+</code></pre>
+<h3 id="FR-FUN-19">FR-FUN-19 MATCH with an approximate search</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>MATCH</code> with the type 1, which is also the type when the third argument is left out, as the &quot;at most&quot; search of 02, section 2.8.3, and with the type -1 as the &quot;at least&quot; search: every cell of the list is visited, an error cell is an error met, only the cells that have the type of the key are compared, and when several cells hold the value kept, the last one visited is found. The system shall not suppose that the list is sorted. If no cell is found, then the system shall give <code>#N/A</code>.</li>
+<li><strong>Rationale:</strong> A threshold is found in a list that the user did not have to sort.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: At most and at least, list not sorted
+  Given the user enters &quot;30&quot; in C1
+  And the user enters &quot;10&quot; in C2
+  And the user enters &quot;x&quot; in C3
+  And the user enters &quot;20&quot; in C4
+  And the user enters &quot;20&quot; in C5
+  And the user enters &quot;40&quot; in C7
+  And the user enters &quot;5&quot; in D1
+  And the user enters &quot;=1/0&quot; in D2
+  And the user enters &quot;9&quot; in D3
+  When the user enters &quot;=MATCH(25,C1:C7,1)&quot; in A1
+  And the user enters &quot;=MATCH(25,C1:C7)&quot; in A2
+  And the user enters &quot;=MATCH(5,C1:C7,1)&quot; in A3
+  And the user enters &quot;=MATCH(100,C1:C7,1)&quot; in A4
+  And the user enters &quot;=MATCH(25,C1:C7,-1)&quot; in A5
+  And the user enters &quot;=MATCH(20,C1:C7,-1)&quot; in A6
+  And the user enters &quot;=MATCH(50,C1:C7,-1)&quot; in A7
+  And the user enters &quot;=MATCH(&quot;&quot;y&quot;&quot;,C1:C7,1)&quot; in A8
+  And the user enters &quot;=MATCH(&quot;&quot;a&quot;&quot;,C1:C7,1)&quot; in A9
+  And the user enters &quot;=MATCH(20,C1:C7,1.9)&quot; in A10
+  And the user enters &quot;=MATCH(5,D1:D3,0)&quot; in A11
+  And the user enters &quot;=MATCH(5,D1:D3,1)&quot; in A12
+  Then cell-A1 reads &quot;5&quot;
+  And cell-A2 reads &quot;5&quot;
+  And cell-A3 reads &quot;#N/A&quot;
+  And cell-A4 reads &quot;7&quot;
+  And cell-A5 reads &quot;1&quot;
+  And cell-A6 reads &quot;5&quot;
+  And cell-A7 reads &quot;#N/A&quot;
+  And cell-A8 reads &quot;3&quot;
+  And cell-A9 reads &quot;#N/A&quot;
+  And cell-A10 reads &quot;5&quot;
+  And cell-A11 reads &quot;1&quot;
+  And cell-A12 reads &quot;#DIV/0!&quot;
+</code></pre>
+<h3 id="FR-FUN-20">FR-FUN-20 INDEX</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>INDEX</code> with the steps of 02, section 2.8.3, in their order: the first argument shall be a range argument. With two arguments the system shall give the value of the cell of that rank in the visiting order of the range; with three, the value of the cell on that row and that column of the range. If a rank, a row or a column is below 1, then the system shall give <code>#VALUE!</code>; otherwise, if it is beyond the range, then the system shall give <code>#REF!</code>. The result is blank for an empty cell and the error of an error cell.</li>
+<li><strong>Rationale:</strong> A cell of a block is read by its position.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: By rank and by row and column
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;2&quot; in B1
+  And the user enters &quot;3&quot; in A2
+  And the user enters &quot;=1/0&quot; in A3
+  And the user enters &quot;x&quot; in B3
+  When the user enters &quot;=INDEX(A1:B3,2,1)&quot; in D1
+  And the user enters &quot;=INDEX(A1:B3,4)&quot; in D2
+  And the user enters &quot;=INDEX(A1:B3,4)&amp;&quot;&quot;|&quot;&quot;&quot; in D3
+  And the user enters &quot;=INDEX(A1:B3,3)&quot; in D4
+  And the user enters &quot;=INDEX(A1:B3,5)&quot; in D5
+  And the user enters &quot;=INDEX(A1:B3,3,2)&quot; in D6
+  And the user enters &quot;=INDEX(A1:B3,7)&quot; in D7
+  And the user enters &quot;=INDEX(A1:B3,0)&quot; in D8
+  And the user enters &quot;=INDEX(A1:B3,4,1)&quot; in D9
+  And the user enters &quot;=INDEX(A1:B3,0,9)&quot; in D10
+  And the user enters &quot;=INDEX(A1:B3,1,3)&quot; in D11
+  And the user enters &quot;=INDEX(5,1)&quot; in D12
+  And the user enters &quot;=INDEX(A1,1)&quot; in E1
+  And the user enters &quot;=INDEX(A1:B3,2.9,1.9)&quot; in E2
+  And the user enters &quot;=INDEX(A1:B1,MATCH(2,A1:B1,0))&quot; in E3
+  And the user enters &quot;=INDEX(A1:B3,&quot;&quot;x&quot;&quot;,1/0)&quot; in E4
+  Then cell-D1 reads &quot;3&quot;
+  And cell-D2 reads &quot;0&quot;
+  And cell-D3 reads &quot;|&quot;
+  And cell-D4 reads &quot;3&quot;
+  And cell-D5 reads &quot;#DIV/0!&quot;
+  And cell-D6 reads &quot;x&quot;
+  And cell-D7 reads &quot;#REF!&quot;
+  And cell-D8 reads &quot;#VALUE!&quot;
+  And cell-D9 reads &quot;#REF!&quot;
+  And cell-D10 reads &quot;#VALUE!&quot;
+  And cell-D11 reads &quot;#REF!&quot;
+  And cell-D12 reads &quot;#VALUE!&quot;
+  And cell-E1 reads &quot;1&quot;
+  And cell-E2 reads &quot;3&quot;
+  And cell-E3 reads &quot;2&quot;
+  And cell-E4 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-21">FR-FUN-21 VLOOKUP with an exact search</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>VLOOKUP</code> with the steps of 02, section 2.8.3, in their order. When the fourth argument is left out or is <code>FALSE</code>, the system shall search the first column of the table from the top with the exact search, and shall give the value of the cell of the row found in the column asked: blank for an empty cell, its error for an error cell. If the column number is below 1, then the system shall give <code>#VALUE!</code>; if it is above the number of columns of the table, <code>#REF!</code>; both before the fourth argument is evaluated. If no row is found, then the system shall give <code>#N/A</code>.</li>
+<li><strong>Rationale:</strong> A value is read from a table by its label, and a missing label is not mistaken for a close one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Exact lookups
+  Given the user enters &quot;pear&quot; in A1
+  And the user enters &quot;3&quot; in B1
+  And the user enters &quot;=1/0&quot; in C1
+  And the user enters &quot;apple&quot; in A2
+  And the user enters &quot;5&quot; in B2
+  And the user enters &quot;Apple&quot; in A3
+  And the user enters &quot;7&quot; in B3
+  And the user enters &quot;10&quot; in A4
+  And the user enters &quot;ten&quot; in B4
+  And the user enters &quot;9&quot; in B5
+  And the user enters &quot;=foo&quot; in A6
+  And the user enters &quot;1&quot; in B6
+  And the user enters &quot;fig&quot; in A7
+  When the user enters &quot;=VLOOKUP(&quot;&quot;APPLE&quot;&quot;,A1:C7,2)&quot; in E1
+  And the user enters &quot;=VLOOKUP(&quot;&quot;apple&quot;&quot;,A1:C7,2,FALSE)&quot; in E2
+  And the user enters &quot;=VLOOKUP(10,A1:C7,2)&quot; in E3
+  And the user enters &quot;=VLOOKUP(&quot;&quot;10&quot;&quot;,A1:C7,2)&quot; in E4
+  And the user enters &quot;=VLOOKUP(&quot;&quot;10&quot;&quot;,A1:C5,2)&quot; in E5
+  And the user enters &quot;=VLOOKUP(&quot;&quot;fig&quot;&quot;,A1:C7,2)&quot; in E6
+  And the user enters &quot;=VLOOKUP(&quot;&quot;pear&quot;&quot;,A1:C7,3)&quot; in E7
+  And the user enters &quot;=VLOOKUP(&quot;&quot;pear&quot;&quot;,A1:C7,4)&quot; in E8
+  And the user enters &quot;=VLOOKUP(&quot;&quot;pear&quot;&quot;,A1:C7,0)&quot; in E9
+  And the user enters &quot;=VLOOKUP(&quot;&quot;pear&quot;&quot;,A1:C7,2.9)&quot; in E10
+  And the user enters &quot;=VLOOKUP(H9,A1:C5,2)&quot; in E11
+  And the user enters &quot;=VLOOKUP(&quot;&quot;pear&quot;&quot;,5,1)&quot; in E12
+  And the user enters &quot;=VLOOKUP(&quot;&quot;apple&quot;&quot;,A2:B3,3,1/0)&quot; in F1
+  And the user enters &quot;=VLOOKUP(&quot;&quot;fig&quot;&quot;,A7:B7,2)&quot; in F2
+  And the user enters &quot;=VLOOKUP(&quot;&quot;fig&quot;&quot;,A7:B7,2)&amp;&quot;&quot;|&quot;&quot;&quot; in F3
+  Then cell-E1 reads &quot;5&quot;
+  And cell-E2 reads &quot;5&quot;
+  And cell-E3 reads &quot;ten&quot;
+  And cell-E4 reads &quot;#NAME?&quot;
+  And cell-E5 reads &quot;#N/A&quot;
+  And cell-E6 reads &quot;#NAME?&quot;
+  And cell-E7 reads &quot;#DIV/0!&quot;
+  And cell-E8 reads &quot;#REF!&quot;
+  And cell-E9 reads &quot;#VALUE!&quot;
+  And cell-E10 reads &quot;3&quot;
+  And cell-E11 reads &quot;#N/A&quot;
+  And cell-E12 reads &quot;#VALUE!&quot;
+  And cell-F1 reads &quot;#REF!&quot;
+  And cell-F2 reads &quot;0&quot;
+  And cell-F3 reads &quot;|&quot;
+</code></pre>
+<p>In this scenario <code>E4</code> and <code>E6</code> meet the error cell <code>A6</code> before any cell equal to the key; <code>E3</code> stops at <code>A4</code> and never visits <code>A6</code>.</p>
+<h3 id="FR-FUN-22">FR-FUN-22 VLOOKUP with an approximate search</h3>
+<ul>
+<li><strong>Statement:</strong> When the fourth argument of <code>VLOOKUP</code>, converted to logical, is <code>TRUE</code>, the system shall search the first column of the table with the &quot;at most&quot; search of 02, section 2.8.3: among the cells that have the type of the key and are less than or equal to it, the one with the greatest value, and the last one visited when several hold it. Every cell of the first column is visited and an error cell is an error met. The system shall not suppose that the table is sorted.</li>
+<li><strong>Rationale:</strong> A value falls into the right bracket of a scale, in whatever order the scale was typed.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Brackets, table not sorted
+  Given the user enters &quot;50&quot; in E1
+  And the user enters &quot;C&quot; in F1
+  And the user enters &quot;0&quot; in E2
+  And the user enters &quot;F&quot; in F2
+  And the user enters &quot;90&quot; in E3
+  And the user enters &quot;A&quot; in F3
+  And the user enters &quot;70&quot; in E4
+  And the user enters &quot;B&quot; in F4
+  And the user enters &quot;70&quot; in E5
+  And the user enters &quot;B+&quot; in F5
+  And the user enters &quot;x&quot; in E6
+  And the user enters &quot;none&quot; in F6
+  When the user enters &quot;=VLOOKUP(75,E1:F6,2,TRUE)&quot; in A1
+  And the user enters &quot;=VLOOKUP(49,E1:F6,2,TRUE)&quot; in A2
+  And the user enters &quot;=VLOOKUP(-1,E1:F6,2,TRUE)&quot; in A3
+  And the user enters &quot;=VLOOKUP(1000,E1:F6,2,1)&quot; in A4
+  And the user enters &quot;=VLOOKUP(75,E1:F6,2)&quot; in A5
+  And the user enters &quot;=VLOOKUP(&quot;&quot;zz&quot;&quot;,E1:F6,2,TRUE)&quot; in A6
+  And the user enters &quot;=VLOOKUP(75,E1:F6,2,&quot;&quot;yes&quot;&quot;)&quot; in A7
+  And the user enters &quot;=VLOOKUP(75,E1:F6,1,TRUE)&quot; in A8
+  And the user enters &quot;=VLOOKUP(70,E1:F6,2,TRUE)&quot; in A9
+  Then cell-A1 reads &quot;B+&quot;
+  And cell-A2 reads &quot;F&quot;
+  And cell-A3 reads &quot;#N/A&quot;
+  And cell-A4 reads &quot;A&quot;
+  And cell-A5 reads &quot;#N/A&quot;
+  And cell-A6 reads &quot;none&quot;
+  And cell-A7 reads &quot;#VALUE!&quot;
+  And cell-A8 reads &quot;70&quot;
+  And cell-A9 reads &quot;B+&quot;
+</code></pre>
+<h3 id="FR-FUN-23">FR-FUN-23 COUNTIFS</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>COUNTIFS</code> with the steps of 02, section 2.8.3, in their order: an even number of arguments, every range a range argument, all ranges of the same size, then the criteria evaluated in order. The system shall count the positions at which every criterion is met by the cell of its range, the criteria being examined in order and no further than the first one that is not met; an error cell that is examined is an error met; an empty cell meets no criterion.</li>
+<li><strong>Rationale:</strong> Entries are counted on several conditions at once.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Several criteria
+  Given the user enters &quot;a&quot; in A1
+  And the user enters &quot;b&quot; in A2
+  And the user enters &quot;a&quot; in A3
+  And the user enters &quot;a&quot; in A4
+  And the user enters &quot;1&quot; in B1
+  And the user enters &quot;2&quot; in B2
+  And the user enters &quot;3&quot; in B3
+  And the user enters &quot;=nope&quot; in B4
+  And the user enters &quot;5&quot; in B5
+  And the user enters &quot;x&quot; in C1
+  And the user enters &quot;x&quot; in C2
+  And the user enters &quot;y&quot; in C3
+  And the user enters &quot;x&quot; in C4
+  And the user enters &quot;x&quot; in C5
+  When the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;a&quot;&quot;)&quot; in E1
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;a&quot;&quot;,C1:C5,&quot;&quot;x&quot;&quot;)&quot; in E2
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;a&quot;&quot;,B1:B5,&quot;&quot;&gt;1&quot;&quot;)&quot; in E3
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;b&quot;&quot;,B1:B5,&quot;&quot;&gt;1&quot;&quot;)&quot; in E4
+  And the user enters &quot;=COUNTIFS(B1:B5,&quot;&quot;&gt;1&quot;&quot;,A1:A5,&quot;&quot;b&quot;&quot;)&quot; in E5
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;a&quot;&quot;,C1:C5)&quot; in E6
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;&lt;&gt;a&quot;&quot;)&quot; in E7
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;a&quot;&quot;,5,&quot;&quot;x&quot;&quot;)&quot; in E8
+  And the user enters &quot;=COUNTIFS(A1:A5,1/0,C1:D5,&quot;&quot;x&quot;&quot;)&quot; in E9
+  And the user enters &quot;=COUNTIFS(A1:A5,&quot;&quot;a&quot;&quot;,B1:B3,&quot;&quot;&gt;1&quot;&quot;)&quot; in E10
+  And the user enters &quot;=COUNTIFS(C1:C5,&quot;&quot;x&quot;&quot;,B1:B5,&quot;&quot;&lt;5&quot;&quot;)&quot; in E11
+  Then cell-E1 reads &quot;3&quot;
+  And cell-E2 reads &quot;2&quot;
+  And cell-E3 reads &quot;#NAME?&quot;
+  And cell-E4 reads &quot;1&quot;
+  And cell-E5 reads &quot;#NAME?&quot;
+  And cell-E6 reads &quot;#ARGS!&quot;
+  And cell-E7 reads &quot;1&quot;
+  And cell-E8 reads &quot;#VALUE!&quot;
+  And cell-E9 reads &quot;#VALUE!&quot;
+  And cell-E10 reads &quot;#VALUE!&quot;
+  And cell-E11 reads &quot;#NAME?&quot;
+</code></pre>
+<p>In this scenario <code>E4</code> never examines the error cell <code>B4</code>, because <code>A4</code> does not meet the first criterion; <code>E5</code> examines it first.</p>
+<h3 id="FR-FUN-24">FR-FUN-24 SUMIFS</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>SUMIFS</code> with the steps of 02, section 2.8.3, in their order: an odd number of arguments, the first being the range to add, all ranges being range arguments of the same size. For each position at which every criterion is met, the number cell at that position of the first range contributes, an error cell at that position is an error met, and any other cell is ignored.</li>
+<li><strong>Rationale:</strong> Amounts are totalled on several conditions at once.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Sum on several criteria
+  Given the user enters &quot;a&quot; in A1
+  And the user enters &quot;b&quot; in A2
+  And the user enters &quot;a&quot; in A3
+  And the user enters &quot;a&quot; in A4
+  And the user enters &quot;1&quot; in B1
+  And the user enters &quot;2&quot; in B2
+  And the user enters &quot;3&quot; in B3
+  And the user enters &quot;=nope&quot; in B4
+  And the user enters &quot;5&quot; in B5
+  And the user enters &quot;x&quot; in C1
+  And the user enters &quot;x&quot; in C2
+  And the user enters &quot;y&quot; in C3
+  And the user enters &quot;x&quot; in C4
+  And the user enters &quot;x&quot; in C5
+  And the user enters &quot;10&quot; in D1
+  And the user enters &quot;20&quot; in D2
+  And the user enters &quot;30&quot; in D3
+  And the user enters &quot;40&quot; in D4
+  And the user enters &quot;50&quot; in D5
+  When the user enters &quot;=SUMIFS(D1:D5,A1:A5,&quot;&quot;a&quot;&quot;)&quot; in F1
+  And the user enters &quot;=SUMIFS(D1:D5,A1:A5,&quot;&quot;a&quot;&quot;,C1:C5,&quot;&quot;x&quot;&quot;)&quot; in F2
+  And the user enters &quot;=SUMIFS(B1:B5,A1:A5,&quot;&quot;a&quot;&quot;)&quot; in F3
+  And the user enters &quot;=SUMIFS(B1:B5,A1:A5,&quot;&quot;b&quot;&quot;)&quot; in F4
+  And the user enters &quot;=SUMIFS(C1:C5,A1:A5,&quot;&quot;a&quot;&quot;)&quot; in F5
+  And the user enters &quot;=SUMIFS(D1:D5,A1:A5)&quot; in F6
+  And the user enters &quot;=SUMIFS(D1:D4,A1:A5,&quot;&quot;a&quot;&quot;)&quot; in F7
+  And the user enters &quot;=SUMIFS(D1:D5,D1:D5,&quot;&quot;&gt;=20&quot;&quot;,D1:D5,&quot;&quot;&lt;50&quot;&quot;)&quot; in F8
+  And the user enters &quot;=SUMIFS(5,A1:A5,&quot;&quot;a&quot;&quot;)&quot; in F9
+  And the user enters &quot;=SUMIFS(D1:D5,A1:A5,&quot;&quot;a&quot;&quot;,nope,1)&quot; in F10
+  And the user enters &quot;=SUMIFS(D1:D5,A1:A5,&quot;&quot;a&quot;&quot;,1,nope)&quot; in F11
+  Then cell-F1 reads &quot;80&quot;
+  And cell-F2 reads &quot;50&quot;
+  And cell-F3 reads &quot;#NAME?&quot;
+  And cell-F4 reads &quot;2&quot;
+  And cell-F5 reads &quot;0&quot;
+  And cell-F6 reads &quot;#ARGS!&quot;
+  And cell-F7 reads &quot;#VALUE!&quot;
+  And cell-F8 reads &quot;90&quot;
+  And cell-F9 reads &quot;#VALUE!&quot;
+  And cell-F10 reads &quot;#NAME?&quot;
+  And cell-F11 reads &quot;#VALUE!&quot;
+</code></pre>
+<h3 id="FR-FUN-25">FR-FUN-25 AVERAGEIF</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>AVERAGEIF</code> with the steps of 02, section 2.8.3, in their order. With two arguments the range of the criterion is also the range to average. The result is the sum of the contributions, before its normalization, divided by their number. If no number cell contributes, then the system shall give <code>#DIV/0!</code>.</li>
+<li><strong>Rationale:</strong> An average is taken over the entries that meet a condition.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Average on a criterion
+  Given the user enters &quot;a&quot; in A1
+  And the user enters &quot;b&quot; in A2
+  And the user enters &quot;a&quot; in A3
+  And the user enters &quot;a&quot; in A4
+  And the user enters &quot;1&quot; in B1
+  And the user enters &quot;2&quot; in B2
+  And the user enters &quot;3&quot; in B3
+  And the user enters &quot;=nope&quot; in B4
+  And the user enters &quot;5&quot; in B5
+  And the user enters &quot;10&quot; in D1
+  And the user enters &quot;20&quot; in D2
+  And the user enters &quot;30&quot; in D3
+  And the user enters &quot;40&quot; in D4
+  And the user enters &quot;50&quot; in D5
+  When the user enters &quot;=AVERAGEIF(D1:D5,&quot;&quot;&gt;20&quot;&quot;)&quot; in F1
+  And the user enters &quot;=AVERAGEIF(A1:A5,&quot;&quot;a&quot;&quot;,D1:D5)&quot; in F2
+  And the user enters &quot;=AVERAGEIF(A1:A5,&quot;&quot;a&quot;&quot;)&quot; in F3
+  And the user enters &quot;=AVERAGEIF(A1:A5,&quot;&quot;z&quot;&quot;,D1:D5)&quot; in F4
+  And the user enters &quot;=AVERAGEIF(A1:A5,&quot;&quot;b&quot;&quot;,B1:B5)&quot; in F5
+  And the user enters &quot;=AVERAGEIF(A1:A5,&quot;&quot;a&quot;&quot;,B1:B5)&quot; in F6
+  And the user enters &quot;=AVERAGEIF(A1:A5,&quot;&quot;a&quot;&quot;,D1:D4)&quot; in F7
+  And the user enters &quot;=AVERAGEIF(A1:A5)&quot; in F8
+  And the user enters &quot;=AVERAGEIF(D1:D5,&quot;&quot;&lt;&gt;30&quot;&quot;)&quot; in F9
+  And the user enters &quot;=AVERAGEIF(B1:B3,&quot;&quot;&lt;3&quot;&quot;)&quot; in F10
+  Then cell-F1 reads &quot;40&quot;
+  And cell-F2 reads &quot;26.666667&quot;
+  And cell-F3 reads &quot;#DIV/0!&quot;
+  And cell-F4 reads &quot;#DIV/0!&quot;
+  And cell-F5 reads &quot;2&quot;
+  And cell-F6 reads &quot;#NAME?&quot;
+  And cell-F7 reads &quot;#VALUE!&quot;
+  And cell-F8 reads &quot;#ARGS!&quot;
+  And cell-F9 reads &quot;30&quot;
+  And cell-F10 reads &quot;1.5&quot;
+</code></pre>
+<h2 id="53-dates">5.3 Dates</h2>
+<h3 id="FR-DAT-01">FR-DAT-01 Date entries</h3>
+<ul>
+<li><strong>Statement:</strong> When a string is committed that, without its leading and trailing spaces, is a date entry (02, section 2.2), the system shall give the cell the number that is the serial number of that day (02, section 2.11), keep the string unchanged as raw content, and, if the format of the cell is <code>general</code>, change it to <code>date</code>; a cell with any other format shall keep it. A string written like a date that names no existing day from <code>1900-01-01</code> to <code>9999-12-31</code> is a text. The system shall count no 29 February in 1900. A formula has no date literal.</li>
+<li><strong>Rationale:</strong> A day is typed the way it is shown, and stays a number that formulas can use.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Dates and look-alikes
+  When the user enters &quot;2024-02-29&quot; in A1
+  And the user enters &quot; 1900-03-01 &quot; in A2
+  And the user enters &quot;2023-02-29&quot; in A3
+  And the user enters &quot;1900-02-29&quot; in A4
+  And the user enters &quot;2024-2-9&quot; in A5
+  And the user enters &quot;9999-12-31&quot; in A6
+  And the user enters &quot;&#39;2024-02-29&quot; in A7
+  And the user enters &quot;1899-12-31&quot; in A8
+  And the user enters &quot;=A1+1&quot; in B1
+  And the user enters &quot;=2024-02-29&quot; in B2
+  And the user enters &quot;=A2+0&quot; in B3
+  And the user enters &quot;=A6+1&quot; in B4
+  And the user enters &quot;=A7+1&quot; in B5
+  Then cell-A1 reads &quot;2024-02-29&quot; and has data-kind &quot;number&quot;
+  And the raw content of A1 is &quot;2024-02-29&quot;
+  And format-select has the value &quot;date&quot;
+  And cell-A2 reads &quot;1900-03-01&quot; and has data-kind &quot;number&quot;
+  And cell-A3 reads &quot;2023-02-29&quot; and has data-kind &quot;text&quot;
+  And cell-A4 reads &quot;1900-02-29&quot; and has data-kind &quot;text&quot;
+  And cell-A5 reads &quot;2024-2-9&quot; and has data-kind &quot;text&quot;
+  And cell-A6 reads &quot;9999-12-31&quot; and has data-kind &quot;number&quot;
+  And cell-A7 reads &quot;2024-02-29&quot; and has data-kind &quot;text&quot;
+  And cell-A8 reads &quot;1899-12-31&quot; and has data-kind &quot;text&quot;
+  And cell-B1 reads &quot;45351&quot;
+  And cell-B2 reads &quot;1993&quot;
+  And cell-B3 reads &quot;60&quot;
+  And cell-B4 reads &quot;2958465&quot;
+  And cell-B5 reads &quot;#VALUE!&quot;
+
+Scenario: The format changes only from general
+  Given the user clicks cell A1
+  And the user sets the format to &quot;fixed2&quot;
+  When the user enters &quot;2024-02-29&quot; in A1
+  Then cell-A1 reads &quot;45,350.00&quot;
+  When the user clicks cell A1
+  Then format-select has the value &quot;fixed2&quot;
+  When the user enters &quot;2024-03-01&quot; in B1
+  And the user enters &quot;7&quot; in B1
+  Then cell-B1 reads &quot;1900-01-07&quot;
+  When the user clicks cell B1
+  And the user presses Delete on the grid
+  Then format-select has the value &quot;date&quot;
+  When the user clicks button undo-button
+  And the user clicks button undo-button
+  And the user clicks button undo-button
+  Then cell-B1 shows nothing
+  And format-select has the value &quot;general&quot;
+</code></pre>
+<p>In the second scenario the three undos take back the clearing of <code>B1</code>, the commit of <code>7</code> and the commit of <code>2024-03-01</code>; that last commit had changed both the content and the format of <code>B1</code>, and its undo restores both.</p>
+<h3 id="FR-DAT-02">FR-DAT-02 Date format</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show a number of a cell whose format is <code>date</code> as 02, section 2.5 states: when the largest integer less than or equal to the number is a serial number, the day of that serial number written <code>YYYY-MM-DD</code>; otherwise the text of the number in the <code>general</code> format. The format shall change neither the value of the cell, nor its <code>data-kind</code>, nor the text a formula gets from it.</li>
+<li><strong>Rationale:</strong> A serial number is read as a day; a number that is no day is still shown.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Days and numbers that are no day
+  Given the user enters &quot;45350.75&quot; in A1
+  And the user enters &quot;0.5&quot; in A2
+  And the user enters &quot;-3&quot; in A3
+  And the user enters &quot;2958464&quot; in A4
+  And the user enters &quot;2958465&quot; in A5
+  And the user enters &quot;abc&quot; in A6
+  And the user enters &quot;=1/0&quot; in A7
+  And the user enters &quot;1&quot; in A8
+  And the user enters &quot;=A8+59&quot; in A9
+  And the user enters &quot;=A8+58&quot; in A10
+  When the user clicks cell A1
+  And the user shift-clicks cell A10
+  And the user sets the format to &quot;date&quot;
+  Then cell-A1 reads &quot;2024-02-29&quot; and has data-kind &quot;number&quot;
+  And cell-A2 reads &quot;0.5&quot;
+  And cell-A3 reads &quot;-3&quot;
+  And cell-A4 reads &quot;9999-12-31&quot;
+  And cell-A5 reads &quot;2958465&quot;
+  And cell-A6 reads &quot;abc&quot;
+  And cell-A7 reads &quot;#DIV/0!&quot;
+  And cell-A8 reads &quot;1900-01-01&quot;
+  And cell-A9 reads &quot;1900-03-01&quot;
+  And cell-A10 reads &quot;1900-02-28&quot;
+  When the user enters &quot;=A1&amp;&quot;&quot;|&quot;&quot;&amp;A8&quot; in B1
+  And the user enters &quot;=A1*2&quot; in B2
+  Then cell-B1 reads &quot;45350.75|1&quot;
+  And cell-B2 reads &quot;90701.5&quot;
+</code></pre>
+<h3 id="FR-DAT-03">FR-DAT-03 DATE</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>DATE</code> as 02, section 2.8.3 states: the three arguments are converted to integers; if the year is below 1900 or above 9999, then the system shall give <code>#NUM!</code>; a month outside 1 to 12 moves the year, a day outside the month moves the date by that many days; if the result is not a serial number, then the system shall give <code>#NUM!</code>.</li>
+<li><strong>Rationale:</strong> A day is built from its parts, and an overflowing part carries over instead of failing.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Parts and overflow
+  When the user enters &quot;=DATE(2024,2,29)&quot; in A1
+  And the user enters &quot;=DATE(2024,2,30)&quot; in A2
+  And the user enters &quot;=DATE(2024,14,1)&quot; in A3
+  And the user enters &quot;=DATE(2024,0,1)&quot; in A4
+  And the user enters &quot;=TEXT(DATE(2024,-1,1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A5
+  And the user enters &quot;=DATE(2024,1,0)&quot; in A6
+  And the user enters &quot;=TEXT(DATE(2024,1,-1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in A7
+  And the user enters &quot;=DATE(1900,1,1)&quot; in A8
+  And the user enters &quot;=DATE(1900,1,0)&quot; in A9
+  And the user enters &quot;=DATE(1899,13,1)&quot; in A10
+  And the user enters &quot;=DATE(9999,12,31)&quot; in A11
+  And the user enters &quot;=DATE(9999,12,32)&quot; in A12
+  And the user enters &quot;=DATE(10000,1,1)&quot; in B1
+  And the user enters &quot;=DATE(2024.9,2.9,29.9)&quot; in B2
+  And the user enters &quot;=DATE(&quot;&quot;2024&quot;&quot;,1,1)&quot; in B3
+  And the user enters &quot;=DATE(1900,3,1)-DATE(1900,2,28)&quot; in B4
+  And the user enters &quot;=TEXT(DATE(2023,2,29),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B5
+  And the user enters &quot;=TEXT(DATE(2024,-11,31),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B6
+  And the user enters &quot;=TEXT(DATE(2024,25,1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B7
+  Then cell-A1 reads &quot;45350&quot;
+  And cell-A2 reads &quot;45351&quot;
+  And cell-A3 reads &quot;45688&quot;
+  And cell-A4 reads &quot;45260&quot;
+  And cell-A5 reads &quot;2023-11-01&quot;
+  And cell-A6 reads &quot;45290&quot;
+  And cell-A7 reads &quot;2023-12-30&quot;
+  And cell-A8 reads &quot;1&quot;
+  And cell-A9 reads &quot;#NUM!&quot;
+  And cell-A10 reads &quot;#NUM!&quot;
+  And cell-A11 reads &quot;2958464&quot;
+  And cell-A12 reads &quot;#NUM!&quot;
+  And cell-B1 reads &quot;#NUM!&quot;
+  And cell-B2 reads &quot;45350&quot;
+  And cell-B3 reads &quot;#VALUE!&quot;
+  And cell-B4 reads &quot;1&quot;
+  And cell-B5 reads &quot;2023-03-01&quot;
+  And cell-B6 reads &quot;2023-01-31&quot;
+  And cell-B7 reads &quot;2026-01-01&quot;
+</code></pre>
+<h3 id="FR-DAT-04">FR-DAT-04 YEAR, MONTH, DAY</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>YEAR</code>, <code>MONTH</code> and <code>DAY</code> as 02, section 2.8.3 states: the argument is converted to a number and replaced by the largest integer less than or equal to it; if that integer is not a serial number, then the system shall give <code>#NUM!</code>. If the argument is a text, even one written like a date, then the system shall give <code>#VALUE!</code>.</li>
+<li><strong>Rationale:</strong> The parts of a day are read back from its number.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Parts of a day
+  Given the user enters &quot;2024-02-29&quot; in A1
+  And the user enters &quot;&#39;2024-02-29&quot; in A2
+  When the user enters &quot;=YEAR(A1)*10000+MONTH(A1)*100+DAY(A1)&quot; in B1
+  And the user enters &quot;=YEAR(45350.99)&quot; in B2
+  And the user enters &quot;=MONTH(60)*100+DAY(60)&quot; in B3
+  And the user enters &quot;=MONTH(59)*100+DAY(59)&quot; in B4
+  And the user enters &quot;=YEAR(0)&quot; in B5
+  And the user enters &quot;=YEAR(0.9)&quot; in B6
+  And the user enters &quot;=DAY(2958465)&quot; in B7
+  And the user enters &quot;=YEAR(&quot;&quot;2024-02-29&quot;&quot;)&quot; in B8
+  And the user enters &quot;=YEAR(A2)&quot; in B9
+  And the user enters &quot;=MONTH(TRUE)&quot; in B10
+  And the user enters &quot;=YEAR(H9)&quot; in B11
+  And the user enters &quot;=DAY(DATE(2100,2,29))&quot; in B12
+  And the user enters &quot;=DAY(DATE(2000,2,29))&quot; in C1
+  And the user enters &quot;=YEAR(2958464)&quot; in C2
+  Then cell-B1 reads &quot;20240229&quot;
+  And cell-B2 reads &quot;2024&quot;
+  And cell-B3 reads &quot;301&quot;
+  And cell-B4 reads &quot;228&quot;
+  And cell-B5 reads &quot;#NUM!&quot;
+  And cell-B6 reads &quot;#NUM!&quot;
+  And cell-B7 reads &quot;#NUM!&quot;
+  And cell-B8 reads &quot;#VALUE!&quot;
+  And cell-B9 reads &quot;#VALUE!&quot;
+  And cell-B10 reads &quot;1&quot;
+  And cell-B11 reads &quot;#NUM!&quot;
+  And cell-B12 reads &quot;1&quot;
+  And cell-C1 reads &quot;29&quot;
+  And cell-C2 reads &quot;9999&quot;
+</code></pre>
+<h3 id="FR-DAT-05">FR-DAT-05 WEEKDAY</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>WEEKDAY</code> as 02, section 2.8.3 states, serial number 1 being a Monday: with the type 1, or without second argument, 1 on Sunday to 7 on Saturday; with the type 2, 1 on Monday to 7 on Sunday; with the type 3, 0 on Monday to 6 on Sunday. If the type, truncated toward zero, is not 1, 2 or 3, then the system shall give <code>#NUM!</code>. The result shall not depend on the time zone of the browser.</li>
+<li><strong>Rationale:</strong> The day of the week is the same for everyone who opens the workbook.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Days of the week
+  When the user enters &quot;=WEEKDAY(1)&quot; in A1
+  And the user enters &quot;=WEEKDAY(DATE(2024,2,29))&quot; in A2
+  And the user enters &quot;=WEEKDAY(DATE(2024,2,29),2)&quot; in A3
+  And the user enters &quot;=WEEKDAY(DATE(2024,2,29),3)&quot; in A4
+  And the user enters &quot;=WEEKDAY(DATE(2024,3,3))&quot; in A5
+  And the user enters &quot;=WEEKDAY(DATE(2024,3,3),2)&quot; in A6
+  And the user enters &quot;=WEEKDAY(DATE(2024,3,3),3)&quot; in A7
+  And the user enters &quot;=WEEKDAY(DATE(2024,3,2))&quot; in A8
+  And the user enters &quot;=WEEKDAY(1,0)&quot; in A9
+  And the user enters &quot;=WEEKDAY(1,4)&quot; in A10
+  And the user enters &quot;=WEEKDAY(1,2.9)&quot; in A11
+  And the user enters &quot;=WEEKDAY(0)&quot; in A12
+  And the user enters &quot;=WEEKDAY(&quot;&quot;x&quot;&quot;,1/0)&quot; in B1
+  And the user enters &quot;=WEEKDAY(DATE(1900,3,1))&quot; in B2
+  And the user enters &quot;=WEEKDAY(DATE(2000,1,1),2)&quot; in B3
+  Then cell-A1 reads &quot;2&quot;
+  And cell-A2 reads &quot;5&quot;
+  And cell-A3 reads &quot;4&quot;
+  And cell-A4 reads &quot;3&quot;
+  And cell-A5 reads &quot;1&quot;
+  And cell-A6 reads &quot;7&quot;
+  And cell-A7 reads &quot;6&quot;
+  And cell-A8 reads &quot;7&quot;
+  And cell-A9 reads &quot;#NUM!&quot;
+  And cell-A10 reads &quot;#NUM!&quot;
+  And cell-A11 reads &quot;1&quot;
+  And cell-A12 reads &quot;#NUM!&quot;
+  And cell-B1 reads &quot;#VALUE!&quot;
+  And cell-B2 reads &quot;5&quot;
+  And cell-B3 reads &quot;6&quot;
+</code></pre>
+<h3 id="FR-DAT-06">FR-DAT-06 EDATE</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>EDATE</code> as 02, section 2.8.3 states: the day of the same day number, the given number of months later or earlier, and the last day of that month when it has fewer days. The number of months is truncated toward zero. If the year of the result is below 1900 or above 9999, then the system shall give <code>#NUM!</code>.</li>
+<li><strong>Rationale:</strong> Due dates are moved by whole months and never fall on a day that does not exist.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Months later and earlier
+  Given the user enters &quot;2024-01-31&quot; in A1
+  When the user enters &quot;=EDATE(A1,1)&quot; in B1
+  And the user enters &quot;=TEXT(EDATE(DATE(2023,1,31),1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B2
+  And the user enters &quot;=TEXT(EDATE(DATE(2024,2,29),12),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B3
+  And the user enters &quot;=TEXT(EDATE(DATE(2024,2,29),1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B4
+  And the user enters &quot;=TEXT(EDATE(DATE(2024,3,31),-1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B5
+  And the user enters &quot;=TEXT(EDATE(DATE(2024,1,15),-13),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B6
+  And the user enters &quot;=TEXT(EDATE(DATE(2024,1,15),1.9),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B7
+  And the user enters &quot;=TEXT(EDATE(DATE(2024,1,15),-1.9),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in B8
+  And the user enters &quot;=EDATE(DATE(1900,1,31),-1)&quot; in B9
+  And the user enters &quot;=EDATE(DATE(9999,12,1),1)&quot; in B10
+  And the user enters &quot;=EDATE(DATE(1900,1,31),1)&quot; in B11
+  And the user enters &quot;=EDATE(0,1)&quot; in B12
+  And the user enters &quot;=EDATE(A1,0)&quot; in C1
+  And the user enters &quot;=TEXT(EDATE(EDATE(A1,1),1),&quot;&quot;yyyy-mm-dd&quot;&quot;)&quot; in C2
+  Then cell-B1 reads &quot;45350&quot;
+  And cell-B2 reads &quot;2023-02-28&quot;
+  And cell-B3 reads &quot;2025-02-28&quot;
+  And cell-B4 reads &quot;2024-03-29&quot;
+  And cell-B5 reads &quot;2024-02-29&quot;
+  And cell-B6 reads &quot;2022-12-15&quot;
+  And cell-B7 reads &quot;2024-02-15&quot;
+  And cell-B8 reads &quot;2023-12-15&quot;
+  And cell-B9 reads &quot;#NUM!&quot;
+  And cell-B10 reads &quot;#NUM!&quot;
+  And cell-B11 reads &quot;59&quot;
+  And cell-B12 reads &quot;#NUM!&quot;
+  And cell-C1 reads &quot;45321&quot;
+  And cell-C2 reads &quot;2024-03-29&quot;
+  When the user clicks cell B1
+  And the user sets the format to &quot;date&quot;
+  Then cell-B1 reads &quot;2024-02-29&quot;
+</code></pre>
+<p>In this scenario <code>B1</code> shows the serial number until the user gives it the <code>date</code> format: only a date entry changes a format by itself. <code>C2</code> is <code>2024-03-29</code> and not <code>2024-03-31</code>: the day number is taken from the date <code>EDATE</code> receives, here <code>2024-02-29</code>.</p>
+<h3 id="FR-DAT-07">FR-DAT-07 DAYS and date arithmetic</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate <code>DAYS</code> as 02, section 2.8.3 states: the first serial number minus the second, each argument being replaced by the largest integer less than or equal to it; if one of them is not a serial number, then the system shall give <code>#NUM!</code>. The system shall treat the dates of cells as numbers in every operator and every function: they are added, subtracted, compared, summed and counted as their serial numbers.</li>
+<li><strong>Rationale:</strong> Durations are computed from days, with the calendar of 02, section 2.11.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Durations
+  Given the user enters &quot;2024-03-01&quot; in A1
+  And the user enters &quot;2024-02-01&quot; in A2
+  When the user enters &quot;=DAYS(A1,A2)&quot; in B1
+  And the user enters &quot;=DAYS(A2,A1)&quot; in B2
+  And the user enters &quot;=A1-A2&quot; in B3
+  And the user enters &quot;=DAYS(DATE(1900,3,1),DATE(1900,2,1))&quot; in B4
+  And the user enters &quot;=DAYS(45350.9,45349.1)&quot; in B5
+  And the user enters &quot;=DAYS(0,1)&quot; in B6
+  And the user enters &quot;=DAYS(&quot;&quot;2024-03-01&quot;&quot;,A2)&quot; in B7
+  And the user enters &quot;=A1+30&quot; in B8
+  And the user enters &quot;=A1&gt;A2&quot; in B9
+  And the user enters &quot;=MAX(A1:A2)&quot; in B10
+  And the user enters &quot;=SUM(A1:A2)&quot; in B11
+  And the user enters &quot;=COUNT(A1:A2)&quot; in B12
+  And the user enters &quot;=DAYS(DATE(2025,1,1),DATE(2024,1,1))&quot; in C1
+  And the user enters &quot;=DAYS(DATE(2101,1,1),DATE(2100,1,1))&quot; in C2
+  And the user enters &quot;=COUNTIF(A1:A2,&quot;&quot;&gt;45338&quot;&quot;)&quot; in C3
+  And the user enters &quot;=COUNTIF(A1:A2,&quot;&quot;&gt;2024-02-15&quot;&quot;)&quot; in C4
+  Then cell-B1 reads &quot;29&quot;
+  And cell-B2 reads &quot;-29&quot;
+  And cell-B3 reads &quot;29&quot;
+  And cell-B4 reads &quot;28&quot;
+  And cell-B5 reads &quot;1&quot;
+  And cell-B6 reads &quot;#NUM!&quot;
+  And cell-B7 reads &quot;#VALUE!&quot;
+  And cell-B8 reads &quot;45381&quot;
+  And cell-B9 reads &quot;TRUE&quot;
+  And cell-B10 reads &quot;45351&quot;
+  And cell-B11 reads &quot;90673&quot;
+  And cell-B12 reads &quot;2&quot;
+  And cell-C1 reads &quot;366&quot;
+  And cell-C2 reads &quot;365&quot;
+  And cell-C3 reads &quot;1&quot;
+  And cell-C4 reads &quot;0&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell A2
+  Then selection-summary reads &quot;Sum: 90673 | Average: 45336.5 | Count: 2&quot;
+</code></pre>
+<p>In this scenario <code>C4</code> is 0: the operand of the criterion <code>&gt;2024-02-15</code> is a text (02, section 2.8.3), and a number cell never meets an ordering criterion whose operand is a text.</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Book — 08-rendering</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-book">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <strong>08-rendering</strong> · <a href="09-non-functional.html">09-non-functional</a> · <a href="10-fr-sheets-and-names.html">10-fr-sheets-and-names</a> · <a href="11-fr-sort-fill-find-csv.html">11-fr-sort-fill-find-csv</a> · <a href="12-fr-persistence.html">12-fr-persistence</a></nav>
+<h1 id="8-rendering-requirements">8. Rendering requirements</h1>
+<p>The visual design is free. These requirements set the limits every design shall respect. They are checked at two viewports: <strong>narrow</strong> 360 × 740 and <strong>wide</strong> 1280 × 800, in the light color scheme.</p>
+<p>The <strong>checked states</strong> are:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>How it is reached</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Load</td>
+<td>The page has loaded on a new workbook.</td>
+</tr>
+<tr>
+<td>Filled</td>
+<td>From a new workbook, in this order. (1) <code>add-sheet</code> is clicked four times, then the first tab is clicked, and the sheet is renamed <code>Quarterly results 24</code> (20 characters). (2) Every cell of rows 1 to 6 of that sheet holds the text <code>Long label for a narrow cell</code>. Every cell of rows 7 to 12 holds the number <code>123456789.125</code> with the format <code>fixed2</code> (shown <code>123,456,789.13</code>). Then <code>B2</code> holds <code>=1/0</code>. (3) The selection is <code>B2:D8</code> with <code>B2</code> active: it holds texts, one error and six numbers, so <code>selection-summary</code> is visible and reads `Sum: 740740734.75</td>
+</tr>
+<tr>
+<td>Editing</td>
+<td>The Filled state, then the user fills <code>formula-input</code> with <code>=SUM(A1:H12)</code> without committing: every workbook control is disabled.</td>
+</tr>
+</tbody></table>
+<p>A <strong>control</strong> is any control of 03, section 3.2: the toolbar controls, <code>formula-input</code>, the sheet tabs, and the buttons, fields, checkboxes and text area of the four panels.</p>
+<p>The grid may scroll inside a container of its own, and so may the row of sheet tabs. Such a container is not the window: the requirements below state where each applies.</p>
+<h3 id="DR-LAY-01">DR-LAY-01 No horizontal scrolling</h3>
+<ul>
+<li><strong>Statement:</strong> In every checked state at both viewports, the system shall not make the page wider than the viewport: <code>document.documentElement.scrollWidth</code> shall not exceed <code>window.innerWidth</code>.</li>
+<li><strong>Rationale:</strong> A phone user never scrolls the whole page sideways; long contents stay inside their cell, their tab or their list, or inside the scrolling area that holds them.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Filled workbook on a phone
+  Given the viewport is 360 × 740
+  When the workbook is in the Filled state
+  Then the page is not wider than the viewport
+</code></pre>
+<h3 id="DR-LAY-02">DR-LAY-02 Reachable controls and cells</h3>
+<ul>
+<li><p><strong>Statement:</strong> In every checked state at both viewports, each control shall be reachable: at one at least of the three window scroll positions below, the center of the control&#39;s bounding box is inside the viewport and <code>document.elementFromPoint</code> at that center returns the control or one of its descendants.</p>
+<ol>
+<li>The position reached by <code>element.scrollIntoView({ block: &quot;center&quot;, behavior: &quot;instant&quot; })</code> on the control.</li>
+<li>The top of the page (<code>window.scrollTo({ left: 0, top: 0, behavior: &quot;instant&quot; })</code>).</li>
+<li>The bottom of the page (<code>window.scrollTo({ left: 0, top: document.documentElement.scrollHeight, behavior: &quot;instant&quot; })</code>).</li>
+</ol>
+<p>In every checked state at both viewports, each of the 96 cells shall be reachable: after <code>element.scrollIntoView({ block: &quot;center&quot;, inline: &quot;center&quot;, behavior: &quot;instant&quot; })</code> on the cell, the center of its bounding box is inside the viewport and <code>document.elementFromPoint</code> at that center returns the cell or one of its descendants.</p>
+<p>These calls are made with <code>behavior: &quot;instant&quot;</code>: the CSS <code>scroll-behavior</code> of the page and of its scrolling containers plays no part in the measure.</p>
+</li>
+<li><p><strong>Rationale:</strong> No control and no cell is covered by another element or kept out of the screen, whatever sticky or fixed parts the design uses.</p>
+</li>
+<li><p><strong>Verification:</strong> Test</p>
+</li>
+<li><p><strong>Acceptance criteria:</strong></p>
+</li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Last cell, last tab and last panel on a phone
+  Given the viewport is 360 × 740
+  When the workbook is in the Filled state
+  Then cell-H12 is reachable
+  And delete-col is reachable
+  And sheet-tab-5 is reachable
+  And csv-import is reachable
+</code></pre>
+<h3 id="DR-FOC-01">DR-FOC-01 Visible keyboard focus</h3>
+<ul>
+<li><strong>Statement:</strong> When a control that is not disabled, or <code>grid</code>, receives the focus from the Tab key (Tab or Shift+Tab), the system shall make that focus visible: the element shall differ from its unfocused state in at least one of its computed <code>outline-style</code>, <code>outline-width</code>, <code>outline-color</code>, <code>box-shadow</code>, <code>border-top-color</code> or <code>background-color</code>. For <code>grid</code>, the difference may be on the <code>grid</code> element or on the element of the active cell.</li>
+<li><strong>Rationale:</strong> A keyboard user always sees where the focus is.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Focus on a button, a tab and a field
+  Given the workbook is in the Filled state
+  When the user moves the focus with Tab to copy-button
+  Then copy-button looks different from its unfocused state
+  When the user moves the focus with Tab to sheet-tab-3
+  Then sheet-tab-3 looks different from its unfocused state
+  When the user moves the focus with Tab to csv-text
+  Then csv-text looks different from its unfocused state
+
+Scenario: Focus on the grid
+  Given a new workbook
+  When the user moves the focus with Tab to grid
+  Then grid or cell-A1 looks different from its unfocused state
+</code></pre>
+<h3 id="DR-CON-01">DR-CON-01 Text contrast</h3>
+<ul>
+<li><strong>Statement:</strong> For the text of each element below, in every checked state at both viewports, the contrast ratio between the computed <code>color</code> and the effective background shall be at least 4.5:1, computed with the WCAG 2.2 formula. The <strong>effective background</strong> of an element is obtained by blending, from the root down to the element, the computed <code>background-color</code> of each ancestor and of the element itself, starting from white. When the computed <code>color</code> has an alpha below 1, it is first blended over the effective background, and the ratio is computed between the resulting opaque color and the effective background. For each of these elements, walk from the element itself up through its ancestors to the root, and stop at the first node whose computed <code>background-color</code> has an alpha of 1 (walk to the root if there is none). Every node visited, the stopping node included, shall have a computed <code>background-image</code> of <code>none</code>. Nodes above the stopping node may have any <code>background-image</code>. The element and all of its ancestors shall have a computed <code>opacity</code> of 1. Disabled controls are exempt. Only the listed elements that are visible (README, section 2.5) in the checked state are checked.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Elements</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>every <code>cell-&lt;address&gt;</code> element that shows a text, whether it is active, in the selection, or neither, error cells included</td>
+</tr>
+<tr>
+<td>every <code>col-header-&lt;column&gt;</code> and <code>row-header-&lt;row&gt;</code></td>
+</tr>
+<tr>
+<td><code>name-box</code>, <code>selection-summary</code></td>
+</tr>
+<tr>
+<td><code>formula-input</code> and <code>format-select</code></td>
+</tr>
+<tr>
+<td>the text of every button that is not disabled, the sheet tabs included, whether the tab is the one of the active sheet or not</td>
+</tr>
+<tr>
+<td><code>sheet-name-input</code>, <code>name-input</code>, <code>find-input</code>, <code>replace-input</code> and <code>csv-text</code>, when they are not disabled</td>
+</tr>
+<tr>
+<td>for each of <code>find-case</code>, <code>find-whole</code> and <code>csv-raw</code>, the element of its panel whose text is exactly its label (03-ui-contract, section 3.2)</td>
+</tr>
+<tr>
+<td>every <code>name-item-&lt;n&gt;</code></td>
+</tr>
+<tr>
+<td><code>sheet-message</code>, <code>name-message</code>, <code>find-status</code> and <code>csv-message</code></td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Rationale:</strong> Every value, every name and every action stays readable, selected or not.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Selected cells, tabs and messages readable
+  When the workbook is in the Filled state
+  Then the contrast of cell-B2 is at least 4.5:1
+  And the contrast of cell-D5 is at least 4.5:1
+  And the contrast of cell-H12 is at least 4.5:1
+  And the contrast of selection-summary is at least 4.5:1
+  And the contrast of sheet-tab-1 is at least 4.5:1
+  And the contrast of sheet-tab-2 is at least 4.5:1
+  And the contrast of name-item-1 is at least 4.5:1
+  And the contrast of sheet-message is at least 4.5:1
+</code></pre>
+<h3 id="DR-ANI-01">DR-ANI-01 Finite animations</h3>
+<ul>
+<li><strong>Statement:</strong> The system may run animations with an infinite iteration count only on decorative elements that carry no <code>data-testid</code>, contain no control and contain none of the elements listed in DR-CON-01. Every other animation and transition shall finish within 1 second of the event that starts it.</li>
+<li><strong>Rationale:</strong> Values are read on a settled page; a page that never settles cannot be read.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Settled after a click
+  When the user clicks cell C3
+  Then within 1 second no finite animation or transition is running
+  When the user clicks button add-sheet
+  Then within 1 second no finite animation or transition is running
+</code></pre>
+
+</main>
+</body>
+</html>

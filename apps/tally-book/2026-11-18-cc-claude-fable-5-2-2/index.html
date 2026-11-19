@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Fable 5.2</title>
+<style>
+:root{
+  --bg:#f3f4f7; --panel:#ffffff; --ink:#1a2030; --muted:#465064; --line:#c6ccd8; --line-strong:#8f98ab;
+  --accent:#1f4fbf; --sel:#dce7fb; --head:#e8ebf1; --head-on:#cbd8f2; --err:#a3122a; --note:#eef2fb;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background-color:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.app-header{background-color:#182033;color:#ffffff;padding:10px 16px}
+.app-header h1{margin:0 auto;max-width:1240px;font-size:17px;font-weight:650;letter-spacing:.01em}
+main{max-width:1272px;margin:0 auto;padding:12px 16px 32px;display:flex;flex-direction:column;gap:10px}
+.card{background-color:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px}
+
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{background-color:#ffffff;border:1px solid var(--line-strong);border-radius:6px;padding:5px 10px;min-height:32px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){background-color:#edf1f9}
+button:active:not(:disabled){background-color:#dfe6f5}
+button:disabled{color:#7c8496;background-color:#eceef2;border-color:#cfd4de;cursor:default}
+select,input[type=text],textarea{background-color:#ffffff;border:1px solid var(--line-strong);border-radius:6px;padding:5px 8px;min-height:32px;min-width:0;max-width:100%}
+input[type=text]:disabled,select:disabled,textarea:disabled{background-color:#eceef2;color:#6b7386;border-color:#cfd4de}
+input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:var(--accent);flex:none}
+label{color:var(--muted);font-size:12.5px;font-weight:600}
+button:focus,select:focus,input:focus,textarea:focus{outline:3px solid var(--accent);outline-offset:1px}
+[role=grid]:focus{outline:3px solid var(--accent);outline-offset:-3px}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.tgroup{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.tgroup label{margin-right:2px}
+
+.fbar{display:flex;gap:6px;align-items:stretch}
+.name-box{flex:none;min-width:84px;display:flex;align-items:center;justify-content:center;padding:0 8px;border:1px solid var(--line-strong);border-radius:6px;background-color:var(--head);font-weight:650;font-variant-numeric:tabular-nums}
+.fx{flex:none;display:flex;align-items:center;color:var(--muted);font-style:italic;font-weight:600;padding:0 2px}
+.fbar input{flex:1 1 auto;width:100%;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:13.5px}
+.fbar input[data-editing=true]{border-color:var(--accent);background-color:#f6f9ff}
+
+.grid-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:8px;background-color:var(--panel)}
+[role=grid]{min-width:812px;user-select:none;-webkit-user-select:none;cursor:cell;font-variant-numeric:tabular-nums}
+.g-row{display:grid;grid-template-columns:44px repeat(8,minmax(96px,1fr))}
+.g-row>div{height:30px;line-height:29px;padding:0 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;white-space:pre;text-overflow:ellipsis;min-width:0}
+.g-row>div:last-child{border-right:0}
+.g-row:last-child>div{border-bottom:0}
+[role=columnheader],[role=rowheader],.g-corner{background-color:var(--head);color:var(--ink);text-align:center;font-weight:600;font-size:12.5px;cursor:default}
+[role=columnheader][data-on=true],[role=rowheader][data-on=true]{background-color:var(--head-on)}
+[role=gridcell]{background-color:#ffffff;color:var(--ink)}
+[role=gridcell][data-kind=number]{text-align:right}
+[role=gridcell][data-kind=logical]{text-align:center}
+[role=gridcell][data-kind=error]{color:var(--err);text-align:center}
+[role=gridcell][data-in-selection=true]{background-color:var(--sel)}
+[role=gridcell][aria-selected=true]{background-color:#ffffff;box-shadow:inset 0 0 0 2px var(--accent)}
+
+.status-line{min-height:24px;display:flex;align-items:center;padding:0 2px}
+.summary{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+.sheet-bar{display:flex;flex-direction:column;gap:8px}
+.tab-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+[role=tab]{background-color:var(--head);border-color:var(--line-strong);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:pre;font-weight:600}
+[role=tab][aria-selected=true],[role=tab][aria-selected=true]:hover:not(:disabled){background-color:var(--accent);border-color:var(--accent);color:#ffffff}
+[role=tab][aria-selected=true]:disabled{background-color:#d5ddf0;border-color:#b9c4de;color:#59627a}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.field{display:flex;flex-direction:column;gap:2px;flex:1 1 160px;min-width:0}
+.field input,.field textarea{width:100%}
+.msg{margin:0;padding:5px 9px;border-radius:6px;background-color:var(--note);color:var(--ink);font-weight:600;overflow-wrap:anywhere;border-left:3px solid var(--accent)}
+
+.panels{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+.panel{display:flex;flex-direction:column;gap:8px;min-width:0}
+.check{display:inline-flex;align-items:center;gap:6px}
+.check label{color:var(--ink);font-size:13.5px;font-weight:500}
+.name-list{display:flex;flex-direction:column;gap:4px}
+.name-list>div{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background-color:#f7f8fb;color:var(--ink);font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:12.5px;overflow-wrap:anywhere;white-space:pre-wrap}
+textarea{width:100%;min-height:96px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:13px;display:block}
+
+@media (max-width:900px){.panels{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){
+  main{padding:8px 8px 28px;gap:8px}
+  .app-header{padding:9px 12px}
+  button{min-height:36px;padding:6px 9px}
+  select,input[type=text]{min-height:36px}
+  .name-box{min-width:72px}
+  .fx{display:none}
+}
+</style>
+</head>
+<body>
+<header data-testid="app-header" class="app-header"><h1>Claude Fable 5.2</h1></header>
+<main>
+  <div data-testid="toolbar" class="toolbar card">
+    <div class="tgroup">
+      <button type="button" data-testid="undo-button">Undo</button>
+      <button type="button" data-testid="redo-button">Redo</button>
+    </div>
+    <div class="tgroup">
+      <button type="button" data-testid="copy-button">Copy</button>
+      <button type="button" data-testid="cut-button">Cut</button>
+      <button type="button" data-testid="paste-button">Paste</button>
+      <button type="button" data-testid="clear-button">Clear</button>
+    </div>
+    <div class="tgroup">
+      <button type="button" data-testid="insert-row">Insert row</button>
+      <button type="button" data-testid="delete-row">Delete row</button>
+      <button type="button" data-testid="insert-col">Insert column</button>
+      <button type="button" data-testid="delete-col">Delete column</button>
+    </div>
+    <div class="tgroup">
+      <button type="button" data-testid="sort-asc">Sort ascending</button>
+      <button type="button" data-testid="sort-desc">Sort descending</button>
+    </div>
+    <div class="tgroup">
+      <button type="button" data-testid="fill-down">Fill down</button>
+      <button type="button" data-testid="fill-right">Fill right</button>
+      <button type="button" data-testid="fill-series">Fill series</button>
+    </div>
+    <div class="tgroup">
+      <label for="format-select">Number format</label>
+      <select id="format-select" data-testid="format-select" autocomplete="off">
+        <option value="general">General</option>
+        <option value="fixed2">1,234.50</option>
+        <option value="percent1">12.5%</option>
+        <option value="date">2024-12-31</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="fbar">
+    <div data-testid="name-box" class="name-box">A1</div>
+    <span class="fx" aria-hidden="true">fx</span>
+    <input type="text" data-testid="formula-input" aria-label="Cell content" data-editing="false" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <div class="grid-wrap">
+    <div data-testid="grid" role="grid" aria-label="Sheet" tabindex="0"></div>
+  </div>
+
+  <div class="status-line"><div data-testid="selection-summary" class="summary" hidden></div></div>
+
+  <div data-testid="sheet-bar" class="sheet-bar card">
+    <div class="tab-row">
+      <div data-testid="sheet-tabs" class="tabs" role="tablist" aria-label="Sheets"></div>
+      <button type="button" data-testid="add-sheet">Add sheet</button>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="sheet-name-input">Sheet name</label>
+        <input type="text" id="sheet-name-input" data-testid="sheet-name-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" data-testid="rename-sheet">Rename sheet</button>
+      <button type="button" data-testid="delete-sheet">Delete sheet</button>
+    </div>
+    <p data-testid="sheet-message" class="msg" aria-live="polite" hidden></p>
+  </div>
+
+  <div class="panels">
+    <div data-testid="names-panel" class="panel card">
+      <div class="field">
+        <label for="name-input">Name</label>
+        <input type="text" id="name-input" data-testid="name-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="row">
+        <button type="button" data-testid="define-name">Define name</button>
+        <button type="button" data-testid="delete-name">Delete name</button>
+      </div>
+      <p data-testid="name-message" class="msg" aria-live="polite" hidden></p>
+      <div data-testid="name-list" class="name-list" role="list" aria-label="Names"></div>
+    </div>
+
+    <div data-testid="find-panel" class="panel card">
+      <div class="field">
+        <label for="find-input">Find</label>
+        <input type="text" id="find-input" data-testid="find-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="replace-input">Replace with</label>
+        <input type="text" id="replace-input" data-testid="replace-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="row">
+        <span class="check"><input type="checkbox" id="find-case" data-testid="find-case" autocomplete="off"><label for="find-case">Match case</label></span>
+        <span class="check"><input type="checkbox" id="find-whole" data-testid="find-whole" autocomplete="off"><label for="find-whole">Whole cell</label></span>
+      </div>
+      <div class="row">
+        <button type="button" data-testid="find-next">Find next</button>
+        <button type="button" data-testid="replace-all">Replace all</button>
+      </div>
+      <p data-testid="find-status" class="msg" aria-live="polite" hidden></p>
+    </div>
+
+    <div data-testid="csv-panel" class="panel card">
+      <div class="row">
+        <span class="check"><input type="checkbox" id="csv-raw" data-testid="csv-raw" autocomplete="off"><label for="csv-raw">Raw contents</label></span>
+      </div>
+      <div class="row">
+        <button type="button" data-testid="csv-export">Export CSV</button>
+        <button type="button" data-testid="csv-import">Import CSV</button>
+      </div>
+      <div class="field">
+        <label for="csv-text">CSV</label>
+        <textarea id="csv-text" data-testid="csv-text" rows="5" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+      </div>
+      <p data-testid="csv-message" class="msg" aria-live="polite" hidden></p>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= constants ================= */
+var ROWS = 12, COLS = 8, NCELL = 96, MAXSER = 2958464, KEY = 'tally-book';
+var FORMATS = ['general', 'fixed2', 'percent1', 'date'];
+var LETTERS = 'ABCDEFGH';
+var ERR = {};
+['SYNTAX:#SYNTAX!', 'NAME:#NAME?', 'ARGS:#ARGS!', 'REF:#REF!', 'VALUE:#VALUE!', 'DIV0:#DIV/0!', 'NUM:#NUM!', 'NA:#N/A', 'CYCLE:#CYCLE!']
+  .forEach(function (s) { var p = s.split(':'); ERR[p[0]] = new Err(p[1]); });
+function Err(e) { this.e = e; }
+function isErr(v) { return v instanceof Err; }
+
+/* ================= numbers ================= */
+function N(x) { var n = Number(x.toPrecision(12)); return n === 0 ? 0 : n; }
+function num(x) {
+  if (typeof x !== 'number' || !isFinite(x)) return ERR.NUM;
+  var n = N(x);
+  return Math.abs(n) >= 1e15 ? ERR.NUM : n;
+}
+function decParts(x) {
+  var s = Math.abs(x).toPrecision(12), int, frac, ei = s.indexOf('e');
+  if (ei < 0) {
+    var p = s.indexOf('.');
+    if (p < 0) { int = s; frac = ''; } else { int = s.slice(0, p); frac = s.slice(p + 1); }
+  } else {
+    var mant = s.slice(0, ei).replace('.', ''), pp = 1 + Number(s.slice(ei + 1));
+    if (pp <= 0) { int = '0'; frac = '0'.repeat(-pp) + mant; }
+    else if (pp >= mant.length) { int = mant + '0'.repeat(pp - mant.length); frac = ''; }
+    else { int = mant.slice(0, pp); frac = mant.slice(pp); }
+  }
+  return { neg: x < 0, int: int, frac: frac };
+}
+/* mode: 0 = ties away from zero, 1 = away from zero, -1 = toward zero */
+function roundDec(x, d, mode) {
+  var p = decParts(x), all = p.int + p.frac, c = p.int.length + d;
+  if (c < 0) { all = '0'.repeat(-c) + all; c = 0; }
+  var kept, bump = false;
+  if (c >= all.length) kept = all + '0'.repeat(c - all.length);
+  else {
+    kept = all.slice(0, c);
+    var dropped = all.slice(c);
+    if (mode === 0) bump = dropped.charCodeAt(0) >= 53;
+    else if (mode === 1) bump = /[1-9]/.test(dropped);
+  }
+  var k = BigInt(kept || '0');
+  if (bump) k += 1n;
+  var ks = k.toString(), int, frac;
+  if (d > 0) { ks = ks.padStart(d + 1, '0'); int = ks.slice(0, ks.length - d); frac = ks.slice(ks.length - d); }
+  else { int = k === 0n ? '0' : ks + '0'.repeat(-d); frac = ''; }
+  return { neg: p.neg && k !== 0n, int: int, frac: frac };
+}
+function partsToNumber(r) { return Number((r.neg ? '-' : '') + r.int + (r.frac ? '.' + r.frac : '')); }
+function general(x) {
+  var r = roundDec(x, 6, 0), f = r.frac.replace(/0+$/, '');
+  return (r.neg ? '-' : '') + r.int + (f ? '.' + f : '');
+}
+function fixedText(x, k, group, pct) {
+  var r = roundDec(x, k, 0), i = r.int;
+  if (group) i = i.replace(/\B(?=(\d{3})+$)/g, ',');
+  return (r.neg ? '-' : '') + i + (k ? '.' + r.frac : '') + (pct ? '%' : '');
+}
+function plain(x) {
+  var p = decParts(x), f = p.frac.replace(/0+$/, '');
+  return (p.neg ? '-' : '') + p.int + (f ? '.' + f : '');
+}
+
+/* ================= dates ================= */
+function daysFromCivil(y, m, d) {
+  if (m <= 2) y -= 1;
+  var era = Math.floor(y / 400), yoe = y - era * 400;
+  var doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+  var doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return era * 146097 + doe - 719468;
+}
+var EPOCH = daysFromCivil(1900, 1, 1) - 1;
+function serialOf(y, m, d) { return daysFromCivil(y, m, d) - EPOCH; }
+function civil(serial) {
+  var z = serial + EPOCH + 719468, era = Math.floor(z / 146097), doe = z - era * 146097;
+  var yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365);
+  var y = yoe + era * 400, doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
+  var mp = Math.floor((5 * doy + 2) / 153), d = doy - Math.floor((153 * mp + 2) / 5) + 1, m = mp < 10 ? mp + 3 : mp - 9;
+  if (m <= 2) y += 1;
+  return [y, m, d];
+}
+function isLeap(y) { return y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0); }
+function dim(y, m) { return m === 2 ? (isLeap(y) ? 29 : 28) : (m === 4 || m === 6 || m === 9 || m === 11) ? 30 : 31; }
+function pad(n, w) { return String(n).padStart(w, '0'); }
+function dateText(serial) { var a = civil(serial); return pad(a[0], 4) + '-' + pad(a[1], 2) + '-' + pad(a[2], 2); }
+function showNum(x, fmt) {
+  if (fmt === 'fixed2') return fixedText(x, 2, true, false);
+  if (fmt === 'percent1') return fixedText(N(x * 100), 1, false, true);
+  if (fmt === 'date') { var d = Math.floor(x); if (d >= 1 && d <= MAXSER) return dateText(d); }
+  return general(x);
+}
+
+/* ================= entered content ================= */
+var RE_DATE = /^(\d{4})-(\d{2})-(\d{2})$/, RE_NUM = /^[+-]?(\d+(\.\d+)?|\.\d+)%?$/;
+function dateEntry(t) {
+  var m = RE_DATE.exec(t);
+  if (!m) return null;
+  var y = +m[1], mo = +m[2], d = +m[3];
+  if (y < 1900 || mo < 1 || mo > 12 || d < 1 || d > dim(y, mo)) return null;
+  return serialOf(y, mo, d);
+}
+function entryNumber(t) {
+  if (!RE_NUM.test(t)) return null;
+  var pct = t.charAt(t.length - 1) === '%', x = Number(pct ? t.slice(0, -1) : t);
+  if (pct) x /= 100;
+  if (!isFinite(x)) return null;
+  x = N(x);
+  return Math.abs(x) < 1e15 ? x : null;
+}
+function trimSp(s) { return s.replace(/^ +/, '').replace(/ +$/, ''); }
+function classify(s) {
+  if (s === '') return { k: 'empty' };
+  var c0 = s.charAt(0);
+  if (c0 === '=') return { k: 'formula' };
+  if (c0 === "'") return { k: 'text', v: s.slice(1) };
+  var t = trimSp(s), d = dateEntry(t);
+  if (d !== null) return { k: 'number', v: d, date: true };
+  d = entryNumber(t);
+  if (d !== null) return { k: 'number', v: d };
+  var u = t.toUpperCase();
+  if (u === 'TRUE') return { k: 'logical', v: true };
+  if (u === 'FALSE') return { k: 'logical', v: false };
+  return { k: 'text', v: s };
+}
+var classCache = new Map();
+function classifyC(s) {
+  var c = classCache.get(s);
+  if (!c) { if (classCache.size > 4000) classCache.clear(); c = classify(s); classCache.set(s, c); }
+  return c;
+}
+
+/* ================= formula language ================= */
+var RE_WORD = /[A-Za-z0-9_$]+/y, RE_NUMTOK = /\d+(?:\.\d+)?|\.\d+/y, RE_REF = /^(\$?)([A-Za-z]+)(\$?)([0-9]+)$/;
+var CMP_OPS = { '=': 1, '<>': 1, '<': 1, '<=': 1, '>': 1, '>=': 1 };
+function stripZeros(s) { return s.replace(/^0+(?=\d)/, ''); }
+function tokenize(src) {
+  var toks = [], i = 0, n = src.length, m, j, v;
+  while (i < n) {
+    var ch = src.charAt(i);
+    if (ch === ' ') { i++; continue; }
+    if ((ch >= '0' && ch <= '9') || ch === '.') {
+      RE_NUMTOK.lastIndex = i; m = RE_NUMTOK.exec(src);
+      if (!m) return null;
+      toks.push({ t: 'num', raw: m[0] }); i += m[0].length; continue;
+    }
+    if (ch === '"') {
+      j = i + 1; v = '';
+      for (;;) {
+        if (j >= n) return null;
+        if (src.charAt(j) === '"') { if (src.charAt(j + 1) === '"') { v += '"'; j += 2; } else { j++; break; } }
+        else v += src.charAt(j++);
+      }
+      toks.push({ t: 'str', raw: src.slice(i, j), v: v }); i = j; continue;
+    }
+    if (ch === "'") {
+      j = i + 1; v = '';
+      for (;;) {
+        if (j >= n) return null;
+        if (src.charAt(j) === "'") { if (src.charAt(j + 1) === "'") { v += "'"; j += 2; } else { j++; break; } }
+        else v += src.charAt(j++);
+      }
+      if (v === '' || src.charAt(j) !== '!') return null;
+      toks.push({ t: 'prefix', name: v }); i = j + 1; continue;
+    }
+    if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch === '_' || ch === '$') {
+      RE_WORD.lastIndex = i; m = RE_WORD.exec(src);
+      var w = m[0]; i += w.length;
+      if (src.charAt(i) === '!') {
+        if (w.indexOf('$') >= 0) return null;
+        toks.push({ t: 'prefix', name: w }); i++; continue;
+      }
+      var u = w.toUpperCase();
+      if (u === 'TRUE' || u === 'FALSE') toks.push({ t: 'bool', v: u === 'TRUE' });
+      else if ((m = RE_REF.exec(w))) toks.push({ t: 'ref', ca: m[1] === '$', cs: m[2].toUpperCase(), ra: m[3] === '$', rs: stripZeros(m[4]) });
+      else if (w.indexOf('$') < 0) toks.push({ t: 'name', name: u });
+      else return null;
+      continue;
+    }
+    if (ch === '#') {
+      if (src.substr(i, 5).toUpperCase() === '#REF!') { toks.push({ t: 'referr' }); i += 5; continue; }
+      return null;
+    }
+    var two = src.substr(i, 2);
+    if (two === '<>' || two === '<=' || two === '>=') { toks.push({ t: 'op', v: two }); i += 2; continue; }
+    if ('+-*/^&%=<>'.indexOf(ch) >= 0) { toks.push({ t: 'op', v: ch }); i++; continue; }
+    if ('(),:'.indexOf(ch) >= 0) { toks.push({ t: 'punct', v: ch }); i++; continue; }
+    return null;
+  }
+  return toks;
+}
+function cmpPart(a, b) { return a.length - b.length || (a < b ? -1 : a > b ? 1 : 0); }
+function mkRange(sheet, p, q) {
+  var x1 = p, x2 = q, y1 = p, y2 = q;
+  if (cmpPart(p.cs, q.cs) > 0) { x1 = q; x2 = p; }
+  if (cmpPart(p.rs, q.rs) > 0) { y1 = q; y2 = p; }
+  return { t: 'range', sheet: sheet,
+    a: { cs: x1.cs, ca: x1.ca, rs: y1.rs, ra: y1.ra },
+    b: { cs: x2.cs, ca: x2.ca, rs: y2.rs, ra: y2.ra } };
+}
+function parse(s) {
+  try {
+    var toks = tokenize(s.slice(1));
+    if (!toks || !toks.length) return null;
+    var p = 0;
+    var isOp = function (v) { var t = toks[p]; return !!t && t.t === 'op' && t.v === v; };
+    var isP = function (v) { var t = toks[p]; return !!t && t.t === 'punct' && t.v === v; };
+    var refOrRange = function (sheet, r) {
+      if (isP(':')) {
+        p++;
+        var r2 = toks[p++];
+        if (!r2 || r2.t !== 'ref') throw 0;
+        return mkRange(sheet, r, r2);
+      }
+      return { t: 'ref', sheet: sheet, cs: r.cs, ca: r.ca, rs: r.rs, ra: r.ra };
+    };
+    var primary = function () {
+      var t = toks[p++];
+      if (!t) throw 0;
+      switch (t.t) {
+        case 'num': return { t: 'num', raw: t.raw, v: Number(t.raw) };
+        case 'str': return { t: 'str', raw: t.raw, v: t.v };
+        case 'bool': return { t: 'bool', v: t.v };
+        case 'referr': return { t: 'referr' };
+        case 'prefix': { var r = toks[p++]; if (!r || r.t !== 'ref') throw 0; return refOrRange(t.name, r); }
+        case 'ref': return refOrRange(null, t);
+        case 'name':
+          if (isP('(')) {
+            p++;
+            var args = [];
+            if (isP(')')) p++;
+            else for (;;) {
+              args.push(expr());
+              var q = toks[p++];
+              if (!q || q.t !== 'punct') throw 0;
+              if (q.v === ')') break;
+              if (q.v !== ',') throw 0;
+            }
+            return { t: 'call', name: t.name, args: args };
+          }
+          return { t: 'name', name: t.name };
+        case 'punct':
+          if (t.v === '(') { var x = expr(); if (!isP(')')) throw 0; p++; return { t: 'paren', x: x }; }
+          throw 0;
+        default: throw 0;
+      }
+    };
+    var percent = function () { var x = primary(); while (isOp('%')) { p++; x = { t: 'pct', x: x }; } return x; };
+    var power = function () { var b = percent(); if (isOp('^')) { p++; return { t: 'bin', op: '^', l: b, r: signed() }; } return b; };
+    var signed = function () { if (isOp('-') || isOp('+')) { var op = toks[p++].v; return { t: 'un', op: op, x: signed() }; } return power(); };
+    var product = function () { var l = signed(); while (isOp('*') || isOp('/')) { var op = toks[p++].v; l = { t: 'bin', op: op, l: l, r: signed() }; } return l; };
+    var sum = function () { var l = product(); while (isOp('+') || isOp('-')) { var op = toks[p++].v; l = { t: 'bin', op: op, l: l, r: product() }; } return l; };
+    var concat = function () { var l = sum(); while (isOp('&')) { p++; l = { t: 'bin', op: '&', l: l, r: sum() }; } return l; };
+    var expr = function () {
+      var l = concat();
+      for (;;) {
+        var t = toks[p];
+        if (t && t.t === 'op' && CMP_OPS[t.v] === 1) { p++; l = { t: 'bin', op: t.v, l: l, r: concat() }; }
+        else return l;
+      }
+    };
+    var ast = expr();
+    if (p !== toks.length) return null;
+    return ast;
+  } catch (e) { return null; }
+}
+var parseCache = new Map();
+function parseC(s) {
+  var a = parseCache.get(s);
+  if (a === undefined) { if (parseCache.size > 4000) parseCache.clear(); a = parse(s); parseCache.set(s, a); }
+  return a;
+}
+function quoteSheet(name) { return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "'" + name.replace(/'/g, "''") + "'"; }
+function pfx(name) { return name === null ? '' : quoteSheet(name) + '!'; }
+function pt(q) { return (q.ca ? '$' : '') + q.cs + (q.ra ? '$' : '') + q.rs; }
+function ser(n) {
+  switch (n.t) {
+    case 'num': case 'str': return n.raw;
+    case 'bool': return n.v ? 'TRUE' : 'FALSE';
+    case 'referr': return '#REF!';
+    case 'ref': return pfx(n.sheet) + pt(n);
+    case 'range': return pfx(n.sheet) + pt(n.a) + ':' + pt(n.b);
+    case 'name': return n.name;
+    case 'call': return n.name + '(' + n.args.map(ser).join(',') + ')';
+    case 'bin': return ser(n.l) + n.op + ser(n.r);
+    case 'un': return n.op + ser(n.x);
+    case 'pct': return ser(n.x) + '%';
+    default: return '(' + ser(n.x) + ')';
+  }
+}
+/* returns the same node when nothing changed */
+function mapRefs(n, fn) {
+  var x, l, r;
+  switch (n.t) {
+    case 'ref': case 'range': return fn(n);
+    case 'call': {
+      var ch = false, a = n.args.map(function (q) { var y = mapRefs(q, fn); if (y !== q) ch = true; return y; });
+      return ch ? { t: 'call', name: n.name, args: a } : n;
+    }
+    case 'bin': l = mapRefs(n.l, fn); r = mapRefs(n.r, fn); return l === n.l && r === n.r ? n : { t: 'bin', op: n.op, l: l, r: r };
+    case 'un': x = mapRefs(n.x, fn); return x === n.x ? n : { t: 'un', op: n.op, x: x };
+    case 'pct': x = mapRefs(n.x, fn); return x === n.x ? n : { t: 'pct', x: x };
+    case 'paren': x = mapRefs(n.x, fn); return x === n.x ? n : { t: 'paren', x: x };
+    default: return n;
+  }
+}
+var REFERR = { t: 'referr' };
+function colIdx(cs) { if (cs.length !== 1) return 0; var c = cs.charCodeAt(0) - 64; return c >= 1 && c <= COLS ? c : 0; }
+function rowIdx(rs) { if (rs.length > 2) return 0; var r = Number(rs); return r >= 1 && r <= ROWS ? r : 0; }
+function addr(r, c) { return LETTERS.charAt(c) + (r + 1); }
+
+/* ================= workbook ================= */
+var W = null;                       /* the state: sheets, active, names */
+var calc = null;                    /* derived: values, circular cells */
+var hist = { undo: [], redo: [] };
+var clip = null;
+var editing = false;
+
+function newSheet(id, name) {
+  return { id: id, name: name, cells: new Array(NCELL).fill(''), fmts: new Array(NCELL).fill('general'), anchor: { r: 0, c: 0 }, active: { r: 0, c: 0 } };
+}
+function newBook() { return { v: 1, sheets: [newSheet(1, 'Sheet1')], active: 0, names: [] }; }
+function cur() { return W.sheets[W.active]; }
+function findSheet(name) {
+  var u = name.toUpperCase();
+  for (var i = 0; i < W.sheets.length; i++) if (W.sheets[i].name.toUpperCase() === u) return W.sheets[i];
+  return null;
+}
+function sheetById(id) {
+  for (var i = 0; i < W.sheets.length; i++) if (W.sheets[i].id === id) return W.sheets[i];
+  return null;
+}
+function findName(name) {
+  var u = name.toUpperCase();
+  for (var i = 0; i < W.names.length; i++) if (W.names[i].name.toUpperCase() === u) return W.names[i];
+  return null;
+}
+function selRect(sh) {
+  return { r1: Math.min(sh.anchor.r, sh.active.r), r2: Math.max(sh.anchor.r, sh.active.r),
+           c1: Math.min(sh.anchor.c, sh.active.c), c2: Math.max(sh.anchor.c, sh.active.c) };
+}
+function snap() { return JSON.stringify(W); }
+
+/* ================= evaluation ================= */
+function nodeSheet(n, holder) { return n.sheet === null ? holder : findSheet(n.sheet); }
+function collect(n, sh, out) {
+  var s, r, c, i, j;
+  switch (n.t) {
+    case 'ref':
+      s = nodeSheet(n, sh); c = colIdx(n.cs); r = rowIdx(n.rs);
+      if (s && c && r) out.push(s.id * NCELL + (r - 1) * COLS + c - 1);
+      break;
+    case 'range': {
+      s = nodeSheet(n, sh);
+      var c1 = colIdx(n.a.cs), c2 = colIdx(n.b.cs), r1 = rowIdx(n.a.rs), r2 = rowIdx(n.b.rs);
+      if (s && c1 && c2 && r1 && r2)
+        for (i = r1; i <= r2; i++) for (j = c1; j <= c2; j++) out.push(s.id * NCELL + (i - 1) * COLS + j - 1);
+      break;
+    }
+    case 'name': {
+      var nm = findName(n.name);
+      if (nm && nm.kind !== 'removed' && (s = sheetById(nm.sid)))
+        for (i = nm.r1; i <= nm.r2; i++) for (j = nm.c1; j <= nm.c2; j++) out.push(s.id * NCELL + i * COLS + j);
+      break;
+    }
+    case 'call': n.args.forEach(function (a) { collect(a, sh, out); }); break;
+    case 'bin': collect(n.l, sh, out); collect(n.r, sh, out); break;
+    case 'un': case 'pct': case 'paren': collect(n.x, sh, out); break;
+  }
+}
+function recalc() {
+  calc = { vals: new Map(), circ: new Set() };
+  var adj = new Map();
+  W.sheets.forEach(function (sh) {
+    for (var i = 0; i < NCELL; i++) {
+      var raw = sh.cells[i];
+      if (raw.charAt(0) !== '=') continue;
+      var ast = parseC(raw);
+      if (!ast) continue;
+      var deps = [];
+      collect(ast, sh, deps);
+      adj.set(sh.id * NCELL + i, deps);
+    }
+  });
+  /* strongly connected components (Tarjan, iterative) */
+  var index = new Map(), low = new Map(), onStack = new Set(), stack = [], counter = 0;
+  adj.forEach(function (_, root) {
+    if (index.has(root)) return;
+    var work = [[root, 0]];
+    index.set(root, counter); low.set(root, counter); counter++; stack.push(root); onStack.add(root);
+    while (work.length) {
+      var top = work[work.length - 1], v = top[0], edges = adj.get(v), advanced = false;
+      while (top[1] < edges.length) {
+        var w = edges[top[1]++];
+        if (!adj.has(w)) continue;
+        if (w === v) { calc.circ.add(v); continue; }
+        if (!index.has(w)) {
+          index.set(w, counter); low.set(w, counter); counter++; stack.push(w); onStack.add(w);
+          work.push([w, 0]); advanced = true; break;
+        } else if (onStack.has(w)) low.set(v, Math.min(low.get(v), index.get(w)));
+      }
+      if (advanced) continue;
+      work.pop();
+      if (work.length) { var parent = work[work.length - 1][0]; low.set(parent, Math.min(low.get(parent), low.get(v))); }
+      if (low.get(v) === index.get(v)) {
+        var comp = [], x;
+        do { x = stack.pop(); onStack.delete(x); comp.push(x); } while (x !== v);
+        if (comp.length > 1) comp.forEach(function (q) { calc.circ.add(q); });
+      }
+    }
+  });
+}
+function cellVal(sh, i) {
+  var raw = sh.cells[i], c = classifyC(raw);
+  if (c.k === 'empty') return null;
+  if (c.k !== 'formula') return c.v;
+  var key = sh.id * NCELL + i;
+  if (calc.vals.has(key)) return calc.vals.get(key);
+  var ast = parseC(raw), v;
+  if (!ast) v = ERR.SYNTAX;
+  else if (calc.circ.has(key)) v = ERR.CYCLE;
+  else {
+    try { v = ev(ast, sh); } catch (e) { v = ERR.VALUE; }
+    if (v === null || v === undefined) v = 0;
+  }
+  calc.vals.set(key, v);
+  return v;
+}
+function toNum(v) { return typeof v === 'number' ? v : typeof v === 'boolean' ? (v ? 1 : 0) : v === null ? 0 : ERR.VALUE; }
+function toText(v) { return typeof v === 'string' ? v : typeof v === 'number' ? general(v) : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : ''; }
+function toBool(v) { return typeof v === 'boolean' ? v : typeof v === 'number' ? v !== 0 : v === null ? false : ERR.VALUE; }
+function toInt(v) { var x = toNum(v); return isErr(x) ? x : Math.trunc(x); }
+function rank(v) { return typeof v === 'number' ? 0 : typeof v === 'string' ? 1 : 2; }
+function cmpSame(a, b) {
+  if (typeof a === 'string') { a = a.toUpperCase(); b = b.toUpperCase(); }
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+function cmpVals(a, b) {
+  if (a === null) a = (b === null || typeof b === 'number') ? 0 : typeof b === 'string' ? '' : false;
+  if (b === null) b = typeof a === 'number' ? 0 : typeof a === 'string' ? '' : false;
+  var ra = rank(a), rb = rank(b);
+  if (ra !== rb) return ra < rb ? -1 : 1;
+  return cmpSame(a, b);
+}
+function ev(n, sh) {
+  var l, r, a, b, s, c;
+  switch (n.t) {
+    case 'num': return num(n.v);
+    case 'str': case 'bool': return n.v;
+    case 'referr': return ERR.REF;
+    case 'ref':
+      s = nodeSheet(n, sh); c = colIdx(n.cs); r = rowIdx(n.rs);
+      if (!s || !c || !r) return ERR.REF;
+      return cellVal(s, (r - 1) * COLS + c - 1);
+    case 'range': return ERR.VALUE;
+    case 'name': {
+      var nm = findName(n.name);
+      if (!nm) return ERR.NAME;
+      if (nm.kind === 'removed') return ERR.REF;
+      s = sheetById(nm.sid);
+      if (!s) return ERR.REF;
+      if (nm.kind === 'range') return ERR.VALUE;
+      return cellVal(s, nm.r1 * COLS + nm.c1);
+    }
+    case 'paren': return ev(n.x, sh);
+    case 'un':
+      a = ev(n.x, sh); if (isErr(a)) return a;
+      a = toNum(a); if (isErr(a)) return a;
+      return num(n.op === '-' ? -a : a);
+    case 'pct':
+      a = ev(n.x, sh); if (isErr(a)) return a;
+      a = toNum(a); if (isErr(a)) return a;
+      return num(a / 100);
+    case 'call': {
+      var f = FN[n.name];
+      if (!f) return ERR.NAME;
+      if (!f.ok(n.args.length)) return ERR.ARGS;
+      return f.f(n.args, sh);
+    }
+    case 'bin':
+      l = ev(n.l, sh); if (isErr(l)) return l;
+      r = ev(n.r, sh); if (isErr(r)) return r;
+      if (n.op === '&') return toText(l) + toText(r);
+      if (CMP_OPS[n.op] === 1) {
+        c = cmpVals(l, r);
+        switch (n.op) {
+          case '=': return c === 0; case '<>': return c !== 0; case '<': return c < 0;
+          case '<=': return c <= 0; case '>': return c > 0; default: return c >= 0;
+        }
+      }
+      a = toNum(l); if (isErr(a)) return a;
+      b = toNum(r); if (isErr(b)) return b;
+      switch (n.op) {
+        case '+': return num(a + b);
+        case '-': return num(a - b);
+        case '*': return num(a * b);
+        case '/': return b === 0 ? ERR.DIV0 : num(a / b);
+        default:
+          if (a === 0 && b === 0) return ERR.NUM;
+          if (a === 0 && b < 0) return ERR.DIV0;
+          if (a < 0 && !Number.isInteger(b)) return ERR.NUM;
+          return num(Math.pow(a, b));
+      }
+  }
+  return ERR.VALUE;
+}
+
+/* ---------- ranges ---------- */
+function isRangeArg(a) { return a.t === 'ref' || a.t === 'range' || a.t === 'referr' || a.t === 'name'; }
+function resolve(a, sh) {
+  var s;
+  if (a.t === 'referr') return ERR.REF;
+  if (a.t === 'name') {
+    var nm = findName(a.name);
+    if (!nm) return ERR.NAME;
+    if (nm.kind === 'removed') return ERR.REF;
+    s = sheetById(nm.sid);
+    if (!s) return ERR.REF;
+    return { sh: s, r1: nm.r1, c1: nm.c1, r2: nm.r2, c2: nm.c2, multi: nm.kind === 'range' };
+  }
+  s = nodeSheet(a, sh);
+  if (!s) return ERR.REF;
+  if (a.t === 'ref') {
+    var c = colIdx(a.cs), r = rowIdx(a.rs);
+    if (!c || !r) return ERR.REF;
+    return { sh: s, r1: r - 1, c1: c - 1, r2: r - 1, c2: c - 1, multi: false };
+  }
+  var c1 = colIdx(a.a.cs), c2 = colIdx(a.b.cs), r1 = rowIdx(a.a.rs), r2 = rowIdx(a.b.rs);
+  if (!c1 || !c2 || !r1 || !r2) return ERR.REF;
+  return { sh: s, r1: r1 - 1, c1: c1 - 1, r2: r2 - 1, c2: c2 - 1, multi: true };
+}
+function rangeVals(R) {
+  var out = [];
+  for (var r = R.r1; r <= R.r2; r++) for (var c = R.c1; c <= R.c2; c++) out.push(cellVal(R.sh, r * COLS + c));
+  return out;
+}
+function rRows(R) { return R.r2 - R.r1 + 1; }
+function rCols(R) { return R.c2 - R.c1 + 1; }
+
+/* ---------- functions ---------- */
+var FN = Object.create(null);
+function arity(min, max) { return function (n) { return n >= min && n <= max; }; }
+var CONV = { n: toNum, s: toNum, t: toText, l: toBool, i: toInt };
+function typed(name, types, min, fn) {
+  FN[name] = { ok: arity(min, types.length), f: function (args, sh) {
+    var a = [], i, v;
+    for (i = 0; i < args.length; i++) {
+      v = ev(args[i], sh); if (isErr(v)) return v;
+      v = CONV[types.charAt(i)](v); if (isErr(v)) return v;
+      a.push(v);
+    }
+    for (i = 0; i < a.length; i++) if (types.charAt(i) === 's') {
+      var d = Math.floor(a[i]);
+      if (!(d >= 1 && d <= MAXSER)) return ERR.NUM;
+      a[i] = d;
+    }
+    var r = fn(a);
+    return typeof r === 'number' ? num(r) : r;
+  } };
+}
+function aggregate(args, sh, onNum) {
+  for (var i = 0; i < args.length; i++) {
+    var a = args[i];
+    if (isRangeArg(a)) {
+      var R = resolve(a, sh); if (isErr(R)) return R;
+      var vs = rangeVals(R);
+      for (var j = 0; j < vs.length; j++) { if (isErr(vs[j])) return vs[j]; if (typeof vs[j] === 'number') onNum(vs[j]); }
+    } else {
+      var v = ev(a, sh); if (isErr(v)) return v;
+      v = toNum(v); if (isErr(v)) return v;
+      onNum(v);
+    }
+  }
+  return null;
+}
+var MANY = arity(1, Infinity);
+FN.SUM = { ok: MANY, f: function (args, sh) { var s = 0, e = aggregate(args, sh, function (x) { s += x; }); return e || num(s); } };
+FN.AVERAGE = { ok: MANY, f: function (args, sh) { var s = 0, n = 0, e = aggregate(args, sh, function (x) { s += x; n++; }); return e || (n ? num(s / n) : ERR.DIV0); } };
+FN.MIN = { ok: MANY, f: function (args, sh) { var m = null, e = aggregate(args, sh, function (x) { if (m === null || x < m) m = x; }); return e || num(m === null ? 0 : m); } };
+FN.MAX = { ok: MANY, f: function (args, sh) { var m = null, e = aggregate(args, sh, function (x) { if (m === null || x > m) m = x; }); return e || num(m === null ? 0 : m); } };
+function counter(countAll) {
+  return function (args, sh) {
+    var n = 0;
+    for (var i = 0; i < args.length; i++) {
+      var a = args[i];
+      if (isRangeArg(a)) {
+        var R = resolve(a, sh); if (isErr(R)) return R;
+        var vs = rangeVals(R);
+        for (var j = 0; j < vs.length; j++) {
+          if (isErr(vs[j])) return vs[j];
+          if (countAll ? vs[j] !== null : typeof vs[j] === 'number') n++;
+        }
+      } else {
+        var v = ev(a, sh); if (isErr(v)) return v;
+        if (countAll || typeof v === 'number') n++;
+      }
+    }
+    return n;
+  };
+}
+FN.COUNT = { ok: MANY, f: counter(false) };
+FN.COUNTA = { ok: MANY, f: counter(true) };
+function rounder(mode) { return function (a) { return a[1] < -9 || a[1] > 9 ? ERR.NUM : partsToNumber(roundDec(a[0], a[1], mode)); }; }
+typed('ROUND', 'ni', 2, rounder(0));
+typed('ROUNDUP', 'ni', 2, rounder(1));
+typed('ROUNDDOWN', 'ni', 2, rounder(-1));
+typed('ABS', 'n', 1, function (a) { return Math.abs(a[0]); });
+typed('INT', 'n', 1, function (a) { return Math.floor(a[0]); });
+typed('MOD', 'nn', 2, function (a) { return a[1] === 0 ? ERR.DIV0 : a[0] - a[1] * Math.floor(a[0] / a[1]); });
+FN.IF = { ok: arity(3, 3), f: function (args, sh) {
+  var c = ev(args[0], sh); if (isErr(c)) return c;
+  c = toBool(c); if (isErr(c)) return c;
+  return ev(args[c ? 1 : 2], sh);
+} };
+function logic(isAnd) {
+  return function (args, sh) {
+    var res = isAnd;
+    for (var i = 0; i < args.length; i++) {
+      var v = ev(args[i], sh); if (isErr(v)) return v;
+      v = toBool(v); if (isErr(v)) return v;
+      if (isAnd ? !v : v) res = !isAnd;
+    }
+    return res;
+  };
+}
+FN.AND = { ok: MANY, f: logic(true) };
+FN.OR = { ok: MANY, f: logic(false) };
+typed('NOT', 'l', 1, function (a) { return !a[0]; });
+FN.IFERROR = { ok: arity(2, 2), f: function (args, sh) { var v = ev(args[0], sh); return isErr(v) ? ev(args[1], sh) : v; } };
+FN.ISERROR = { ok: arity(1, 1), f: function (args, sh) { return isErr(ev(args[0], sh)); } };
+FN.ISBLANK = { ok: arity(1, 1), f: function (args, sh) {
+  var a = args[0];
+  if (isRangeArg(a)) {
+    var R = resolve(a, sh); if (isErr(R)) return R;
+    if (R.multi) return ERR.VALUE;
+    return R.sh.cells[R.r1 * COLS + R.c1] === '';
+  }
+  var v = ev(a, sh);
+  return isErr(v) ? v : false;
+} };
+FN.CHOOSE = { ok: arity(2, Infinity), f: function (args, sh) {
+  var i = ev(args[0], sh); if (isErr(i)) return i;
+  i = toInt(i); if (isErr(i)) return i;
+  if (i < 1 || i > args.length - 1) return ERR.VALUE;
+  return ev(args[i], sh);
+} };
+typed('LEN', 't', 1, function (a) { return a[0].length; });
+typed('UPPER', 't', 1, function (a) { return a[0].toUpperCase(); });
+typed('LOWER', 't', 1, function (a) { return a[0].toLowerCase(); });
+typed('TRIM', 't', 1, function (a) { return trimSp(a[0]).replace(/ {2,}/g, ' '); });
+typed('LEFT', 'ti', 2, function (a) { return a[1] < 0 ? ERR.VALUE : a[0].slice(0, a[1]); });
+typed('RIGHT', 'ti', 2, function (a) { return a[1] < 0 ? ERR.VALUE : a[1] >= a[0].length ? a[0] : a[0].slice(a[0].length - a[1]); });
+typed('MID', 'tii', 3, function (a) { return a[1] < 1 || a[2] < 0 ? ERR.VALUE : a[0].slice(a[1] - 1, a[1] - 1 + a[2]); });
+FN.CONCAT = { ok: MANY, f: function (args, sh) {
+  var out = '';
+  for (var i = 0; i < args.length; i++) {
+    var a = args[i];
+    if (isRangeArg(a)) {
+      var R = resolve(a, sh); if (isErr(R)) return R;
+      var vs = rangeVals(R);
+      for (var j = 0; j < vs.length; j++) { if (isErr(vs[j])) return vs[j]; out += toText(vs[j]); }
+    } else {
+      var v = ev(a, sh); if (isErr(v)) return v;
+      out += toText(v);
+    }
+  }
+  return out;
+} };
+typed('REPT', 'ti', 2, function (a) {
+  if (a[1] < 0 || a[0].length * a[1] > 255) return ERR.VALUE;
+  return a[0] === '' || a[1] === 0 ? '' : a[0].repeat(a[1]);
+});
+typed('FIND', 'tti', 2, function (a) {
+  var start = a.length > 2 ? a[2] : 1;
+  if (start < 1 || start > a[1].length + 1) return ERR.VALUE;
+  var p = a[1].indexOf(a[0], start - 1);
+  return p < 0 ? ERR.VALUE : p + 1;
+});
+typed('SUBSTITUTE', 'ttti', 3, function (a) {
+  var t = a[0], old = a[1], nw = a[2];
+  if (a.length > 3 && a[3] < 1) return ERR.VALUE;
+  if (old === '') return t;
+  if (a.length < 4) return t.split(old).join(nw);
+  var pos = -old.length, k = a[3];
+  for (var i = 0; i < k; i++) {
+    pos = t.indexOf(old, pos + old.length);
+    if (pos < 0) return t;
+  }
+  return t.slice(0, pos) + nw + t.slice(pos + old.length);
+});
+typed('TEXT', 'nt', 2, function (a) {
+  var x = a[0], p = a[1];
+  if (p === 'yyyy-mm-dd') {
+    var d = Math.floor(x);
+    return d >= 1 && d <= MAXSER ? dateText(d) : ERR.NUM;
+  }
+  var m = /^(#,##)?0(?:\.(0{1,6}))?(%)?$/.exec(p);
+  if (!m) return ERR.VALUE;
+  if (m[3]) { x = num(x * 100); if (isErr(x)) return x; }
+  return fixedText(x, m[2] ? m[2].length : 0, !!m[1], !!m[3]);
+});
+/* mode: 0 exact, 1 at most, -1 at least; returns an index, -1 or an error */
+function search(vals, key, mode) {
+  if (key === null) key = 0;
+  var tk = typeof key, best = -1, bv = null;
+  for (var i = 0; i < vals.length; i++) {
+    var v = vals[i];
+    if (isErr(v)) return v;
+    if (v === null || typeof v !== tk) continue;
+    var c = cmpSame(v, key);
+    if (mode === 0) { if (c === 0) return i; }
+    else if (mode === 1) { if (c <= 0 && (best < 0 || cmpSame(v, bv) >= 0)) { best = i; bv = v; } }
+    else if (c >= 0 && (best < 0 || cmpSame(v, bv) <= 0)) { best = i; bv = v; }
+  }
+  return best;
+}
+FN.MATCH = { ok: arity(2, 3), f: function (args, sh) {
+  if (!isRangeArg(args[1])) return ERR.VALUE;
+  var R = resolve(args[1], sh); if (isErr(R)) return R;
+  if (rRows(R) > 1 && rCols(R) > 1) return ERR.VALUE;
+  var key = ev(args[0], sh); if (isErr(key)) return key;
+  var type = 1;
+  if (args.length > 2) {
+    type = ev(args[2], sh); if (isErr(type)) return type;
+    type = toInt(type); if (isErr(type)) return type;
+    if (type !== -1 && type !== 0 && type !== 1) return ERR.VALUE;
+  }
+  var i = search(rangeVals(R), key, type);
+  if (isErr(i)) return i;
+  return i < 0 ? ERR.NA : i + 1;
+} };
+FN.VLOOKUP = { ok: arity(3, 4), f: function (args, sh) {
+  if (!isRangeArg(args[1])) return ERR.VALUE;
+  var R = resolve(args[1], sh); if (isErr(R)) return R;
+  var key = ev(args[0], sh); if (isErr(key)) return key;
+  var col = ev(args[2], sh); if (isErr(col)) return col;
+  col = toInt(col); if (isErr(col)) return col;
+  if (col < 1) return ERR.VALUE;
+  if (col > rCols(R)) return ERR.REF;
+  var approx = false;
+  if (args.length > 3) {
+    approx = ev(args[3], sh); if (isErr(approx)) return approx;
+    approx = toBool(approx); if (isErr(approx)) return approx;
+  }
+  var first = [];
+  for (var r = R.r1; r <= R.r2; r++) first.push(cellVal(R.sh, r * COLS + R.c1));
+  var i = search(first, key, approx ? 1 : 0);
+  if (isErr(i)) return i;
+  if (i < 0) return ERR.NA;
+  return cellVal(R.sh, (R.r1 + i) * COLS + R.c1 + col - 1);
+} };
+FN.INDEX = { ok: arity(2, 3), f: function (args, sh) {
+  if (!isRangeArg(args[0])) return ERR.VALUE;
+  var R = resolve(args[0], sh); if (isErr(R)) return R;
+  var n = ev(args[1], sh); if (isErr(n)) return n;
+  n = toInt(n); if (isErr(n)) return n;
+  var rows = rRows(R), cols = rCols(R);
+  if (args.length === 2) {
+    if (n < 1) return ERR.VALUE;
+    if (n > rows * cols) return ERR.REF;
+    return cellVal(R.sh, (R.r1 + Math.floor((n - 1) / cols)) * COLS + R.c1 + (n - 1) % cols);
+  }
+  var m = ev(args[2], sh); if (isErr(m)) return m;
+  m = toInt(m); if (isErr(m)) return m;
+  if (n < 1 || m < 1) return ERR.VALUE;
+  if (n > rows || m > cols) return ERR.REF;
+  return cellVal(R.sh, (R.r1 + n - 1) * COLS + R.c1 + m - 1);
+} };
+function parseCrit(v) {
+  if (v === null) return { op: '=', x: '' };
+  if (typeof v !== 'string') return { op: '=', x: v };
+  var m = /^(>=|<=|<>|>|<|=)/.exec(v);
+  if (!m) return { op: '=', x: v };
+  var rest = v.slice(m[1].length), x = entryNumber(rest);
+  if (x === null) { var u = rest.toUpperCase(); x = u === 'TRUE' ? true : u === 'FALSE' ? false : rest; }
+  return { op: m[1], x: x };
+}
+function meets(v, cr) {
+  var same = typeof v === typeof cr.x, c = same ? cmpSame(v, cr.x) : 0;
+  switch (cr.op) {
+    case '=': return same && c === 0;
+    case '<>': return !(same && c === 0);
+    case '<': return same && c < 0;
+    case '<=': return same && c <= 0;
+    case '>': return same && c > 0;
+    default: return same && c >= 0;
+  }
+}
+/* pairs: [rangeArgIndex, criterionArgIndex]; sumIdx: index of sum_range or -1; kind: 'count' | 'sum' | 'avg' */
+function condAgg(args, sh, pairs, sumIdx, kind) {
+  var idxs = pairs.map(function (p) { return p[0]; }), i, j;
+  if (sumIdx >= 0 && idxs.indexOf(sumIdx) < 0) idxs.push(sumIdx);
+  idxs.sort(function (a, b) { return a - b; });
+  for (i = 0; i < idxs.length; i++) if (!isRangeArg(args[idxs[i]])) return ERR.VALUE;
+  var R = {};
+  for (i = 0; i < idxs.length; i++) { var q = resolve(args[idxs[i]], sh); if (isErr(q)) return q; R[idxs[i]] = q; }
+  var first = R[idxs[0]];
+  for (i = 1; i < idxs.length; i++) if (rRows(R[idxs[i]]) !== rRows(first) || rCols(R[idxs[i]]) !== rCols(first)) return ERR.VALUE;
+  var crits = [];
+  for (i = 0; i < pairs.length; i++) { var cv = ev(args[pairs[i][1]], sh); if (isErr(cv)) return cv; crits.push(parseCrit(cv)); }
+  var rows = rRows(first), cols = rCols(first), count = 0, sum = 0, n = 0;
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+    var ok = true;
+    for (j = 0; j < pairs.length && ok; j++) {
+      var G = R[pairs[j][0]], v = cellVal(G.sh, (G.r1 + r) * COLS + G.c1 + c);
+      if (isErr(v)) return v;
+      if (v === null || !meets(v, crits[j])) ok = false;
+    }
+    if (!ok) continue;
+    count++;
+    if (sumIdx >= 0) {
+      var S = R[sumIdx], sv = cellVal(S.sh, (S.r1 + r) * COLS + S.c1 + c);
+      if (isErr(sv)) return sv;
+      if (typeof sv === 'number') { sum += sv; n++; }
+    }
+  }
+  if (kind === 'count') return count;
+  if (kind === 'sum') return num(sum);
+  return n ? num(sum / n) : ERR.DIV0;
+}
+function pairsFrom(start, n) { var p = []; for (var i = start; i + 1 < n; i += 2) p.push([i, i + 1]); return p; }
+FN.COUNTIF = { ok: arity(2, 2), f: function (a, sh) { return condAgg(a, sh, [[0, 1]], -1, 'count'); } };
+FN.COUNTIFS = { ok: function (n) { return n >= 2 && n % 2 === 0; }, f: function (a, sh) { return condAgg(a, sh, pairsFrom(0, a.length), -1, 'count'); } };
+FN.SUMIF = { ok: arity(3, 3), f: function (a, sh) { return condAgg(a, sh, [[0, 1]], 2, 'sum'); } };
+FN.SUMIFS = { ok: function (n) { return n >= 3 && n % 2 === 1; }, f: function (a, sh) { return condAgg(a, sh, pairsFrom(1, a.length), 0, 'sum'); } };
+FN.AVERAGEIF = { ok: arity(2, 3), f: function (a, sh) { return condAgg(a, sh, [[0, 1]], a.length > 2 ? 2 : 0, 'avg'); } };
+typed('DATE', 'iii', 3, function (a) {
+  var y = a[0], m = a[1], d = a[2];
+  if (y < 1900 || y > 9999) return ERR.NUM;
+  var yy = y + Math.floor((m - 1) / 12), mm = (((m - 1) % 12) + 12) % 12 + 1;
+  var s = serialOf(yy, mm, 1) + d - 1;
+  return s >= 1 && s <= MAXSER ? s : ERR.NUM;
+});
+typed('YEAR', 's', 1, function (a) { return civil(a[0])[0]; });
+typed('MONTH', 's', 1, function (a) { return civil(a[0])[1]; });
+typed('DAY', 's', 1, function (a) { return civil(a[0])[2]; });
+typed('WEEKDAY', 'si', 1, function (a) {
+  var t = a.length > 1 ? a[1] : 1, s = a[0];
+  if (t === 1) return s % 7 + 1;
+  if (t === 2) return (s - 1) % 7 + 1;
+  if (t === 3) return (s - 1) % 7;
+  return ERR.NUM;
+});
+typed('EDATE', 'si', 2, function (a) {
+  var p = civil(a[0]), tot = p[0] * 12 + (p[1] - 1) + a[1];
+  var yy = Math.floor(tot / 12), mm = tot - yy * 12 + 1;
+  if (!(yy >= 1900 && yy <= 9999)) return ERR.NUM;
+  return serialOf(yy, mm, Math.min(p[2], dim(yy, mm)));
+});
+typed('DAYS', 'ss', 2, function (a) { return a[0] - a[1]; });
+
+/* ================= cells: display ================= */
+function cellText(sh, i) {
+  var v = cellVal(sh, i);
+  if (v === null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  if (typeof v === 'number') return showNum(v, sh.fmts[i]);
+  return v.e;
+}
+function cellKind(sh, i) {
+  var v = cellVal(sh, i);
+  return v === null ? 'empty' : typeof v === 'number' ? 'number' : typeof v === 'string' ? 'text' : typeof v === 'boolean' ? 'logical' : 'error';
+}
+
+/* ================= committing ================= */
+function storedForm(s) {
+  if (s.charAt(0) === '=') {
+    var ast = parseC(s);
+    if (ast) return '=' + ser(mapRefs(ast, function (n) {
+      if (n.sheet === null) return n;
+      var sh = findSheet(n.sheet);
+      if (!sh || sh.name === n.sheet) return n;
+      var m = Object.assign({}, n); m.sheet = sh.name; return m;
+    }));
+  }
+  return s;
+}
+/* commit under 02 section 2.2; returns true when the raw content or the format changed */
+function commitTo(sh, i, s) {
+  var raw = storedForm(s), ch = false;
+  if (sh.cells[i] !== raw) { sh.cells[i] = raw; ch = true; }
+  if (sh.fmts[i] === 'general' && classifyC(raw).date) { sh.fmts[i] = 'date'; ch = true; }
+  return ch;
+}
+
+/* ================= rewriting references ================= */
+function colName(i) { return LETTERS.charAt(i - 1); }
+function insRef(n, r, max) { return n < r ? n : (n + 1 > max ? 0 : n + 1); }
+function insRange(t, b, r, max) {
+  var t2 = t < r ? t : t + 1;
+  if (t2 > max) return null;
+  var b2 = b < r ? b : b + 1;
+  return [t2, Math.min(b2, max)];
+}
+function delRef(n, r) { return n < r ? n : n === r ? 0 : n - 1; }
+function delRange(t, b, r) {
+  if (r > b) return [t, b];
+  if (r < t) return [t - 1, b - 1];
+  return t === b ? null : [t, b - 1];
+}
+function withPart(q, axis, v) {
+  var m = { cs: q.cs, ca: q.ca, rs: q.rs, ra: q.ra };
+  if (axis === 'r') m.rs = String(v); else m.cs = colName(v);
+  return m;
+}
+/* a row or a column inserted (del false) or deleted (del true) at pos (from 1) of sheet S */
+function shiftNode(n, holder, S, axis, pos, del) {
+  if (nodeSheet(n, holder) !== S) return n;
+  var max = axis === 'r' ? ROWS : COLS;
+  if (n.t === 'ref') {
+    var c = colIdx(n.cs), r = rowIdx(n.rs);
+    if (!c || !r) return n;
+    var v = axis === 'r' ? r : c, v2 = del ? delRef(v, pos) : insRef(v, pos, max);
+    if (v2 === v) return n;
+    if (!v2) return REFERR;
+    var m = withPart(n, axis, v2); m.t = 'ref'; m.sheet = n.sheet; return m;
+  }
+  var c1 = colIdx(n.a.cs), c2 = colIdx(n.b.cs), r1 = rowIdx(n.a.rs), r2 = rowIdx(n.b.rs);
+  if (!c1 || !c2 || !r1 || !r2) return n;
+  var t = axis === 'r' ? r1 : c1, b = axis === 'r' ? r2 : c2;
+  var res = del ? delRange(t, b, pos) : insRange(t, b, pos, max);
+  if (!res) return REFERR;
+  if (res[0] === t && res[1] === b) return n;
+  return { t: 'range', sheet: n.sheet, a: withPart(n.a, axis, res[0]), b: withPart(n.b, axis, res[1]) };
+}
+function movePoint(q, dc, dr) {
+  var c = colIdx(q.cs), r = rowIdx(q.rs);
+  if (!q.ca) c += dc;
+  if (!q.ra) r += dr;
+  if (c < 1 || c > COLS || r < 1 || r > ROWS) return null;
+  return { cs: colName(c), ca: q.ca, rs: String(r), ra: q.ra };
+}
+function moveNode(n, dc, dr) {
+  if (n.t === 'ref') {
+    if (!colIdx(n.cs) || !rowIdx(n.rs)) return n;
+    var q = movePoint(n, dc, dr);
+    if (!q) return REFERR;
+    if (q.cs === n.cs && q.rs === n.rs) return n;
+    q.t = 'ref'; q.sheet = n.sheet; return q;
+  }
+  if (!colIdx(n.a.cs) || !colIdx(n.b.cs) || !rowIdx(n.a.rs) || !rowIdx(n.b.rs)) return n;
+  var a = movePoint(n.a, dc, dr), b = movePoint(n.b, dc, dr);
+  if (!a || !b) return REFERR;
+  return mkRange(n.sheet, a, b);
+}
+function adjust(raw, dc, dr) {
+  if (raw.charAt(0) !== '=') return raw;
+  var ast = parseC(raw);
+  if (!ast) return raw;
+  return '=' + ser(mapRefs(ast, function (n) { return moveNode(n, dc, dr); }));
+}
+function rewriteAll(fn) {
+  W.sheets.forEach(function (s) {
+    for (var i = 0; i < NCELL; i++) {
+      var raw = s.cells[i];
+      if (raw.charAt(0) !== '=') continue;
+      var ast = parseC(raw);
+      if (!ast) continue;
+      var n2 = mapRefs(ast, function (n) { return fn(n, s); });
+      if (n2 !== ast) s.cells[i] = '=' + ser(n2);
+    }
+  });
+}
+
+/* ================= actions on the workbook ================= */
+function structural(axis, del) {
+  var sh = cur(), C = sh.cells, F = sh.fmts, pos = axis === 'r' ? sh.active.r : sh.active.c, r, c;
+  var put = function (to, from) { C[to] = from < 0 ? '' : C[from]; F[to] = from < 0 ? 'general' : F[from]; };
+  if (axis === 'r') {
+    if (del) { for (r = pos; r < ROWS; r++) for (c = 0; c < COLS; c++) put(r * COLS + c, r + 1 < ROWS ? (r + 1) * COLS + c : -1); }
+    else { for (r = ROWS - 1; r >= pos; r--) for (c = 0; c < COLS; c++) put(r * COLS + c, r > pos ? (r - 1) * COLS + c : -1); }
+  } else {
+    if (del) { for (c = pos; c < COLS; c++) for (r = 0; r < ROWS; r++) put(r * COLS + c, c + 1 < COLS ? r * COLS + c + 1 : -1); }
+    else { for (c = COLS - 1; c >= pos; c--) for (r = 0; r < ROWS; r++) put(r * COLS + c, c > pos ? r * COLS + c - 1 : -1); }
+  }
+  var max = axis === 'r' ? ROWS : COLS;
+  rewriteAll(function (n, holder) { return shiftNode(n, holder, sh, axis, pos + 1, del); });
+  W.names.forEach(function (nm) {
+    if (nm.kind === 'removed' || nm.sid !== sh.id) return;
+    var t = (axis === 'r' ? nm.r1 : nm.c1) + 1, b = (axis === 'r' ? nm.r2 : nm.c2) + 1, res;
+    if (nm.kind === 'cell') { var v = del ? delRef(t, pos + 1) : insRef(t, pos + 1, max); res = v ? [v, v] : null; }
+    else res = del ? delRange(t, b, pos + 1) : insRange(t, b, pos + 1, max);
+    if (!res) { nm.kind = 'removed'; return; }
+    if (axis === 'r') { nm.r1 = res[0] - 1; nm.r2 = res[1] - 1; } else { nm.c1 = res[0] - 1; nm.c2 = res[1] - 1; }
+  });
+  return true;
+}
+function takeBlock(mode) {
+  var sh = cur(), R = selRect(sh), cells = [];
+  for (var r = R.r1; r <= R.r2; r++) {
+    var row = [];
+    for (var c = R.c1; c <= R.c2; c++) row.push({ raw: sh.cells[r * COLS + c], fmt: sh.fmts[r * COLS + c] });
+    cells.push(row);
+  }
+  clip = { mode: mode, sheet: sh.name, r1: R.r1, c1: R.c1, r2: R.r2, c2: R.c2, cells: cells };
+}
+function paste() {
+  if (!clip) return false;
+  var sh = cur(), R = selRect(sh), r0 = R.r1, c0 = R.c1, r, c;
+  if (clip.mode === 'cut') {
+    var src = findSheet(clip.sheet);
+    if (src) for (r = clip.r1; r <= clip.r2; r++) for (c = clip.c1; c <= clip.c2; c++) { src.cells[r * COLS + c] = ''; src.fmts[r * COLS + c] = 'general'; }
+  }
+  for (var dr = 0; dr < clip.cells.length; dr++) for (var dc = 0; dc < clip.cells[dr].length; dc++) {
+    r = r0 + dr; c = c0 + dc;
+    if (r >= ROWS || c >= COLS) continue;
+    var cell = clip.cells[dr][dc];
+    sh.cells[r * COLS + c] = clip.mode === 'copy' ? adjust(cell.raw, c0 - clip.c1, r0 - clip.r1) : cell.raw;
+    sh.fmts[r * COLS + c] = cell.fmt;
+  }
+  sh.anchor = { r: r0, c: c0 }; sh.active = { r: r0, c: c0 };
+  if (clip.mode === 'cut') clip = null;
+  return true;
+}
+function clearSel() {
+  var sh = cur(), R = selRect(sh), ch = false;
+  for (var r = R.r1; r <= R.r2; r++) for (var c = R.c1; c <= R.c2; c++)
+    if (sh.cells[r * COLS + c] !== '') { sh.cells[r * COLS + c] = ''; ch = true; }
+  return ch;
+}
+function setFormat(f) {
+  if (FORMATS.indexOf(f) < 0) return false;
+  var sh = cur(), R = selRect(sh), ch = false;
+  for (var r = R.r1; r <= R.r2; r++) for (var c = R.c1; c <= R.c2; c++)
+    if (sh.fmts[r * COLS + c] !== f) { sh.fmts[r * COLS + c] = f; ch = true; }
+  return ch;
+}
+function sortKey(sh, i) {
+  if (sh.cells[i] === '') return { k: 4, v: null };
+  var v = cellVal(sh, i);
+  if (typeof v === 'number') return { k: 0, v: v };
+  if (typeof v === 'string') return { k: 1, v: v };
+  if (typeof v === 'boolean') return { k: 2, v: v };
+  return { k: 3, v: null };
+}
+function sortSel(desc) {
+  var sh = cur(), R = selRect(sh), kc = sh.active.c, rows = [], r, c;
+  for (r = R.r1; r <= R.r2; r++) rows.push({ r: r, key: sortKey(sh, r * COLS + kc) });
+  var asc = function (a, b) {
+    if (a.k !== b.k) return a.k - b.k;
+    return a.k <= 2 ? cmpSame(a.v, b.v) : 0;
+  };
+  var sorted = rows.slice().sort(function (x, y) {
+    var a = x.key, b = y.key;
+    if (!desc) return asc(a, b);
+    if (a.k === 4 || b.k === 4) return (a.k === 4 ? 1 : 0) - (b.k === 4 ? 1 : 0);
+    return -asc(a, b);
+  });
+  if (sorted.every(function (x, i) { return x.r === rows[i].r; })) return false;
+  var C = sh.cells.slice(), F = sh.fmts.slice();
+  sorted.forEach(function (x, i) {
+    for (c = R.c1; c <= R.c2; c++) {
+      sh.cells[(R.r1 + i) * COLS + c] = C[x.r * COLS + c];
+      sh.fmts[(R.r1 + i) * COLS + c] = F[x.r * COLS + c];
+    }
+  });
+  return true;
+}
+function fill(right) {
+  var sh = cur(), R = selRect(sh), r, c, src;
+  if (right ? R.c1 === R.c2 : R.r1 === R.r2) return false;
+  for (r = R.r1; r <= R.r2; r++) for (c = R.c1; c <= R.c2; c++) {
+    if (right ? c === R.c1 : r === R.r1) continue;
+    src = right ? r * COLS + R.c1 : R.r1 * COLS + c;
+    sh.cells[r * COLS + c] = adjust(sh.cells[src], right ? c - R.c1 : 0, right ? 0 : r - R.r1);
+    sh.fmts[r * COLS + c] = sh.fmts[src];
+  }
+  return true;
+}
+function fillSeries() {
+  var sh = cur(), R = selRect(sh), lines = [], r, c, line, ch = false;
+  if (R.r1 === R.r2) { line = []; for (c = R.c1; c <= R.c2; c++) line.push(R.r1 * COLS + c); lines.push(line); }
+  else for (c = R.c1; c <= R.c2; c++) { line = []; for (r = R.r1; r <= R.r2; r++) line.push(r * COLS + c); lines.push(line); }
+  lines.forEach(function (ln) {
+    if (ln.length < 3) return;
+    var k1 = classifyC(sh.cells[ln[0]]), k2 = classifyC(sh.cells[ln[1]]);
+    if (k1.k !== 'number' || k2.k !== 'number') return;
+    var a = k1.v, s = num(k2.v - a), vals = [], k;
+    if (isErr(s)) return;
+    for (k = 3; k <= ln.length; k++) {
+      var v = num(a + (k - 1) * s);
+      if (isErr(v)) return;
+      vals.push(v);
+    }
+    for (k = 0; k < vals.length; k++) { sh.cells[ln[k + 2]] = plain(vals[k]); sh.fmts[ln[k + 2]] = sh.fmts[ln[0]]; }
+    ch = true;
+  });
+  return ch;
+}
+function fold(s, matchCase) { return matchCase ? s : s.replace(/[A-Z]+/g, function (m) { return m.toLowerCase(); }); }
+function cellMatches(raw, needle, matchCase, whole) {
+  if (needle === '' || raw === '') return false;
+  var a = fold(raw, matchCase), b = fold(needle, matchCase);
+  return whole ? a === b : a.indexOf(b) >= 0;
+}
+function replaceIn(raw, needle, rep, matchCase, whole) {
+  if (whole) return rep;
+  var a = fold(raw, matchCase), b = fold(needle, matchCase), out = '', last = 0, p = a.indexOf(b);
+  while (p >= 0) { out += raw.slice(last, p) + rep; last = p + b.length; p = a.indexOf(b, last); }
+  return out + raw.slice(last);
+}
+function csvField(f) { return /[",\r\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f; }
+function csvWrite(sh, rawMode) {
+  var R = -1, C = -1, r, c;
+  for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (sh.cells[r * COLS + c] !== '') { if (r > R) R = r; if (c > C) C = c; }
+  var recs = [];
+  for (r = 0; r <= R; r++) {
+    var f = [];
+    for (c = 0; c <= C; c++) f.push(csvField(rawMode ? sh.cells[r * COLS + c] : cellText(sh, r * COLS + c)));
+    recs.push(f.join(','));
+  }
+  return recs.join('\n');
+}
+/* returns the records, or null when the text is malformed */
+function csvRead(text) {
+  var i = 0, n = text.length, recs = [], rec = [], f, ch;
+  for (;;) {
+    f = '';
+    if (text.charAt(i) === '"') {
+      i++;
+      for (;;) {
+        if (i >= n) return null;
+        ch = text.charAt(i);
+        if (ch === '"') { if (text.charAt(i + 1) === '"') { f += '"'; i += 2; } else { i++; break; } }
+        else if (ch === '\r') { f += ' '; i += text.charAt(i + 1) === '\n' ? 2 : 1; }
+        else if (ch === '\n') { f += ' '; i++; }
+        else { f += ch; i++; }
+      }
+      if (i < n) { ch = text.charAt(i); if (ch !== ',' && ch !== '\r' && ch !== '\n') return null; }
+    } else {
+      var st = i;
+      while (i < n) { ch = text.charAt(i); if (ch === ',' || ch === '\r' || ch === '\n') break; i++; }
+      f = text.slice(st, i);
+    }
+    rec.push(f);
+    if (i >= n) { recs.push(rec); break; }
+    if (text.charAt(i) === ',') { i++; continue; }
+    i += (text.charAt(i) === '\r' && text.charAt(i + 1) === '\n') ? 2 : 1;
+    recs.push(rec); rec = [];
+    if (i >= n) break;
+  }
+  return recs;
+}
+function validSheetName(s) {
+  return s.length >= 1 && s.length <= 20 && /^[A-Za-z0-9 _.'-]+$/.test(s) && s.charAt(0) !== ' ' && s.charAt(s.length - 1) !== ' ';
+}
+function validName(s) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]{0,19}$/.test(s)) return false;
+  var u = s.toUpperCase();
+  if (u === 'TRUE' || u === 'FALSE' || FN[u]) return false;
+  return !/^[A-Za-z]+[0-9]+$/.test(s);
+}
+function defaultSheetName() { for (var n = 1; ; n++) if (!findSheet('Sheet' + n)) return 'Sheet' + n; }
+function targetText(nm) {
+  if (nm.kind === 'removed') return '#REF!';
+  var sh = sheetById(nm.sid);
+  if (!sh) return '#REF!';
+  var t = quoteSheet(sh.name) + '!' + addr(nm.r1, nm.c1);
+  return nm.kind === 'range' ? t + ':' + addr(nm.r2, nm.c2) : t;
+}
+
+/* ================= persistence ================= */
+function isInt(x, lo, hi) { return typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi; }
+function validPos(p) { return !!p && typeof p === 'object' && isInt(p.r, 0, ROWS - 1) && isInt(p.c, 0, COLS - 1); }
+function validState(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o) || o.v !== 1) return false;
+  if (!Array.isArray(o.sheets) || o.sheets.length < 1 || o.sheets.length > 5) return false;
+  var ids = {}, names = {}, i, j;
+  for (i = 0; i < o.sheets.length; i++) {
+    var s = o.sheets[i];
+    if (!s || typeof s !== 'object' || !isInt(s.id, 1, 1e9) || ids[s.id]) return false;
+    ids[s.id] = true;
+    if (typeof s.name !== 'string' || !validSheetName(s.name) || names[s.name.toUpperCase()]) return false;
+    names[s.name.toUpperCase()] = true;
+    if (!Array.isArray(s.cells) || s.cells.length !== NCELL || !Array.isArray(s.fmts) || s.fmts.length !== NCELL) return false;
+    for (j = 0; j < NCELL; j++) if (typeof s.cells[j] !== 'string' || FORMATS.indexOf(s.fmts[j]) < 0) return false;
+    if (!validPos(s.anchor) || !validPos(s.active)) return false;
+  }
+  if (!isInt(o.active, 0, o.sheets.length - 1)) return false;
+  if (!Array.isArray(o.names) || o.names.length > 10) return false;
+  var seen = {};
+  for (i = 0; i < o.names.length; i++) {
+    var nm = o.names[i];
+    if (!nm || typeof nm !== 'object' || typeof nm.name !== 'string' || !validName(nm.name)) return false;
+    if (seen[nm.name.toUpperCase()]) return false;
+    seen[nm.name.toUpperCase()] = true;
+    if (nm.kind === 'removed') continue;
+    if (nm.kind !== 'cell' && nm.kind !== 'range') return false;
+    if (!ids[nm.sid]) return false;
+    if (!isInt(nm.r1, 0, ROWS - 1) || !isInt(nm.r2, nm.r1, ROWS - 1) || !isInt(nm.c1, 0, COLS - 1) || !isInt(nm.c2, nm.c1, COLS - 1)) return false;
+    if (nm.kind === 'cell' && (nm.r1 !== nm.r2 || nm.c1 !== nm.c2)) return false;
+  }
+  return true;
+}
+function load() {
+  var s = null;
+  try { s = window.localStorage.getItem(KEY); } catch (e) { return null; }
+  if (typeof s !== 'string') return null;
+  try { var o = JSON.parse(s); return validState(o) ? o : null; } catch (e) { return null; }
+}
+function save() { try { window.localStorage.setItem(KEY, JSON.stringify(W)); } catch (e) { /* no persistence */ } }
+
+/* ================= user interface ================= */
+function $(id) { return document.querySelector('[data-testid="' + id + '"]'); }
+var el = {};
+['grid', 'name-box', 'formula-input', 'format-select', 'selection-summary', 'sheet-tabs', 'add-sheet', 'sheet-name-input',
+ 'rename-sheet', 'delete-sheet', 'sheet-message', 'name-input', 'define-name', 'delete-name', 'name-message', 'name-list',
+ 'find-input', 'replace-input', 'find-case', 'find-whole', 'find-next', 'replace-all', 'find-status', 'csv-raw', 'csv-export',
+ 'csv-import', 'csv-text', 'csv-message', 'undo-button', 'redo-button', 'copy-button', 'cut-button', 'paste-button',
+ 'clear-button', 'insert-row', 'delete-row', 'insert-col', 'delete-col', 'sort-asc', 'sort-desc', 'fill-down', 'fill-right',
+ 'fill-series'].forEach(function (id) { el[id] = $(id); });
+var grid = el.grid, fin = el['formula-input'];
+var WORKBOOK_CONTROLS = ['undo-button', 'redo-button', 'copy-button', 'cut-button', 'paste-button', 'clear-button', 'insert-row',
+ 'delete-row', 'insert-col', 'delete-col', 'sort-asc', 'sort-desc', 'fill-down', 'fill-right', 'fill-series', 'format-select',
+ 'add-sheet', 'sheet-name-input', 'rename-sheet', 'delete-sheet', 'name-input', 'define-name', 'delete-name', 'find-input',
+ 'replace-input', 'find-case', 'find-whole', 'find-next', 'replace-all', 'csv-raw', 'csv-export', 'csv-import', 'csv-text'];
+var cellEls = [], colHeads = [], rowHeads = [];
+
+function mk(tag, attrs, text) {
+  var e = document.createElement(tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function buildGrid() {
+  var head = mk('div', { role: 'row', 'class': 'g-row' }), r, c;
+  head.appendChild(mk('div', { role: 'presentation', 'class': 'g-corner' }));
+  for (c = 0; c < COLS; c++) {
+    var h = mk('div', { role: 'columnheader', 'data-testid': 'col-header-' + LETTERS.charAt(c) }, LETTERS.charAt(c));
+    colHeads.push(h); head.appendChild(h);
+  }
+  grid.appendChild(head);
+  for (r = 0; r < ROWS; r++) {
+    var row = mk('div', { role: 'row', 'class': 'g-row' });
+    var rh = mk('div', { role: 'rowheader', 'data-testid': 'row-header-' + (r + 1) }, String(r + 1));
+    rowHeads.push(rh); row.appendChild(rh);
+    for (c = 0; c < COLS; c++) {
+      var cell = mk('div', { role: 'gridcell', 'data-testid': 'cell-' + addr(r, c), 'data-kind': 'empty', 'aria-selected': 'false', 'data-in-selection': 'false', 'data-i': String(r * COLS + c) });
+      cellEls.push(cell); row.appendChild(cell);
+    }
+    grid.appendChild(row);
+  }
+}
+function setAttr(e, k, v) { if (e.getAttribute(k) !== v) e.setAttribute(k, v); }
+function setText(e, t) { if (e.textContent !== t) e.textContent = t; }
+function setMsg(e, text) { e.textContent = text; e.hidden = text === ''; }
+function render() {
+  var sh = cur(), R = selRect(sh), r, c, i, sum = 0, n = 0;
+  for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
+    i = r * COLS + c;
+    var ce = cellEls[i], inSel = r >= R.r1 && r <= R.r2 && c >= R.c1 && c <= R.c2;
+    setText(ce, cellText(sh, i));
+    setAttr(ce, 'data-kind', cellKind(sh, i));
+    setAttr(ce, 'aria-selected', String(r === sh.active.r && c === sh.active.c));
+    setAttr(ce, 'data-in-selection', String(inSel));
+    if (inSel) { var v = cellVal(sh, i); if (typeof v === 'number') { sum += v; n++; } }
+  }
+  for (c = 0; c < COLS; c++) setAttr(colHeads[c], 'data-on', String(c >= R.c1 && c <= R.c2));
+  for (r = 0; r < ROWS; r++) setAttr(rowHeads[r], 'data-on', String(r >= R.r1 && r <= R.r2));
+  var one = R.r1 === R.r2 && R.c1 === R.c2;
+  setText(el['name-box'], one ? addr(sh.active.r, sh.active.c) : addr(R.r1, R.c1) + ':' + addr(R.r2, R.c2));
+  var ai = sh.active.r * COLS + sh.active.c;
+  if (!editing) {
+    if (fin.value !== sh.cells[ai]) fin.value = sh.cells[ai];
+    el['format-select'].value = sh.fmts[ai];
+  }
+  setAttr(fin, 'data-editing', String(editing));
+  var sm = el['selection-summary'];
+  if (n) {
+    var s = num(sum), a = num(sum / n);
+    setText(sm, 'Sum: ' + (isErr(s) ? '#NUM!' : general(s)) + ' | Average: ' + (isErr(a) ? '#NUM!' : general(a)) + ' | Count: ' + n);
+    sm.hidden = false;
+  } else { sm.hidden = true; setText(sm, ''); }
+
+  var tabs = el['sheet-tabs'];
+  while (tabs.children.length > W.sheets.length) tabs.removeChild(tabs.lastChild);
+  while (tabs.children.length < W.sheets.length)
+    tabs.appendChild(mk('button', { type: 'button', role: 'tab', 'data-testid': 'sheet-tab-' + (tabs.children.length + 1), 'data-n': String(tabs.children.length) }));
+  W.sheets.forEach(function (s2, k) {
+    var t = tabs.children[k];
+    setText(t, s2.name);
+    setAttr(t, 'aria-selected', String(k === W.active));
+    t.disabled = editing;
+  });
+
+  var list = el['name-list'];
+  var names = W.names.slice().sort(function (x, y) { var p = x.name.toUpperCase(), q = y.name.toUpperCase(); return p < q ? -1 : p > q ? 1 : 0; });
+  while (list.children.length > names.length) list.removeChild(list.lastChild);
+  while (list.children.length < names.length)
+    list.appendChild(mk('div', { role: 'listitem', 'data-testid': 'name-item-' + (list.children.length + 1) }));
+  names.forEach(function (nm, k) { setText(list.children[k], nm.name + ' = ' + targetText(nm)); });
+
+  WORKBOOK_CONTROLS.forEach(function (id) {
+    var dis = editing;
+    if (!dis) {
+      if (id === 'undo-button') dis = hist.undo.length === 0;
+      else if (id === 'redo-button') dis = hist.redo.length === 0;
+      else if (id === 'paste-button') dis = clip === null;
+      else if (id === 'add-sheet') dis = W.sheets.length >= 5;
+      else if (id === 'delete-sheet') dis = W.sheets.length <= 1;
+    }
+    if (el[id].disabled !== dis) el[id].disabled = dis;
+  });
+}
+function refresh() { recalc(); render(); save(); }
+function pushStep(before) {
+  hist.undo.push({ b: before, a: snap() });
+  if (hist.undo.length > 20) hist.undo.shift();
+  hist.redo.length = 0;
+}
+/* runs an action; records one history step when it reports a change */
+function step(fn) {
+  if (editing) return;
+  var before = snap();
+  if (fn()) pushStep(before);
+  refresh();
+}
+function syncSheetName() { el['sheet-name-input'].value = cur().name; }
+function undo() {
+  if (editing || !hist.undo.length) return;
+  var st = hist.undo.pop();
+  hist.redo.push(st);
+  W = JSON.parse(st.b);
+  syncSheetName(); refresh();
+}
+function redo() {
+  if (editing || !hist.redo.length) return;
+  var st = hist.redo.pop();
+  hist.undo.push(st);
+  W = JSON.parse(st.a);
+  syncSheetName(); refresh();
+}
+/* commits the typed content; returns true when the cell changed */
+function commitEdit() {
+  var sh = cur(), i = sh.active.r * COLS + sh.active.c;
+  editing = false;
+  if (storedForm(fin.value) === sh.cells[i]) return false;
+  commitTo(sh, i, fin.value);
+  return true;
+}
+function on(id, type, fn) { el[id].addEventListener(type, fn); }
+
+function bind() {
+  fin.addEventListener('input', function () { if (!editing) { editing = true; render(); } });
+  fin.addEventListener('keydown', function (e) {
+    if (e.isComposing) return;
+    if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      var before = snap(), sh = cur(), ch = editing ? commitEdit() : false;
+      if (e.key === 'Enter') { if (sh.active.r < ROWS - 1) sh.active.r++; }
+      else if (sh.active.c < COLS - 1) sh.active.c++;
+      sh.anchor = { r: sh.active.r, c: sh.active.c };
+      if (ch) pushStep(before);
+      refresh();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      editing = false;
+      render();
+      grid.focus();
+    }
+  });
+  grid.addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t !== grid && !(t.getAttribute && t.getAttribute('role') === 'gridcell')) t = t.parentNode;
+    if (!t || t === grid) return;
+    var i = Number(t.getAttribute('data-i')), before = snap(), sh = cur();
+    var ch = editing ? commitEdit() : false;
+    sh.active = { r: Math.floor(i / COLS), c: i % COLS };
+    if (!e.shiftKey) sh.anchor = { r: sh.active.r, c: sh.active.c };
+    if (ch) pushStep(before);
+    refresh();
+    grid.focus({ preventScroll: true });
+  });
+  var ARROWS = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  grid.addEventListener('keydown', function (e) {
+    var k = e.key, a = ARROWS[k], lk = typeof k === 'string' ? k.toLowerCase() : '';
+    if (a) {
+      e.preventDefault();
+      if (editing) return;
+      var sh = cur(), r = sh.active.r + a[0], c = sh.active.c + a[1];
+      if (r >= 0 && r < ROWS && c >= 0 && c < COLS) sh.active = { r: r, c: c };
+      if (!e.shiftKey) sh.anchor = { r: sh.active.r, c: sh.active.c };
+      refresh();
+    } else if (k === 'Delete' || k === 'Backspace') {
+      e.preventDefault();
+      step(clearSel);
+    } else if (k === 'Enter') {
+      e.preventDefault();
+      fin.focus();
+    } else if (e.ctrlKey && lk === 'z') {
+      e.preventDefault(); undo();
+    } else if (e.ctrlKey && lk === 'y') {
+      e.preventDefault(); redo();
+    }
+  });
+
+  on('undo-button', 'click', undo);
+  on('redo-button', 'click', redo);
+  on('copy-button', 'click', function () { if (!editing) { takeBlock('copy'); render(); } });
+  on('cut-button', 'click', function () { if (!editing) { takeBlock('cut'); render(); } });
+  on('paste-button', 'click', function () { step(paste); });
+  on('clear-button', 'click', function () { step(clearSel); });
+  on('insert-row', 'click', function () { step(function () { return structural('r', false); }); });
+  on('delete-row', 'click', function () { step(function () { return structural('r', true); }); });
+  on('insert-col', 'click', function () { step(function () { return structural('c', false); }); });
+  on('delete-col', 'click', function () { step(function () { return structural('c', true); }); });
+  on('sort-asc', 'click', function () { step(function () { return sortSel(false); }); });
+  on('sort-desc', 'click', function () { step(function () { return sortSel(true); }); });
+  on('fill-down', 'click', function () { step(function () { return fill(false); }); });
+  on('fill-right', 'click', function () { step(function () { return fill(true); }); });
+  on('fill-series', 'click', function () { step(fillSeries); });
+  on('format-select', 'change', function () { var f = el['format-select'].value; step(function () { return setFormat(f); }); });
+
+  /* sheets */
+  el['sheet-tabs'].addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t !== el['sheet-tabs'] && !(t.getAttribute && t.getAttribute('role') === 'tab')) t = t.parentNode;
+    if (!t || t === el['sheet-tabs'] || t.disabled || editing) return;
+    var k = Number(t.getAttribute('data-n'));
+    if (!(k >= 0 && k < W.sheets.length)) return;
+    if (k !== W.active) { W.active = k; refresh(); }
+    syncSheetName();
+  });
+  on('add-sheet', 'click', function () {
+    if (editing) return;
+    setMsg(el['sheet-message'], '');
+    if (W.sheets.length >= 5) return;
+    step(function () {
+      var id = 1;
+      W.sheets.forEach(function (s) { if (s.id >= id) id = s.id + 1; });
+      W.sheets.push(newSheet(id, defaultSheetName()));
+      W.active = W.sheets.length - 1;
+      return true;
+    });
+    syncSheetName();
+  });
+  on('rename-sheet', 'click', function () {
+    if (editing) return;
+    setMsg(el['sheet-message'], '');
+    var v = el['sheet-name-input'].value, sh = cur();
+    if (!validSheetName(v)) { setMsg(el['sheet-message'], 'Invalid sheet name'); return; }
+    var other = findSheet(v);
+    if (other && other !== sh) { setMsg(el['sheet-message'], 'Sheet name already used'); return; }
+    if (v === sh.name) return;
+    step(function () {
+      var old = sh.name.toUpperCase();
+      rewriteAll(function (n) {
+        if (n.sheet === null || n.sheet.toUpperCase() !== old || n.sheet === v) return n;
+        var m = Object.assign({}, n); m.sheet = v; return m;
+      });
+      sh.name = v;
+      return true;
+    });
+    syncSheetName();
+  });
+  on('delete-sheet', 'click', function () {
+    if (editing) return;
+    setMsg(el['sheet-message'], '');
+    if (W.sheets.length <= 1) return;
+    step(function () {
+      var sh = cur(), u = sh.name.toUpperCase();
+      W.sheets.splice(W.active, 1);
+      if (W.active >= W.sheets.length) W.active = W.sheets.length - 1;
+      rewriteAll(function (n) { return n.sheet !== null && n.sheet.toUpperCase() === u ? REFERR : n; });
+      W.names.forEach(function (nm) { if (nm.kind !== 'removed' && nm.sid === sh.id) nm.kind = 'removed'; });
+      return true;
+    });
+    syncSheetName();
+  });
+
+  /* names */
+  on('define-name', 'click', function () {
+    if (editing) return;
+    setMsg(el['name-message'], '');
+    var v = el['name-input'].value;
+    if (!validName(v)) { setMsg(el['name-message'], 'Invalid name'); return; }
+    if (findName(v)) { setMsg(el['name-message'], 'Name already used'); return; }
+    if (W.names.length >= 10) { setMsg(el['name-message'], 'Too many names'); return; }
+    step(function () {
+      var sh = cur(), R = selRect(sh);
+      W.names.push({ name: v, kind: R.r1 === R.r2 && R.c1 === R.c2 ? 'cell' : 'range', sid: sh.id, r1: R.r1, c1: R.c1, r2: R.r2, c2: R.c2 });
+      return true;
+    });
+    el['name-input'].value = '';
+  });
+  on('delete-name', 'click', function () {
+    if (editing) return;
+    setMsg(el['name-message'], '');
+    var nm = findName(el['name-input'].value);
+    if (!nm) { setMsg(el['name-message'], 'Unknown name'); return; }
+    step(function () { W.names.splice(W.names.indexOf(nm), 1); return true; });
+    el['name-input'].value = '';
+  });
+
+  /* find and replace */
+  on('find-next', 'click', function () {
+    if (editing) return;
+    setMsg(el['find-status'], '');
+    var sh = cur(), needle = el['find-input'].value, mc = el['find-case'].checked, whole = el['find-whole'].checked, n = 0, i;
+    for (i = 0; i < NCELL; i++) if (cellMatches(sh.cells[i], needle, mc, whole)) n++;
+    if (n) {
+      var start = sh.active.r * COLS + sh.active.c;
+      for (var k = 1; k <= NCELL; k++) {
+        i = (start + k) % NCELL;
+        if (cellMatches(sh.cells[i], needle, mc, whole)) {
+          sh.active = { r: Math.floor(i / COLS), c: i % COLS };
+          sh.anchor = { r: sh.active.r, c: sh.active.c };
+          break;
+        }
+      }
+      refresh();
+    }
+    setMsg(el['find-status'], 'Matches: ' + n);
+  });
+  on('replace-all', 'click', function () {
+    if (editing) return;
+    setMsg(el['find-status'], '');
+    var needle = el['find-input'].value, rep = el['replace-input'].value, mc = el['find-case'].checked, whole = el['find-whole'].checked, n = 0;
+    step(function () {
+      var sh = cur(), ch = false;
+      for (var i = 0; i < NCELL; i++) {
+        if (!cellMatches(sh.cells[i], needle, mc, whole)) continue;
+        n++;
+        if (commitTo(sh, i, replaceIn(sh.cells[i], needle, rep, mc, whole))) ch = true;
+      }
+      return ch;
+    });
+    setMsg(el['find-status'], 'Replaced: ' + n);
+  });
+
+  /* CSV */
+  on('csv-export', 'click', function () {
+    if (editing) return;
+    setMsg(el['csv-message'], '');
+    el['csv-text'].value = csvWrite(cur(), el['csv-raw'].checked);
+  });
+  on('csv-import', 'click', function () {
+    if (editing) return;
+    setMsg(el['csv-message'], '');
+    var text = el['csv-text'].value;
+    if (text === '') { setMsg(el['csv-message'], 'Nothing to import'); return; }
+    var recs = csvRead(text);
+    if (!recs) { setMsg(el['csv-message'], 'Invalid CSV'); return; }
+    var k = 0, d = 0;
+    step(function () {
+      var sh = cur(), i, j;
+      for (i = 0; i < NCELL; i++) sh.cells[i] = '';
+      for (i = 0; i < recs.length; i++) for (j = 0; j < recs[i].length; j++) {
+        if (recs[i][j] === '') continue;
+        if (i < ROWS && j < COLS) { commitTo(sh, i * COLS + j, recs[i][j]); k++; } else d++;
+      }
+      return true;
+    });
+    setMsg(el['csv-message'], 'Imported: ' + k + ' | Dropped: ' + d);
+  });
+}
+
+function init() {
+  W = load() || newBook();
+  buildGrid();
+  bind();
+  ['name-input', 'find-input', 'replace-input', 'csv-text'].forEach(function (id) { el[id].value = ''; });
+  ['find-case', 'find-whole', 'csv-raw'].forEach(function (id) { el[id].checked = false; });
+  ['sheet-message', 'name-message', 'find-status', 'csv-message'].forEach(function (id) { setMsg(el[id], ''); });
+  fin.value = '';
+  syncSheetName();
+  recalc();
+  render();
+}
+init();
+})();
+</script>
+</body>
+</html>

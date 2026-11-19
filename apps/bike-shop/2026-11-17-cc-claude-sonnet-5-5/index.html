@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Sonnet 5.5</title>
+<style>
+:root{--ink:#1b1f24;--mute:#454e5a;--line:#c4cbd4;--bg:#f3f5f8;--pri:#0b4f8a;--sel:#e1eeff;--err:#a01818}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:#fff;border-bottom:1px solid var(--line);padding:14px 16px}
+h1{margin:0;font-size:1.4rem;color:var(--ink)}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.cols{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:960px){.cols{grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:start}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+section{margin-bottom:18px}
+.sh{font-weight:700;margin:0 0 8px;font-size:1rem}
+.cards{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.card{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px;border:2px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;overflow-wrap:anywhere}
+.card input{position:absolute;opacity:0;width:1px;height:1px;left:8px;top:8px;margin:0}
+.card.sel{border-color:var(--pri);background:var(--sel)}
+.card.un{background:#e6e8ec;border-style:dashed;cursor:not-allowed}
+.card:focus-within{outline:3px solid #d4570a;outline-offset:2px}
+.card [data-role=name]{font-weight:600}
+.card [data-role=price]{color:var(--mute)}
+.card [data-role=reason]{color:#3d2c2c;font-size:.85rem}
+.card [data-role=badge]{align-self:flex-start;background:var(--pri);color:#fff;font-size:.78rem;padding:1px 8px;border-radius:99px;margin-top:2px}
+input[type=text]{font:inherit;padding:8px 10px;border:2px solid var(--mute);border-radius:8px;width:100%;max-width:260px;background:#fff;color:var(--ink)}
+input[type=text]:focus{outline:3px solid #d4570a;outline-offset:1px;box-shadow:0 0 0 2px #fff}
+label.f{display:block;font-weight:600;margin-bottom:4px}
+.err{color:var(--err);margin:4px 0}
+.ok{color:#0d5a2a;margin:4px 0}
+.hint{color:var(--mute);margin:4px 0}
+button{font:inherit;padding:8px 14px;border:2px solid var(--pri);border-radius:8px;background:#fff;color:var(--pri);cursor:pointer;font-weight:600}
+button.p{background:var(--pri);color:#fff}
+button:disabled{border-color:#b9bfc7;color:#6b727c;background:#eceef1;cursor:not-allowed}
+button:focus-visible{outline:3px solid #d4570a;outline-offset:2px}
+.qty{display:flex;align-items:center;gap:12px}
+.qty button{width:44px;padding:8px 0}
+[data-testid=qty-value]{min-width:2ch;text-align:center;font-weight:700;font-size:1.2rem}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+[data-testid=bike-price]{font-size:1.3rem;font-weight:700}
+#status{margin:0}
+#status [data-testid=notice]{background:#fff1c9;color:#3a2a00;border-bottom:1px solid #d9b94f;padding:10px 16px}
+.line{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between}
+.line .info{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.line .d{font-weight:600}
+.line .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px solid #e3e6ea}
+.row.t{font-weight:700;font-size:1.1rem}
+.promo{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:12px 0}
+.promo .fld{flex:1 1 160px}
+#confirmation{max-width:600px;margin:24px auto;padding:20px;background:#fff;border:1px solid var(--line);border-radius:12px}
+#confirmation p{margin:6px 0}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Sonnet 5.5</h1></header>
+<div id="status" role="status"><div data-testid="notice" hidden></div></div>
+<main class="wrap" id="main">
+<div class="cols">
+<div class="panel" data-testid="configurator">
+  <section data-testid="section-rider" aria-label="Rider">
+    <label class="f" for="height-input">Rider height (cm)</label>
+    <input type="text" inputmode="numeric" id="height-input" data-testid="height-input" autocomplete="off">
+    <div class="err" id="height-error" data-testid="height-error" hidden>Enter a height between 150 and 200 cm.</div>
+    <div class="ok" data-testid="height-recommendation" hidden></div>
+  </section>
+  <section data-testid="section-frame" aria-label="Frame"><p class="sh">Frame</p><div class="cards" id="g-frame"></div></section>
+  <section data-testid="section-wheels" aria-label="Wheels"><p class="sh">Wheels</p><div class="cards" id="g-wheels"></div></section>
+  <section data-testid="section-drivetrain" aria-label="Drivetrain"><p class="sh">Drivetrain</p><div class="cards" id="g-drivetrain"></div></section>
+  <section data-testid="section-color" aria-label="Color"><p class="sh">Color</p><div class="cards" id="g-color"></div></section>
+  <section data-testid="section-accessories" aria-label="Accessories"><p class="sh">Accessories</p><div class="cards" id="g-accessory"></div></section>
+  <section data-testid="section-quantity" aria-label="Quantity"><p class="sh">Quantity</p>
+    <div class="qty"><button type="button" data-testid="qty-decrease" aria-label="Decrease quantity">−</button><span data-testid="qty-value">1</span><button type="button" data-testid="qty-increase" aria-label="Increase quantity">+</button></div>
+  </section>
+  <div data-testid="bike-price">—</div>
+  <div class="bar">
+    <button type="button" data-testid="undo-button">Undo</button>
+    <button type="button" class="p" data-testid="add-to-order">Add to order</button>
+    <button type="button" data-testid="cancel-edit" hidden>Cancel edit</button>
+  </div>
+  <div class="hint" data-testid="add-hint">Enter the rider's height to add this bike.</div>
+  <div class="err" data-testid="line-error" hidden></div>
+</div>
+<div class="panel" data-testid="order">
+  <p class="sh">Your order</p>
+  <div class="hint" data-testid="order-empty">Your order is empty.</div>
+  <div id="lines"></div>
+  <div class="promo">
+    <div class="fld"><label class="f" for="promo-input">Promo code</label>
+    <input type="text" id="promo-input" data-testid="promo-input" autocomplete="off"></div>
+    <button type="button" data-testid="promo-apply" disabled>Apply</button>
+    <button type="button" data-testid="promo-remove" hidden>Remove code</button>
+  </div>
+  <div class="err" id="promo-error" data-testid="promo-error" hidden>This code is not valid.</div>
+  <div class="ok" data-testid="promo-status" hidden></div>
+  <div id="summary"></div>
+  <div class="bar"><button type="button" class="p" data-testid="place-order" disabled>Place order</button></div>
+  <div class="hint" data-testid="place-hint" hidden>Save or cancel the line being edited.</div>
+</div>
+</div>
+</main>
+<section id="confirmation" data-testid="confirmation" hidden>
+  <h2 data-testid="confirmation-title">Order confirmed</h2>
+  <p data-testid="confirmation-reference"></p>
+  <p data-testid="confirmation-bikes"></p>
+  <p data-testid="confirmation-total"></p>
+  <p data-testid="confirmation-delivery"></p>
+  <button type="button" class="p" data-testid="confirmation-new">Start a new order</button>
+</section>
+<script>
+(function(){
+"use strict";
+var $=function(t){return document.querySelector('[data-testid="'+t+'"]')};
+var CAT={
+ frame:[["S","Frame S",119000,150,164],["M","Frame M",119000,165,174],["L","Frame L",124000,175,184],["XL","Frame XL",129000,185,200]],
+ wheels:[["275",'27.5" wheels',0],["29",'29" wheels',12000]],
+ drivetrain:[["essential","Essential 1×10",0,5],["sport","Sport 1×12",24000,7],["pro","Pro Electronic 2×12",69000,12]],
+ color:[["graphite","Graphite",0],["sand","Sand",0],["red","Racing Red",6000],["glacier","Glacier",0]],
+ accessory:[["mudguards","Mudguards",4500],["rack","Rear rack",6900],["lights","Lights",3990],["kickstand","Kickstand",2450]]
+};
+var CODES=["SPRING10","WELCOME50","FREESHIP","TEAM15"];
+var CLOSED=["2026-12-24","2026-12-25","2026-12-31","2027-01-01","2027-03-29"];
+var MSG={c1:'29" wheels were replaced by 27.5" wheels: not available with frame S.',c2:"Pro Electronic 2×12 was replaced by Sport 1×12: not available with frame S.",c3:"Glacier was replaced by Graphite: available with frames M and L only.",c4:'29" wheels were selected: required by Pro Electronic 2×12.',c5:'Pro Electronic 2×12 was replaced by Sport 1×12: it requires 29" wheels.',c6:"Mudguards were added: required by the rear rack.",c7:"Kickstand was removed: not compatible with the rear rack.",c8:"Rear rack was removed: it requires mudguards.",c9:"Rear rack was removed: not compatible with the kickstand."};
+
+function find(g,id){for(var i=0;i<CAT[g].length;i++)if(CAT[g][i][0]===id)return CAT[g][i];return null}
+function nm(g,id){return find(g,id)[1]}
+function fmt(c){var e=Math.floor(c/100),r=c%100;return "€"+String(e).replace(/\B(?=(\d{3})+(?!\d))/g,",")+"."+(r<10?"0":"")+r}
+function signed(c){return c===0?"Included":"+"+fmt(c)}
+function rnd(x,p,d){return Math.floor((2*x*p+d)/(2*d))}
+
+var S={height:"",prevValid:null,cfg:null,qty:1,auto:true,hist:[],notice:"",lines:[],edit:null,lineErr:"",code:null,promoErr:false,seq:1};
+function defCfg(){return {frame:null,wheels:"275",drivetrain:"essential",color:"graphite",acc:[]}}
+function cloneCfg(c){return {frame:c.frame,wheels:c.wheels,drivetrain:c.drivetrain,color:c.color,acc:c.acc.slice()}}
+function sortAcc(a){var o=CAT.accessory.map(function(x){return x[0]});return a.slice().sort(function(x,y){return o.indexOf(x)-o.indexOf(y)})}
+function same(a,b){return a.frame===b.frame&&a.wheels===b.wheels&&a.drivetrain===b.drivetrain&&a.color===b.color&&sortAcc(a.acc).join()===sortAcc(b.acc).join()}
+
+function validHeight(){var t=S.height.trim();if(!/^[0-9]+$/.test(t))return null;var n=Number(t);return n>=150&&n<=200?n:null}
+function recFrame(h){for(var i=0;i<4;i++)if(h>=CAT.frame[i][3]&&h<=CAT.frame[i][4])return CAT.frame[i][0];return null}
+
+function unitPrice(c){
+ var p=find("frame",c.frame)[2]+find("wheels",c.wheels)[2]+find("drivetrain",c.drivetrain)[2];
+ p+=(c.color==="red"&&c.drivetrain==="pro")?0:find("color",c.color)[2];
+ c.acc.forEach(function(a){p+=find("accessory",a)[2]});return p}
+
+function frameCascades(c,nf,msgs){
+ c.frame=nf;
+ if(nf==="S"){
+  if(c.wheels==="29"){c.wheels="275";msgs.push(MSG.c1)}
+  if(c.drivetrain==="pro"){c.drivetrain="sport";msgs.push(MSG.c2)}
+ }
+ if((nf==="S"||nf==="XL")&&c.color==="glacier"){c.color="graphite";msgs.push(MSG.c3)}
+}
+function snap(){var c=cloneCfg(S.cfg);c.qty=S.qty;c.auto=S.auto;return c}
+
+function userPick(group,val){
+ var before=snap(),c=cloneCfg(S.cfg),msgs=[],i;
+ if(group==="frame"){
+  if(c.frame===val)return;
+  S.auto=false;frameCascades(c,val,msgs);
+ }else if(group==="wheels"){
+  if(c.wheels===val)return;c.wheels=val;
+  if(val==="275"&&c.drivetrain==="pro"){c.drivetrain="sport";msgs.push(MSG.c5)}
+ }else if(group==="drivetrain"){
+  if(c.drivetrain===val)return;c.drivetrain=val;
+  if(val==="pro"&&c.wheels==="275"){c.wheels="29";msgs.push(MSG.c4)}
+ }else if(group==="color"){
+  if(c.color===val)return;c.color=val;
+ }else{
+  var on=c.acc.indexOf(val)>=0;
+  if(on===val.checked)return;
+ }
+ commit(before,c,msgs);
+}
+function userAcc(id,checked){
+ var before=snap(),c=cloneCfg(S.cfg),msgs=[],has=c.acc.indexOf(id)>=0;
+ if(has===checked)return;
+ function add(a){if(c.acc.indexOf(a)<0)c.acc.push(a)}
+ function del(a){c.acc=c.acc.filter(function(x){return x!==a})}
+ if(checked){
+  add(id);
+  if(id==="rack"){
+   if(before.acc.indexOf("mudguards")<0){add("mudguards");msgs.push(MSG.c6)}
+   if(c.acc.indexOf("kickstand")>=0){del("kickstand");msgs.push(MSG.c7)}
+  }
+  if(id==="kickstand"&&c.acc.indexOf("rack")>=0){del("rack");msgs.push(MSG.c9)}
+ }else{
+  del(id);
+  if(id==="mudguards"&&c.acc.indexOf("rack")>=0){del("rack");msgs.push(MSG.c8)}
+ }
+ commit(before,c,msgs);
+}
+function commit(before,c,msgs){
+ S.hist.push(before);S.cfg=c;S.notice=msgs.join(" ");S.lineErr="";render()
+}
+function changeQty(d){
+ var n=S.qty+d;if(n<1||n>5)return;
+ S.hist.push(snap());S.qty=n;S.lineErr="";render()
+}
+function undo(){
+ var h=S.hist.pop();if(!h)return;
+ S.cfg={frame:h.frame,wheels:h.wheels,drivetrain:h.drivetrain,color:h.color,acc:h.acc.slice()};
+ S.qty=h.qty;S.auto=h.auto;S.notice="";render()
+}
+function resetCfg(){
+ S.cfg=defCfg();S.qty=1;S.auto=true;S.hist=[];S.notice="";S.edit=null;
+ var v=validHeight();if(v!==null)S.cfg.frame=recFrame(v);
+ S.prevValid=v
+}
+
+function onHeight(){
+ S.height=hIn.value;
+ var v=validHeight();
+ if(v!==null&&v!==S.prevValid&&S.auto){
+  var nf=recFrame(v);
+  if(nf!==S.cfg.frame){var c=cloneCfg(S.cfg),m=[];frameCascades(c,nf,m);S.cfg=c;S.notice=m.join(" ")}
+ }
+ S.prevValid=v;
+ render()
+}
+
+function addOrSave(){
+ var lines=S.lines.map(function(l){return {cfg:cloneCfg(l.cfg),qty:l.qty}});
+ var cfg=cloneCfg(S.cfg),q=S.qty;
+ if(S.edit===null){
+  var v=validHeight();if(v===null||!cfg.frame)return;
+  var f=-1;lines.forEach(function(l,i){if(f<0&&same(l.cfg,cfg))f=i});
+  if(f>=0)lines[f].qty+=q;else lines.push({cfg:cfg,qty:q});
+ }else{
+  var e=S.edit;lines[e]={cfg:cfg,qty:q};
+  var o=-1;lines.forEach(function(l,i){if(i!==e&&o<0&&same(l.cfg,cfg))o=i});
+  if(o>=0){var lo=Math.min(o,e),hi=Math.max(o,e);lines[lo].qty=lines[o].qty+lines[e].qty;lines[lo].cfg=cfg;lines.splice(hi,1)}
+ }
+ var B=lines.reduce(function(s,l){return s+l.qty},0),err="";
+ if(lines.some(function(l){return l.qty>5}))err="A line cannot hold more than 5 bikes.";
+ else if(lines.length>4)err="An order cannot hold more than 4 lines.";
+ else if(B>10)err="An order cannot hold more than 10 bikes.";
+ if(err){S.lineErr=err;render();return}
+ S.lines=lines;S.lineErr="";resetCfg();render()
+}
+function startEdit(i){
+ var l=S.lines[i];S.cfg=cloneCfg(l.cfg);S.qty=l.qty;S.auto=false;S.hist=[];S.notice="";S.edit=i;render()
+}
+function cancelEdit(){S.lineErr="";resetCfg();render()}
+function removeLine(i){
+ S.lines.splice(i,1);S.lineErr="";
+ if(S.edit===i){resetCfg()}else if(S.edit!==null&&S.edit>i)S.edit--;
+ render()
+}
+
+/* ---- pricing ---- */
+function calc(){
+ var lines=S.lines,B=0,bikes=0,pack=0,perf=0,i;
+ lines.forEach(function(l){
+  var amt=unitPrice(l.cfg)*l.qty;B+=l.qty;
+  var p=(l.cfg.acc.indexOf("mudguards")>=0&&l.cfg.acc.indexOf("rack")>=0&&l.cfg.acc.indexOf("lights")>=0)?3000*l.qty:0;
+  l.amount=amt;pack+=p;bikes+=amt-p;
+  if(l.cfg.drivetrain!=="essential")perf+=amt-p;
+ });
+ var vol=B>=6?rnd(bikes,8,100):B>=3?rnd(bikes,5,100):0;
+ var team=(S.code==="TEAM15"&&B>=4)?rnd(perf,15,100):0;
+ var useTeam=team>vol;
+ var volUsed=useTeam?0:vol;
+ var after=bikes-volUsed,promo=0,active=false,code=S.code;
+ if(code==="SPRING10"){active=after>=300000;if(active)promo=rnd(after,10,100)}
+ else if(code==="WELCOME50"){active=B===1;if(active)promo=5000}
+ else if(code==="FREESHIP"){active=B>=1}
+ else if(code==="TEAM15"){active=B>=4;promo=useTeam?team:0}
+ var merch=after-promo;
+ var ship=(code==="FREESHIP"&&active)||merch>=500000?0:4900+1500*(B-1);
+ if(B===0)ship=0;
+ var total=merch+ship;
+ return {B:B,bikes:bikes,pack:pack,vol:volUsed,promo:promo,active:active,team:team,useTeam:useTeam,vat:rnd(total,20,120),ship:ship,total:total,merch:merch}
+}
+var WD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+var MO=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function pad(n){return n<10?"0"+n:""+n}
+function delivery(now){
+ var lead=0;
+ S.lines.forEach(function(l){
+  var t=find("drivetrain",l.cfg.drivetrain)[3]+(l.cfg.color==="red"?3:0)+(l.qty>=3?2:0);if(t>lead)lead=t});
+ lead+=S.lines.length-1+(now.getHours()>=14?1:0);
+ var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()),n=0;
+ while(n<lead){
+  d.setDate(d.getDate()+1);
+  var k=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  if(d.getDay()!==0&&d.getDay()!==6&&CLOSED.indexOf(k)<0)n++;
+ }
+ return WD[d.getDay()]+", "+d.getDate()+" "+MO[d.getMonth()]+" "+d.getFullYear()
+}
+
+/* ---- DOM ---- */
+var hIn=$("height-input"),pIn=$("promo-input"),cards={};
+function build(g){
+ var host=document.getElementById("g-"+g);
+ CAT[g].forEach(function(o){
+  var lab=document.createElement("label");lab.className="card";lab.setAttribute("data-testid","card-"+g+"-"+o[0]);
+  var inp=document.createElement("input");inp.type=g==="accessory"?"checkbox":"radio";
+  if(g!=="accessory")inp.name="grp-"+g;
+  inp.setAttribute("aria-label",o[1]);inp.value=o[0];
+  lab.appendChild(inp);
+  var parts=["name","price","reason"].concat(g==="frame"?["badge"]:[]);
+  var refs={};
+  parts.forEach(function(p){var s=document.createElement("span");s.setAttribute("data-role",p);refs[p]=s;lab.appendChild(s)});
+  refs.name.textContent=o[1];refs.reason.hidden=true;
+  if(g==="frame"){refs.badge.textContent="Recommended";refs.badge.hidden=true}
+  host.appendChild(lab);
+  cards[g+":"+o[0]]={lab:lab,inp:inp,r:refs};
+  inp.addEventListener("change",function(){
+   if(inp.disabled)return;
+   if(g==="accessory")userAcc(o[0],inp.checked);else userPick(g,o[0]);
+   render()
+  });
+ });
+}
+["frame","wheels","drivetrain","color","accessory"].forEach(build);
+
+function unavail(g,id){
+ var f=S.cfg.frame;
+ if(f==="S"&&((g==="wheels"&&id==="29")||(g==="drivetrain"&&id==="pro")))return "Not available with frame S";
+ if((f==="S"||f==="XL")&&g==="color"&&id==="glacier")return "Available with frames M and L only";
+ return ""
+}
+function setShow(el,show,text){if(text!==undefined)el.textContent=text;el.hidden=!show}
+
+function render(){
+ var v=validHeight(),c=S.cfg,i;
+ var he=$("height-error");
+ var showHE=S.height.trim()!==""&&v===null;
+ he.hidden=!showHE;
+ if(showHE){hIn.setAttribute("aria-invalid","true");hIn.setAttribute("aria-describedby","height-error")}
+ else{hIn.removeAttribute("aria-invalid");hIn.removeAttribute("aria-describedby")}
+ he.id="height-error";
+ setShow($("height-recommendation"),v!==null,v!==null?"Recommended frame: "+recFrame(v):"");
+ var rec=v!==null?recFrame(v):null;
+ Object.keys(cards).forEach(function(k){
+  var g=k.split(":")[0],id=k.split(":")[1],o=cards[k];
+  var on=g==="accessory"?c.acc.indexOf(id)>=0:c[g]===id;
+  o.inp.checked=on;
+  var why=unavail(g,id);
+  o.inp.disabled=!!why;
+  o.lab.className="card"+(on?" sel":"")+(why?" un":"");
+  o.r.reason.hidden=!why;o.r.reason.textContent=why;
+  var o2=find(g,id),pr;
+  if(g==="frame"){pr=fmt(o2[2])}
+  else if(g==="color"&&id==="red")pr=signed(c.drivetrain==="pro"?0:6000);
+  else pr=signed(o2[2]);
+  o.r.price.textContent=pr;
+  if(g==="frame")o.r.badge.hidden=!(rec===id);
+ });
+ $("qty-value").textContent=S.qty;
+ $("qty-decrease").disabled=S.qty<=1;$("qty-increase").disabled=S.qty>=5;
+ $("bike-price").textContent=c.frame?fmt(unitPrice(c)*S.qty):"—";
+ $("undo-button").disabled=S.hist.length===0;
+ var ed=S.edit!==null;
+ var add=$("add-to-order");
+ add.textContent=ed?"Update line "+(S.edit+1):"Add to order";
+ add.disabled=ed?false:!(v!==null&&c.frame);
+ $("cancel-edit").hidden=!ed;
+ setShow($("add-hint"),!ed&&v===null);
+ setShow($("line-error"),S.lineErr!=="",S.lineErr);
+ var nt=$("notice");nt.textContent=S.notice;nt.hidden=S.notice==="";
+
+ /* order */
+ var r=calc();
+ setShow($("order-empty"),S.lines.length===0);
+ var html="";
+ S.lines.forEach(function(l,i){
+  var d=[nm("frame",l.cfg.frame),nm("wheels",l.cfg.wheels),nm("drivetrain",l.cfg.drivetrain),nm("color",l.cfg.color)].join(" · ");
+  var acc=sortAcc(l.cfg.acc).map(function(a){return nm("accessory",a)}).join(", ")||"No accessories";
+  html+='<div class="line" data-testid="order-line-'+(i+1)+'"><div class="info"><div class="d" data-role="description">'+d+'</div><div data-role="accessories">'+acc+'</div><div>Qty: <span data-role="qty">'+l.qty+'</span> · <span data-role="amount">'+fmt(l.amount)+'</span></div></div><div class="acts"><button type="button" data-role="edit" data-i="'+i+'">Edit</button><button type="button" data-role="remove" data-i="'+i+'">Remove</button></div></div>';
+ });
+ document.getElementById("lines").innerHTML=html;
+ var rows=[];
+ function row(k,l,val){rows.push('<div class="row'+(k==="total"?" t":"")+'" data-testid="summary-line-'+k+'"><span data-role="label">'+l+'</span><span data-role="value">'+val+'</span></div>')}
+ if(S.lines.length){
+  var neg=function(x){return "−"+fmt(x)};
+  row("bikes","Bikes",fmt(r.bikes));
+  if(r.pack>0)row("pack","Commuter pack",neg(r.pack));
+  if(r.vol>0)row("volume","Volume discount",neg(r.vol));
+  if(r.promo>0)row("promo","Promo "+S.code,neg(r.promo));
+  row("shipping","Shipping",r.ship===0?"Free":fmt(r.ship));
+  row("total","Total",fmt(r.total));
+  row("vat","VAT included",fmt(r.vat));
+  row("delivery","Delivery",delivery(new Date()));
+ }
+ document.getElementById("summary").innerHTML=rows.join("");
+ var ps=$("promo-status"),pr2=$("promo-remove");
+ if(S.code){
+  var code=S.code,t;
+  if(code==="TEAM15")t=!r.active?"TEAM15 requires 4 bikes or more.":(r.useTeam?"Code TEAM15 applied.":"The volume discount applies instead of TEAM15.");
+  else if(r.active)t="Code "+code+" applied.";
+  else t=code==="SPRING10"?"SPRING10 requires €3,000.00 or more after the volume discount.":code==="WELCOME50"?"WELCOME50 applies to an order of one bike only.":"FREESHIP applies once the order holds a bike.";
+  setShow(ps,true,t);pr2.hidden=false
+ }else{setShow(ps,false,"");pr2.hidden=true}
+ var pe=$("promo-error");pe.hidden=!S.promoErr;
+ if(S.promoErr){pIn.setAttribute("aria-invalid","true");pIn.setAttribute("aria-describedby","promo-error")}
+ else{pIn.removeAttribute("aria-invalid");pIn.removeAttribute("aria-describedby")}
+ pe.id="promo-error";
+ $("promo-apply").disabled=pIn.value.trim()==="";
+ var po=$("place-order");
+ po.textContent=r.B===0?"Place order":r.B===1?"Place order (1 bike)":"Place order ("+r.B+" bikes)";
+ po.disabled=r.B===0||ed;
+ setShow($("place-hint"),ed);
+}
+
+/* ---- events ---- */
+hIn.addEventListener("input",onHeight);
+$("qty-decrease").addEventListener("click",function(){changeQty(-1)});
+$("qty-increase").addEventListener("click",function(){changeQty(1)});
+$("undo-button").addEventListener("click",undo);
+$("add-to-order").addEventListener("click",addOrSave);
+$("cancel-edit").addEventListener("click",cancelEdit);
+document.getElementById("lines").addEventListener("click",function(e){
+ var b=e.target.closest("button[data-role]");if(!b)return;
+ var i=Number(b.getAttribute("data-i"));
+ if(b.getAttribute("data-role")==="edit")startEdit(i);else removeLine(i);
+});
+function applyCode(){
+ if(pIn.value.trim()==="")return;
+ var t=pIn.value.trim().toUpperCase();
+ if(CODES.indexOf(t)>=0){S.code=t;pIn.value="";S.promoErr=false}
+ else S.promoErr=true;
+ render()
+}
+$("promo-apply").addEventListener("click",applyCode);
+pIn.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();if(!$("promo-apply").disabled)applyCode()}});
+pIn.addEventListener("input",function(){S.promoErr=false;render()});
+$("promo-remove").addEventListener("click",function(){S.code=null;render()});
+$("place-order").addEventListener("click",function(){
+ if($("place-order").disabled)return;
+ var r=calc(),now=new Date();
+ var ref="AT-"+now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+"-"+String(S.seq).padStart(3,"0");
+ S.seq++;
+ $("confirmation-reference").textContent=ref;
+ $("confirmation-bikes").textContent=r.B===1?"1 bike":r.B+" bikes";
+ $("confirmation-total").textContent=fmt(r.total);
+ $("confirmation-delivery").textContent=delivery(now);
+ S.notice="";render();
+ document.getElementById("main").hidden=true;
+ $("confirmation").hidden=false;
+ $("confirmation-title").setAttribute("tabindex","-1");$("confirmation-title").focus();
+});
+$("confirmation-new").addEventListener("click",function(){
+ S.lines=[];S.code=null;S.height="";S.prevValid=null;S.promoErr=false;S.lineErr="";
+ hIn.value="";pIn.value="";resetCfg();
+ $("confirmation").hidden=true;document.getElementById("main").hidden=false;
+ render()
+});
+
+resetCfg();render();
+})();
+</script>
+</body>
+</html>

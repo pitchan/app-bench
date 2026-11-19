@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 02-catalog-and-rules</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <strong>02-catalog-and-rules</strong> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-configurator.html">04-fr-configurator</a> · <a href="05-fr-order-lines.html">05-fr-order-lines</a> · <a href="06-fr-pricing.html">06-fr-pricing</a> · <a href="07-fr-checkout.html">07-fr-checkout</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="2-catalog-and-business-rules">2. Catalog and business rules</h1>
+<h2 id="21-glossary">2.1 Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bike configuration</td>
+<td>The choices of one bike: frame, wheels, drivetrain, color and the set of selected accessories. The rider height and the quantity are not part of it.</td>
+</tr>
+<tr>
+<td>Configurator</td>
+<td>The part of the page where the customer builds the current bike: height, option cards, quantity.</td>
+</tr>
+<tr>
+<td>Current bike</td>
+<td>The bike configuration shown in the configurator, with its quantity.</td>
+</tr>
+<tr>
+<td>Order line</td>
+<td>One bike configuration with a quantity, added to the order (05-fr-order-lines).</td>
+</tr>
+<tr>
+<td>Order</td>
+<td>The list of order lines, at most four, and the applied promo code.</td>
+</tr>
+<tr>
+<td>Bikes in the order</td>
+<td>The sum of the quantities of all order lines, written <em>B</em>.</td>
+</tr>
+<tr>
+<td>Valid height</td>
+<td>A height that satisfies FR-FIT-01.</td>
+</tr>
+<tr>
+<td>Recommended frame</td>
+<td>The frame given by section 2.4 for a valid height.</td>
+</tr>
+<tr>
+<td>Automatic frame mode</td>
+<td>The state in which the frame follows the recommended frame (FR-FIT-03).</td>
+</tr>
+<tr>
+<td>Automatic frame change</td>
+<td>A change of the selected frame to a different frame, made by automatic frame mode (FR-FIT-03). A height change after which the selected frame is the same as before is not an automatic frame change: no cascade is applied and <code>notice</code> keeps its text.</td>
+</tr>
+<tr>
+<td>User action</td>
+<td>One click or keyboard selection by the customer on an option card or a quantity button of the configurator. Typing in the height field is not a user action in this sense.</td>
+</tr>
+<tr>
+<td>Cascade</td>
+<td>A change made by the system to another option as a consequence of a user action or of an automatic frame change (section 2.3).</td>
+</tr>
+<tr>
+<td>Cents</td>
+<td>An amount expressed as an integer number of euro cents. €12.50 is 1250 cents.</td>
+</tr>
+<tr>
+<td>Today, now</td>
+<td>The browser&#39;s current local date, and current local date and time.</td>
+</tr>
+</tbody></table>
+<h2 id="22-catalog">2.2 Catalog</h2>
+<p>All prices include VAT.</p>
+<h3 id="frames-single-choice-no-default">Frames (single choice, no default)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Rider height (cm)</th>
+<th>Price</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>S</code></td>
+<td><code>Frame S</code></td>
+<td>150 – 164</td>
+<td>€1,190.00</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td><code>Frame M</code></td>
+<td>165 – 174</td>
+<td>€1,190.00</td>
+</tr>
+<tr>
+<td><code>L</code></td>
+<td><code>Frame L</code></td>
+<td>175 – 184</td>
+<td>€1,240.00</td>
+</tr>
+<tr>
+<td><code>XL</code></td>
+<td><code>Frame XL</code></td>
+<td>185 – 200</td>
+<td>€1,290.00</td>
+</tr>
+</tbody></table>
+<h3 id="wheels-single-choice-default-275">Wheels (single choice, default <code>275</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Surcharge</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>275</code></td>
+<td><code>27.5&quot; wheels</code></td>
+<td>€0.00</td>
+</tr>
+<tr>
+<td><code>29</code></td>
+<td><code>29&quot; wheels</code></td>
+<td>€120.00</td>
+</tr>
+</tbody></table>
+<p>The <code>&quot;</code> character is U+0022.</p>
+<h3 id="drivetrain-single-choice-default-essential">Drivetrain (single choice, default <code>essential</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Surcharge</th>
+<th>Lead time (business days)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>essential</code></td>
+<td><code>Essential 1×10</code></td>
+<td>€0.00</td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>sport</code></td>
+<td><code>Sport 1×12</code></td>
+<td>€240.00</td>
+<td>7</td>
+</tr>
+<tr>
+<td><code>pro</code></td>
+<td><code>Pro Electronic 2×12</code></td>
+<td>€690.00</td>
+<td>12</td>
+</tr>
+</tbody></table>
+<p>The <code>×</code> character is U+00D7.</p>
+<h3 id="color-single-choice-default-graphite">Color (single choice, default <code>graphite</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Surcharge</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>graphite</code></td>
+<td><code>Graphite</code></td>
+<td>€0.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>sand</code></td>
+<td><code>Sand</code></td>
+<td>€0.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>red</code></td>
+<td><code>Racing Red</code></td>
+<td>€60.00</td>
+<td>The surcharge is €0.00 while the drivetrain is <code>pro</code>. Adds 3 business days to the lead time.</td>
+</tr>
+<tr>
+<td><code>glacier</code></td>
+<td><code>Glacier</code></td>
+<td>€0.00</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<h3 id="accessories-multiple-choice-none-by-default">Accessories (multiple choice, none by default)</h3>
+<table>
+<thead>
+<tr>
+<th>Option id</th>
+<th>Accessible name</th>
+<th>Price</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mudguards</code></td>
+<td><code>Mudguards</code></td>
+<td>€45.00</td>
+</tr>
+<tr>
+<td><code>rack</code></td>
+<td><code>Rear rack</code></td>
+<td>€69.00</td>
+</tr>
+<tr>
+<td><code>lights</code></td>
+<td><code>Lights</code></td>
+<td>€39.90</td>
+</tr>
+<tr>
+<td><code>kickstand</code></td>
+<td><code>Kickstand</code></td>
+<td>€24.50</td>
+</tr>
+</tbody></table>
+<p>The <strong>catalog order</strong> of any group is the order of its table.</p>
+<h3 id="quantity">Quantity</h3>
+<p>The quantity of the current bike is an integer from 1 to 5. Default 1.</p>
+<h3 id="promo-codes">Promo codes</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Effect</th>
+<th>Active while</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SPRING10</code></td>
+<td>10 % off the bikes amount after the volume discount</td>
+<td>the bikes amount after the volume discount is at least €3,000.00</td>
+</tr>
+<tr>
+<td><code>WELCOME50</code></td>
+<td>€50.00 off</td>
+<td><em>B</em> = 1</td>
+</tr>
+<tr>
+<td><code>FREESHIP</code></td>
+<td>Shipping is free</td>
+<td><em>B</em> ≥ 1</td>
+</tr>
+<tr>
+<td><code>TEAM15</code></td>
+<td>15 % off the bikes amount of the performance lines, instead of the volume discount</td>
+<td><em>B</em> ≥ 4</td>
+</tr>
+</tbody></table>
+<p>A <strong>performance line</strong> is an order line whose drivetrain is <code>sport</code> or <code>pro</code>. At most one code is applied at a time. An applied code that is not active has no effect.</p>
+<h3 id="workshop-closed-days">Workshop closed days</h3>
+<p>Saturdays, Sundays, and these dates: <code>2026-12-24</code>, <code>2026-12-25</code>, <code>2026-12-31</code>, <code>2027-01-01</code>, <code>2027-03-29</code>.</p>
+<p>A <strong>business day</strong> is any other day.</p>
+<h2 id="23-compatibility-rules">2.3 Compatibility rules</h2>
+<h3 id="unavailable-options">Unavailable options</h3>
+<p>An unavailable option cannot be selected: its input is disabled.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Unavailable while</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>29&quot; wheels</code></td>
+<td>the frame is <code>S</code></td>
+<td>MSG-04</td>
+</tr>
+<tr>
+<td><code>Pro Electronic 2×12</code></td>
+<td>the frame is <code>S</code></td>
+<td>MSG-04</td>
+</tr>
+<tr>
+<td><code>Glacier</code></td>
+<td>the frame is <code>S</code> or <code>XL</code></td>
+<td>MSG-05</td>
+</tr>
+</tbody></table>
+<p>While no frame is selected, every option is available.</p>
+<h3 id="constraints">Constraints</h3>
+<p>A bike configuration shall always satisfy all of these constraints:</p>
+<ol>
+<li>Frame <code>S</code> is not combined with <code>29&quot; wheels</code>, nor with <code>Pro Electronic 2×12</code>.</li>
+<li><code>Glacier</code> is combined only with frame <code>M</code>, frame <code>L</code> or no frame.</li>
+<li><code>Pro Electronic 2×12</code> is combined only with <code>29&quot; wheels</code>.</li>
+<li><code>Rear rack</code> is combined only with <code>Mudguards</code>.</li>
+<li><code>Rear rack</code> and <code>Kickstand</code> are never both selected.</li>
+</ol>
+<h3 id="cascades">Cascades</h3>
+<p>After a user action or an automatic frame change, the system applies every cascade of this table whose condition holds, in the order of the table, each one on the result of the previous ones. Each applied cascade adds its message to the notice (FR-OPT-05).</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Trigger</th>
+<th>Condition</th>
+<th>Change</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C1</td>
+<td>frame <code>S</code> becomes selected</td>
+<td><code>29&quot; wheels</code> selected</td>
+<td>select <code>27.5&quot; wheels</code></td>
+<td>MSG-06</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>frame <code>S</code> becomes selected</td>
+<td><code>Pro Electronic 2×12</code> selected</td>
+<td>select <code>Sport 1×12</code></td>
+<td>MSG-07</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>frame <code>S</code> or <code>XL</code> becomes selected</td>
+<td><code>Glacier</code> selected</td>
+<td>select <code>Graphite</code></td>
+<td>MSG-08</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>the user selects <code>Pro Electronic 2×12</code></td>
+<td><code>27.5&quot; wheels</code> selected</td>
+<td>select <code>29&quot; wheels</code></td>
+<td>MSG-09</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>the user selects <code>27.5&quot; wheels</code></td>
+<td><code>Pro Electronic 2×12</code> selected</td>
+<td>select <code>Sport 1×12</code></td>
+<td>MSG-10</td>
+</tr>
+<tr>
+<td>C6</td>
+<td>the user checks <code>Rear rack</code></td>
+<td><code>Mudguards</code> not checked</td>
+<td>check <code>Mudguards</code></td>
+<td>MSG-11</td>
+</tr>
+<tr>
+<td>C7</td>
+<td>the user checks <code>Rear rack</code></td>
+<td><code>Kickstand</code> checked</td>
+<td>uncheck <code>Kickstand</code></td>
+<td>MSG-12</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>the user unchecks <code>Mudguards</code></td>
+<td><code>Rear rack</code> checked</td>
+<td>uncheck <code>Rear rack</code></td>
+<td>MSG-13</td>
+</tr>
+<tr>
+<td>C9</td>
+<td>the user checks <code>Kickstand</code></td>
+<td><code>Rear rack</code> checked</td>
+<td>uncheck <code>Rear rack</code></td>
+<td>MSG-14</td>
+</tr>
+</tbody></table>
+<p>A cascade never triggers another cascade: the triggers name user actions and frame changes only, and the table covers every combination.</p>
+<h2 id="24-frame-recommendation">2.4 Frame recommendation</h2>
+<p>For a valid height <em>h</em>, the recommended frame is the frame whose rider height range contains <em>h</em>. The ranges are inclusive at both ends and cover 150 to 200 without gap.</p>
+<h2 id="25-price-calculation">2.5 Price calculation</h2>
+<p>All amounts are integer cents. Rounding uses <strong>round half up</strong>: a non-negative exact value <em>x</em> is rounded to the integer ⌊<em>x</em> + ½⌋. Percentages are computed on exact values, then rounded once. Floating-point arithmetic shall not be used for money.</p>
+<h3 id="unit-price-of-a-bike-configuration">Unit price of a bike configuration</h3>
+<p>frame price + wheels surcharge + drivetrain surcharge + color surcharge (with the <code>red</code> rule of 2.2) + sum of the prices of the selected accessories.</p>
+<h3 id="order-amounts">Order amounts</h3>
+<p>For an order with at least one line:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Formula</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Line amount</td>
+<td>for each line: unit price × line quantity</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Commuter pack</td>
+<td>for each line whose accessories include <code>Mudguards</code>, <code>Rear rack</code> and <code>Lights</code>: 3000 × line quantity; otherwise 0</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Bikes amount</td>
+<td>sum over the lines of (line amount − commuter pack)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Volume discount</td>
+<td><em>B</em> from 3 to 5: round half up of (bikes amount × 5 / 100); <em>B</em> of 6 or more: round half up of (bikes amount × 8 / 100); otherwise 0</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Team discount</td>
+<td>while <code>TEAM15</code> is applied and active: round half up of (sum over the performance lines of (line amount − commuter pack) × 15 / 100); otherwise 0</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Discount choice</td>
+<td>while the team discount is greater than the volume discount, the team discount is used and the volume discount is not; otherwise the volume discount is used and the team discount is not</td>
+</tr>
+<tr>
+<td>7</td>
+<td>After volume discount</td>
+<td>bikes amount − the volume discount used</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Promo discount</td>
+<td><code>SPRING10</code> applied and active: round half up of (after volume discount × 10 / 100). <code>WELCOME50</code> applied and active: 5000. <code>TEAM15</code>: the team discount used. Otherwise 0.</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Merchandise</td>
+<td>after volume discount − promo discount</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Shipping</td>
+<td>0 if <code>FREESHIP</code> is the applied code, or if merchandise ≥ 500000; otherwise 4900 + 1500 × (<em>B</em> − 1)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Total</td>
+<td>merchandise + shipping</td>
+</tr>
+<tr>
+<td>12</td>
+<td>VAT included</td>
+<td>round half up of (total × 20 / 120)</td>
+</tr>
+</tbody></table>
+<p>&quot;The volume discount used&quot; is 0 when step 6 uses the team discount. For <code>SPRING10</code>, &quot;active&quot; is evaluated on the after volume discount amount of step 7. The VAT included is informative: it is part of the total, not added to it.</p>
+<h2 id="26-delivery-calculation">2.6 Delivery calculation</h2>
+<ol>
+<li><strong>Line lead time</strong> = the line&#39;s drivetrain lead time, plus 3 if its color is <code>red</code>, plus 2 if its quantity is 3 or more.</li>
+<li><strong>Order lead time</strong> = the largest line lead time, plus 1 for each line beyond the first, plus 1 if now is 14:00 or later.</li>
+<li><strong>Delivery date</strong>: starting from the day after today, count business days one by one; the delivery date is the business day whose count equals the order lead time. Today itself is never counted, whatever day it is.</li>
+</ol>
+<h2 id="27-display-formats">2.7 Display formats</h2>
+<h3 id="amount">Amount</h3>
+<p><code>€</code>, then the integer euros with a comma <code>,</code> between groups of three digits counted from the right, then <code>.</code>, then exactly two digits of cents. No space anywhere.</p>
+<table>
+<thead>
+<tr>
+<th>Cents</th>
+<th>Display</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td><code>€0.00</code></td>
+</tr>
+<tr>
+<td>3990</td>
+<td><code>€39.90</code></td>
+</tr>
+<tr>
+<td>124000</td>
+<td><code>€1,240.00</code></td>
+</tr>
+<tr>
+<td>1234567</td>
+<td><code>€12,345.67</code></td>
+</tr>
+</tbody></table>
+<h3 id="signed-amounts">Signed amounts</h3>
+<table>
+<thead>
+<tr>
+<th>Use</th>
+<th>Format</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Surcharge or accessory price, non-zero</td>
+<td><code>+</code> then the amount</td>
+<td><code>+€120.00</code></td>
+</tr>
+<tr>
+<td>Surcharge, zero</td>
+<td>the word <code>Included</code></td>
+<td><code>Included</code></td>
+</tr>
+<tr>
+<td>Discount</td>
+<td><code>−</code> (U+2212 MINUS SIGN) then the amount</td>
+<td><code>−€45.10</code></td>
+</tr>
+</tbody></table>
+<h3 id="date">Date</h3>
+<p><code>&lt;Weekday&gt;, &lt;D&gt; &lt;Month&gt; &lt;YYYY&gt;</code>: English weekday name, a comma and a space, the day of the month without leading zero, a space, the English month name, a space, the four-digit year.</p>
+<p>Example: <code>Tuesday, 29 December 2026</code>.</p>
+<h3 id="bike-description">Bike description</h3>
+<p>The <strong>bike description</strong> of a bike configuration is the accessible names of its frame, wheels, drivetrain and color, in that order, separated by <code>·</code> (a space, U+00B7 MIDDLE DOT, a space).</p>
+<p>Example: <code>Frame L · 29&quot; wheels · Sport 1×12 · Racing Red</code>.</p>
+<p>The <strong>accessory list</strong> is the accessible names of the selected accessories in catalog order, separated by <code>, </code> (a comma and a space), or <code>No accessories</code> when none is selected.</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --ink: #16191d;
+  --ink-soft: #3d434b;
+  --line: #d5d9df;
+  --head-bg: #e9ecf0;
+  --head-sel: #cfdaf2;
+  --sel-bg: #dbe6fd;
+  --accent: #1d4ed8;
+  --error: #a8001c;
+  --disabled-ink: #858b93;
+  --disabled-bg: #eceef1;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+header {
+  background: #1b2638;
+  color: #ffffff;
+  padding: 10px 16px;
+}
+header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .01em; }
+main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 12px 16px 24px;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.toolbar .sep { width: 1px; height: 24px; background: var(--line); margin: 0 2px; }
+button, select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid #a5adb8;
+  border-radius: 6px;
+  padding: 5px 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+button:hover:not(:disabled), select:hover:not(:disabled) { background: #eef2fb; }
+button:disabled, select:disabled {
+  color: var(--disabled-ink);
+  background: var(--disabled-bg);
+  border-color: #cdd1d7;
+  cursor: default;
+}
+button:focus-visible, select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.fbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  align-items: stretch;
+}
+.name-box {
+  flex: 0 0 auto;
+  min-width: 72px;
+  padding: 5px 8px;
+  background: var(--surface);
+  border: 1px solid #a5adb8;
+  border-radius: 6px;
+  font-family: ui-monospace, Consolas, monospace;
+  color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
+}
+.fbar input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: 14px ui-monospace, Consolas, monospace;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid #a5adb8;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.fbar input:focus { outline: 3px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.fbar input[data-editing="true"] { background: #fffbe8; }
+.grid-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+table.grid {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 920px;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--surface);
+}
+table.grid:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+table.grid col.rh { width: 40px; }
+table.grid th, table.grid td {
+  border: 1px solid var(--line);
+  height: 30px;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+table.grid th {
+  background: var(--head-bg);
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 12px;
+  text-align: center;
+}
+table.grid th.hl { background: var(--head-sel); color: var(--ink); }
+table.grid th[role="rowheader"], table.grid td.corner { position: sticky; left: 0; z-index: 1; }
+table.grid td {
+  background: var(--surface);
+  color: var(--ink);
+  cursor: cell;
+}
+table.grid td[data-kind="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+table.grid td[data-kind="logical"] { text-align: center; }
+table.grid td[data-kind="error"] { color: var(--error); text-align: center; font-weight: 600; }
+table.grid td[data-in-selection="true"] { background: var(--sel-bg); }
+table.grid td[aria-selected="true"] { background: var(--surface); box-shadow: inset 0 0 0 2px #5b6b8c; }
+table.grid:focus td[aria-selected="true"] { box-shadow: inset 0 0 0 3px var(--accent); }
+.summary {
+  margin-top: 10px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.summary[hidden] { display: none; }
+@media (max-width: 600px) {
+  main { padding: 10px 16px 20px; }
+  table.grid { width: 808px; }
+  button, select { padding: 5px 8px; }
+  .toolbar .sep { display: none; }
+}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+<main>
+  <div class="toolbar" data-testid="toolbar" role="toolbar" aria-label="Sheet actions">
+    <button type="button" data-testid="undo-button">Undo</button>
+    <button type="button" data-testid="redo-button">Redo</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" data-testid="copy-button">Copy</button>
+    <button type="button" data-testid="cut-button">Cut</button>
+    <button type="button" data-testid="paste-button">Paste</button>
+    <button type="button" data-testid="clear-button">Clear</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" data-testid="insert-row">Insert row</button>
+    <button type="button" data-testid="delete-row">Delete row</button>
+    <button type="button" data-testid="insert-col">Insert column</button>
+    <button type="button" data-testid="delete-col">Delete column</button>
+    <span class="sep" aria-hidden="true"></span>
+    <select data-testid="format-select" aria-label="Number format">
+      <option value="general">General</option>
+      <option value="fixed2">1,234.50</option>
+      <option value="percent1">12.5%</option>
+    </select>
+  </div>
+  <div class="fbar">
+    <div class="name-box" data-testid="name-box">A1</div>
+    <input type="text" data-testid="formula-input" aria-label="Cell content" data-editing="false" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="grid-wrap" id="grid-wrap"></div>
+  <div class="summary" data-testid="selection-summary" aria-live="polite" hidden></div>
+</main>
+
+<script>
+/* ===================== Engine: values, formulas, rewriting ===================== */
+var ROWS = 12, COLS = 8, NCELLS = 96, LETTERS = 'ABCDEFGH';
+var BLANK = { t: 'blank' };
+function E(code) { return { t: 'e', v: code }; }
+function isErr(v) { return v.t === 'e'; }
+
+/* ---- numbers ---- */
+function N(x) { var y = Number(x.toPrecision(12)); return y === 0 ? 0 : y; }
+function numV(x) {
+  if (!isFinite(x)) return E('#NUM!');
+  var y = N(x);
+  if (Math.abs(y) >= 1e15) return E('#NUM!');
+  return { t: 'n', v: y };
+}
+function decParts(x) {
+  var s = x.toPrecision(12), neg = false, exp = 0;
+  if (s[0] === '-') { neg = true; s = s.slice(1); }
+  var ei = s.indexOf('e');
+  if (ei >= 0) { exp = parseInt(s.slice(ei + 1), 10); s = s.slice(0, ei); }
+  var di = s.indexOf('.'), ip = s, fp = '';
+  if (di >= 0) { ip = s.slice(0, di); fp = s.slice(di + 1); }
+  return { neg: neg, M: BigInt(ip + fp), scale: fp.length - exp };
+}
+function decRound(x, d) {
+  var p = decParts(x), Q;
+  if (p.scale <= d) Q = p.M * (10n ** BigInt(d - p.scale));
+  else {
+    var div = 10n ** BigInt(p.scale - d);
+    Q = p.M / div;
+    if ((p.M % div) * 2n >= div) Q += 1n;
+  }
+  return { neg: p.neg && Q !== 0n, Q: Q, d: d };
+}
+function qParts(q) {
+  if (q.d <= 0) return [q.Q === 0n ? '0' : q.Q.toString() + '0'.repeat(-q.d), ''];
+  var s = q.Q.toString().padStart(q.d + 1, '0');
+  return [s.slice(0, s.length - q.d), s.slice(s.length - q.d)];
+}
+function roundNum(x, d) {
+  var q = decRound(x, d), p = qParts(q);
+  return Number((q.neg ? '-' : '') + p[0] + (p[1] ? '.' + p[1] : ''));
+}
+function G(x) {
+  var q = decRound(x, 6), p = qParts(q), f = p[1].replace(/0+$/, '');
+  return (q.neg ? '-' : '') + p[0] + (f ? '.' + f : '');
+}
+function fmtNum(x, fmt) {
+  var q, p;
+  if (fmt === 'fixed2') {
+    q = decRound(x, 2); p = qParts(q);
+    return (q.neg ? '-' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + p[1];
+  }
+  if (fmt === 'percent1') {
+    q = decRound(N(x * 100), 1); p = qParts(q);
+    return (q.neg ? '-' : '') + p[0] + '.' + p[1] + '%';
+  }
+  return G(x);
+}
+
+var ENTRY_RE = /^[+-]?(\d+(\.\d+)?|\.\d+)%?$/;
+function entryNumber(s) {
+  if (!ENTRY_RE.test(s)) return null;
+  var pct = s[s.length - 1] === '%';
+  var x = Number(pct ? s.slice(0, -1) : s);
+  if (pct) x = x / 100;
+  if (!isFinite(x)) return null;
+  x = N(x);
+  if (Math.abs(x) >= 1e15) return null;
+  return x;
+}
+function literalValue(s) {
+  if (s[0] === "'") return { t: 's', v: s.slice(1) };
+  var t = s.replace(/^ +| +$/g, '');
+  var x = entryNumber(t);
+  if (x !== null) return { t: 'n', v: x };
+  if (/^(true|false)$/i.test(t)) return { t: 'b', v: t.toUpperCase() === 'TRUE' };
+  return { t: 's', v: s };
+}
+
+/* ---- references ---- */
+function colIdx(col) { return col.length === 1 ? LETTERS.indexOf(col) : -1; }
+function rowIdx(row) { if (row.length > 2) return -1; var n = +row; return n >= 1 && n <= 12 ? n - 1 : -1; }
+function refInside(r) { return colIdx(r.col) >= 0 && rowIdx(r.row) >= 0; }
+function rangeInside(n) { return colIdx(n.c1.col) >= 0 && colIdx(n.c2.col) >= 0 && rowIdx(n.r1.row) >= 0 && rowIdx(n.r2.row) >= 0; }
+function cmpLen(a, b) { return a.length !== b.length ? a.length - b.length : (a < b ? -1 : a > b ? 1 : 0); }
+function makeRange(a, b) {
+  var c1 = { col: a.col, abs: a.colAbs }, c2 = { col: b.col, abs: b.colAbs };
+  var r1 = { row: a.row, abs: a.rowAbs }, r2 = { row: b.row, abs: b.rowAbs };
+  return normRange({ k: 'range', c1: c1, c2: c2, r1: r1, r2: r2 });
+}
+function normRange(n) {
+  var c1 = n.c1, c2 = n.c2, r1 = n.r1, r2 = n.r2, t;
+  if (cmpLen(c1.col, c2.col) > 0) { t = c1; c1 = c2; c2 = t; }
+  if (cmpLen(r1.row, r2.row) > 0) { t = r1; r1 = r2; r2 = t; }
+  return { k: 'range', c1: c1, c2: c2, r1: r1, r2: r2 };
+}
+function refStr(r) { return (r.colAbs ? '$' : '') + r.col + (r.rowAbs ? '$' : '') + r.row; }
+function partsStr(c, r) { return (c.abs ? '$' : '') + c.col + (r.abs ? '$' : '') + r.row; }
+
+/* ---- tokenizer & parser ---- */
+var FUNCS = {
+  SUM: [1, Infinity], AVERAGE: [1, Infinity], MIN: [1, Infinity], MAX: [1, Infinity],
+  COUNT: [1, Infinity], COUNTA: [1, Infinity], ROUND: [2, 2], ABS: [1, 1], INT: [1, 1],
+  MOD: [2, 2], IF: [3, 3], AND: [1, Infinity], OR: [1, Infinity], NOT: [1, 1],
+  IFERROR: [2, 2], ISERROR: [1, 1], ISBLANK: [1, 1], LEN: [1, 1], UPPER: [1, 1],
+  LEFT: [2, 2], RIGHT: [2, 2], MID: [3, 3], CONCAT: [1, Infinity], COUNTIF: [2, 2], SUMIF: [3, 3]
+};
+function SyntaxFail() {}
+function tokenize(s) {
+  var T = [], i = 0, n = s.length, m;
+  var numRe = /\d+(\.\d+)?|\.\d+/y, wordRe = /[A-Za-z0-9$]+/y;
+  while (i < n) {
+    var ch = s[i];
+    if (ch === ' ') { i++; continue; }
+    if ((ch >= '0' && ch <= '9') || ch === '.') {
+      numRe.lastIndex = i; m = numRe.exec(s);
+      if (!m) throw new SyntaxFail();
+      T.push({ t: 'num', s: m[0] }); i += m[0].length; continue;
+    }
+    if (ch === '"') {
+      var j = i + 1, v = '';
+      for (;;) {
+        if (j >= n) throw new SyntaxFail();
+        if (s[j] === '"') {
+          if (s[j + 1] === '"') { v += '"'; j += 2; } else { j++; break; }
+        } else v += s[j++];
+      }
+      T.push({ t: 'str', s: s.slice(i, j), v: v }); i = j; continue;
+    }
+    if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch === '$') {
+      wordRe.lastIndex = i; m = wordRe.exec(s);
+      var w = m[0]; i += w.length;
+      if (/^(true|false)$/i.test(w)) { T.push({ t: 'bool', v: w.toUpperCase() === 'TRUE' }); continue; }
+      var rm = /^(\$?)([A-Za-z]+)(\$?)([0-9]+)$/.exec(w);
+      if (rm) {
+        T.push({ t: 'ref', ref: { col: rm[2].toUpperCase(), colAbs: rm[1] === '$', row: rm[4].replace(/^0+/, '') || '0', rowAbs: rm[3] === '$' } });
+        continue;
+      }
+      if (/^[A-Za-z0-9]+$/.test(w)) { T.push({ t: 'name', s: w.toUpperCase() }); continue; }
+      throw new SyntaxFail();
+    }
+    if (ch === '#') {
+      if (s.substr(i, 5).toUpperCase() === '#REF!') { T.push({ t: 'referr' }); i += 5; continue; }
+      throw new SyntaxFail();
+    }
+    var two = s.substr(i, 2);
+    if (two === '<>' || two === '<=' || two === '>=') { T.push({ t: 'op', s: two }); i += 2; continue; }
+    if ('+-*/^&%=<>'.indexOf(ch) >= 0) { T.push({ t: 'op', s: ch }); i++; continue; }
+    if ('(),:'.indexOf(ch) >= 0) { T.push({ t: ch }); i++; continue; }
+    throw new SyntaxFail();
+  }
+  return T;
+}
+var CMP_OPS = { '=': 1, '<>': 1, '<': 1, '<=': 1, '>': 1, '>=': 1 };
+function parseTokens(T) {
+  var p = 0;
+  function peek() { return T[p]; }
+  function isOp(set) { var t = T[p]; return t && t.t === 'op' && set[t.s] ? t.s : null; }
+  function isTok(k) { var t = T[p]; return t && t.t === k; }
+  function binLevel(next, set) {
+    return function () {
+      var l = next(), op;
+      while ((op = isOp(set))) { p++; l = { k: 'bin', op: op, l: l, r: next() }; }
+      return l;
+    };
+  }
+  function signed() {
+    var op = isOp({ '+': 1, '-': 1 });
+    if (op) { p++; return { k: 'un', op: op, e: signed() }; }
+    return power();
+  }
+  function power() {
+    var b = percent();
+    if (isOp({ '^': 1 })) { p++; return { k: 'bin', op: '^', l: b, r: signed() }; }
+    return b;
+  }
+  function percent() {
+    var e = primary();
+    while (isOp({ '%': 1 })) { p++; e = { k: 'pct', e: e }; }
+    return e;
+  }
+  var product = binLevel(signed, { '*': 1, '/': 1 });
+  var sum = binLevel(product, { '+': 1, '-': 1 });
+  var concat = binLevel(sum, { '&': 1 });
+  var comparison = binLevel(concat, CMP_OPS);
+  function primary() {
+    var t = peek();
+    if (!t) throw new SyntaxFail();
+    p++;
+    switch (t.t) {
+      case 'num': return { k: 'num', s: t.s };
+      case 'str': return { k: 'str', s: t.s, v: t.v };
+      case 'bool': return { k: 'bool', v: t.v };
+      case 'referr': return { k: 'referr' };
+      case 'ref':
+        if (isTok(':')) {
+          p++;
+          var t2 = peek();
+          if (!t2 || t2.t !== 'ref') throw new SyntaxFail();
+          p++;
+          return makeRange(t.ref, t2.ref);
+        }
+        return { k: 'ref', ref: t.ref };
+      case 'name':
+        if (isTok('(')) {
+          p++;
+          var args = [];
+          if (isTok(')')) { p++; return { k: 'call', name: t.s, args: args }; }
+          for (;;) {
+            args.push(comparison());
+            if (isTok(',')) { p++; continue; }
+            if (isTok(')')) { p++; break; }
+            throw new SyntaxFail();
+          }
+          return { k: 'call', name: t.s, args: args };
+        }
+        return { k: 'name', name: t.s };
+      case '(':
+        var e = comparison();
+        if (!isTok(')')) throw new SyntaxFail();
+        p++;
+        return { k: 'paren', e: e };
+    }
+    throw new SyntaxFail();
+  }
+  var ast = comparison();
+  if (p !== T.length) throw new SyntaxFail();
+  return ast;
+}
+var parseCache = new Map();
+function parseFormula(raw) {
+  if (parseCache.has(raw)) return parseCache.get(raw);
+  var ast = null;
+  try {
+    if (raw[0] === '=') {
+      var T = tokenize(raw.slice(1));
+      if (T.length) ast = parseTokens(T);
+    }
+  } catch (e) { ast = null; }
+  if (parseCache.size > 5000) parseCache.clear();
+  parseCache.set(raw, ast);
+  return ast;
+}
+function ser(n) {
+  switch (n.k) {
+    case 'num': case 'str': return n.s;
+    case 'bool': return n.v ? 'TRUE' : 'FALSE';
+    case 'referr': return '#REF!';
+    case 'ref': return refStr(n.ref);
+    case 'range': return partsStr(n.c1, n.r1) + ':' + partsStr(n.c2, n.r2);
+    case 'name': return n.name;
+    case 'call': return n.name + '(' + n.args.map(ser).join(',') + ')';
+    case 'paren': return '(' + ser(n.e) + ')';
+    case 'un': return n.op + ser(n.e);
+    case 'pct': return ser(n.e) + '%';
+    case 'bin': return ser(n.l) + n.op + ser(n.r);
+  }
+  return '';
+}
+/* Raw content stored for a committed string (02, 2.2). */
+function storedRaw(s) {
+  if (s === '') return '';
+  if (s[0] === '=') {
+    var ast = parseFormula(s);
+    return ast ? '=' + ser(ast) : s;
+  }
+  return s;
+}
+
+/* ---- precedents & cycles ---- */
+function collectPrec(n, out) {
+  switch (n.k) {
+    case 'ref':
+      if (refInside(n.ref)) out.push(rowIdx(n.ref.row) * COLS + colIdx(n.ref.col));
+      break;
+    case 'range':
+      if (rangeInside(n)) {
+        for (var r = rowIdx(n.r1.row); r <= rowIdx(n.r2.row); r++)
+          for (var c = colIdx(n.c1.col); c <= colIdx(n.c2.col); c++) out.push(r * COLS + c);
+      }
+      break;
+    case 'call': n.args.forEach(function (a) { collectPrec(a, out); }); break;
+    case 'paren': case 'un': case 'pct': collectPrec(n.e, out); break;
+    case 'bin': collectPrec(n.l, out); collectPrec(n.r, out); break;
+  }
+  return out;
+}
+function findCircular(prec) {
+  var index = 0, idx = new Array(NCELLS).fill(-1), low = new Array(NCELLS), onS = new Array(NCELLS).fill(false);
+  var stack = [], circ = new Array(NCELLS).fill(false);
+  function strong(v) {
+    idx[v] = low[v] = index++; stack.push(v); onS[v] = true;
+    prec[v].forEach(function (w) {
+      if (idx[w] < 0) { strong(w); low[v] = Math.min(low[v], low[w]); }
+      else if (onS[w]) low[v] = Math.min(low[v], idx[w]);
+    });
+    if (low[v] === idx[v]) {
+      var comp = [], w;
+      do { w = stack.pop(); onS[w] = false; comp.push(w); } while (w !== v);
+      if (comp.length > 1) comp.forEach(function (x) { circ[x] = true; });
+      else if (prec[v].indexOf(v) >= 0) circ[v] = true;
+    }
+  }
+  for (var v = 0; v < NCELLS; v++) if (idx[v] < 0) strong(v);
+  return circ;
+}
+
+/* ---- evaluation ---- */
+function computeValues(raws) {
+  var asts = raws.map(function (r) { return r[0] === '=' ? parseFormula(r) : null; });
+  var prec = asts.map(function (a) { return a ? collectPrec(a, []) : []; });
+  var circ = findCircular(prec);
+  var vals = new Array(NCELLS);
+
+  function cellVal(i) {
+    if (vals[i]) return vals[i];
+    var raw = raws[i], v;
+    if (raw === '') v = BLANK;
+    else if (raw[0] === '=') {
+      if (!asts[i]) v = E('#SYNTAX!');
+      else if (circ[i]) v = E('#CYCLE!');
+      else {
+        v = ev(asts[i]);
+        if (v.t === 'blank') v = { t: 'n', v: 0 };
+      }
+    } else v = literalValue(raw);
+    vals[i] = v;
+    return v;
+  }
+  function toNum(v) {
+    switch (v.t) {
+      case 'n': return v;
+      case 'b': return { t: 'n', v: v.v ? 1 : 0 };
+      case 'blank': return { t: 'n', v: 0 };
+      case 'e': return v;
+    }
+    return E('#VALUE!');
+  }
+  function toText(v) {
+    switch (v.t) {
+      case 'n': return G(v.v);
+      case 'b': return v.v ? 'TRUE' : 'FALSE';
+      case 'blank': return '';
+    }
+    return v.v;
+  }
+  function toLogical(v) {
+    switch (v.t) {
+      case 'n': return { t: 'b', v: v.v !== 0 };
+      case 'b': return v;
+      case 'blank': return { t: 'b', v: false };
+      case 'e': return v;
+    }
+    return E('#VALUE!');
+  }
+  var RANK = { n: 0, s: 1, b: 2 };
+  function compareVals(a, b) {
+    if (a.t === 'blank') a = b.t === 's' ? { t: 's', v: '' } : b.t === 'b' ? { t: 'b', v: false } : { t: 'n', v: 0 };
+    if (b.t === 'blank') b = a.t === 's' ? { t: 's', v: '' } : a.t === 'b' ? { t: 'b', v: false } : { t: 'n', v: 0 };
+    if (a.t !== b.t) return RANK[a.t] - RANK[b.t];
+    if (a.t === 's') {
+      var x = a.v.toUpperCase(), y = b.v.toUpperCase();
+      return x < y ? -1 : x > y ? 1 : 0;
+    }
+    var p = a.t === 'b' ? (a.v ? 1 : 0) : a.v, q = b.t === 'b' ? (b.v ? 1 : 0) : b.v;
+    return p < q ? -1 : p > q ? 1 : 0;
+  }
+  function cmpOp(op, c) {
+    switch (op) {
+      case '=': return c === 0; case '<>': return c !== 0;
+      case '<': return c < 0; case '<=': return c <= 0;
+      case '>': return c > 0; case '>=': return c >= 0;
+    }
+    return false;
+  }
+  function ev(n) {
+    switch (n.k) {
+      case 'num': return numV(parseFloat(n.s));
+      case 'str': return { t: 's', v: n.v };
+      case 'bool': return { t: 'b', v: n.v };
+      case 'referr': return E('#REF!');
+      case 'ref': return refInside(n.ref) ? cellVal(rowIdx(n.ref.row) * COLS + colIdx(n.ref.col)) : E('#REF!');
+      case 'range': return E('#VALUE!');
+      case 'name': return E('#NAME?');
+      case 'paren': return ev(n.e);
+      case 'un': {
+        var v = toNum(ev(n.e));
+        if (isErr(v)) return v;
+        return numV(n.op === '-' ? -v.v : v.v);
+      }
+      case 'pct': {
+        var pv = toNum(ev(n.e));
+        if (isErr(pv)) return pv;
+        return numV(pv.v / 100);
+      }
+      case 'bin': return evBin(n);
+      case 'call': return evCall(n);
+    }
+    return E('#VALUE!');
+  }
+  function evBin(n) {
+    var l = ev(n.l), r = ev(n.r);
+    if (isErr(l)) return l;
+    if (isErr(r)) return r;
+    if (n.op === '&') return { t: 's', v: toText(l) + toText(r) };
+    if (CMP_OPS[n.op]) return { t: 'b', v: cmpOp(n.op, compareVals(l, r)) };
+    var a = toNum(l), b = toNum(r);
+    if (isErr(a)) return a;
+    if (isErr(b)) return b;
+    var x = a.v, y = b.v;
+    switch (n.op) {
+      case '+': return numV(x + y);
+      case '-': return numV(x - y);
+      case '*': return numV(x * y);
+      case '/': return y === 0 ? E('#DIV/0!') : numV(x / y);
+      case '^':
+        if (x === 0 && y === 0) return E('#NUM!');
+        if (x === 0 && y < 0) return E('#DIV/0!');
+        if (x < 0 && !Number.isInteger(y)) return E('#NUM!');
+        return numV(Math.pow(x, y));
+    }
+    return E('#VALUE!');
+  }
+  function isRangeArg(a) { return a.k === 'ref' || a.k === 'range' || a.k === 'referr'; }
+  /* Resolves a range argument: {e} or {cells, rows, cols}. */
+  function resolveRange(a) {
+    if (a.k === 'referr') return { e: E('#REF!') };
+    var r1, r2, c1, c2;
+    if (a.k === 'ref') {
+      if (!refInside(a.ref)) return { e: E('#REF!') };
+      r1 = r2 = rowIdx(a.ref.row); c1 = c2 = colIdx(a.ref.col);
+    } else {
+      if (!rangeInside(a)) return { e: E('#REF!') };
+      r1 = rowIdx(a.r1.row); r2 = rowIdx(a.r2.row); c1 = colIdx(a.c1.col); c2 = colIdx(a.c2.col);
+    }
+    var cells = [];
+    for (var r = r1; r <= r2; r++) for (var c = c1; c <= c2; c++) cells.push(r * COLS + c);
+    return { cells: cells, rows: r2 - r1 + 1, cols: c2 - c1 + 1 };
+  }
+  function argNum(a) { return toNum(ev(a)); }
+  function argInt(a) { var v = toNum(ev(a)); return isErr(v) ? v : { t: 'n', v: Math.trunc(v.v) }; }
+  function argText(a) { var v = ev(a); return isErr(v) ? v : { t: 's', v: toText(v) }; }
+  function argLogical(a) { return toLogical(ev(a)); }
+  /* Evaluates args with converters in order, returning the first error or the list. */
+  function seq(args, convs) {
+    var out = [];
+    for (var i = 0; i < args.length; i++) {
+      var v = convs[i](args[i]);
+      if (isErr(v)) return v;
+      out.push(v.v);
+    }
+    return out;
+  }
+  function aggregate(name, args) {
+    var contrib = [], count = 0;
+    for (var i = 0; i < args.length; i++) {
+      var a = args[i];
+      if (isRangeArg(a)) {
+        var rg = resolveRange(a);
+        if (rg.e) return rg.e;
+        for (var j = 0; j < rg.cells.length; j++) {
+          var cv = cellVal(rg.cells[j]);
+          if (isErr(cv)) return cv;
+          if (name === 'COUNTA') { if (raws[rg.cells[j]] !== '') count++; }
+          else if (cv.t === 'n') { contrib.push(cv.v); count++; }
+        }
+      } else {
+        var v = ev(a);
+        if (isErr(v)) return v;
+        if (name === 'COUNTA') count++;
+        else if (name === 'COUNT') { if (v.t === 'n') count++; }
+        else {
+          var nv = toNum(v);
+          if (isErr(nv)) return nv;
+          contrib.push(nv.v); count++;
+        }
+      }
+    }
+    if (name === 'COUNT' || name === 'COUNTA') return numV(count);
+    var s = 0, k;
+    switch (name) {
+      case 'SUM':
+        for (k = 0; k < contrib.length; k++) s += contrib[k];
+        return numV(s);
+      case 'AVERAGE':
+        if (!contrib.length) return E('#DIV/0!');
+        for (k = 0; k < contrib.length; k++) s += contrib[k];
+        return numV(s / contrib.length);
+      case 'MIN': return numV(contrib.length ? Math.min.apply(null, contrib) : 0);
+      case 'MAX': return numV(contrib.length ? Math.max.apply(null, contrib) : 0);
+    }
+    return E('#VALUE!');
+  }
+  function parseCriterion(v) {
+    if (v.t === 'n' || v.t === 'b') return { op: '=', val: v };
+    if (v.t === 'blank') return { op: '=', val: { t: 's', v: '' } };
+    var m = /^(>=|<=|<>|>|<|=)/.exec(v.v);
+    if (!m) return { op: '=', val: v };
+    var rest = v.v.slice(m[0].length), x = entryNumber(rest), val;
+    if (x !== null) val = { t: 'n', v: x };
+    else if (/^(true|false)$/i.test(rest)) val = { t: 'b', v: rest.toUpperCase() === 'TRUE' };
+    else val = { t: 's', v: rest };
+    return { op: m[0], val: val };
+  }
+  function critMatch(cv, crit) {
+    var same = cv.t === crit.val.t;
+    if (crit.op === '=') return same && compareVals(cv, crit.val) === 0;
+    if (crit.op === '<>') return !(same && compareVals(cv, crit.val) === 0);
+    return same && cmpOp(crit.op, compareVals(cv, crit.val));
+  }
+  function conditional(name, args) {
+    if (!isRangeArg(args[0])) return E('#VALUE!');
+    if (name === 'SUMIF' && !isRangeArg(args[2])) return E('#VALUE!');
+    var rg = resolveRange(args[0]);
+    if (rg.e) return rg.e;
+    var sr = null;
+    if (name === 'SUMIF') {
+      sr = resolveRange(args[2]);
+      if (sr.e) return sr.e;
+      if (sr.rows !== rg.rows || sr.cols !== rg.cols) return E('#VALUE!');
+    }
+    var cvv = ev(args[1]);
+    if (isErr(cvv)) return cvv;
+    var crit = parseCriterion(cvv), count = 0, s = 0;
+    for (var j = 0; j < rg.cells.length; j++) {
+      var ci = rg.cells[j], v = cellVal(ci);
+      if (isErr(v)) return v;
+      if (raws[ci] === '') continue;
+      if (!critMatch(v, crit)) continue;
+      if (sr) {
+        var sv = cellVal(sr.cells[j]);
+        if (isErr(sv)) return sv;
+        if (sv.t === 'n') s += sv.v;
+      } else count++;
+    }
+    return numV(sr ? s : count);
+  }
+  function evCall(n) {
+    var name = n.name, args = n.args, spec = FUNCS[name], r, v;
+    if (!spec) return E('#NAME?');
+    if (args.length < spec[0] || args.length > spec[1]) return E('#ARGS!');
+    switch (name) {
+      case 'SUM': case 'AVERAGE': case 'MIN': case 'MAX': case 'COUNT': case 'COUNTA':
+        return aggregate(name, args);
+      case 'ROUND':
+        r = seq(args, [argNum, argInt]); if (!Array.isArray(r)) return r;
+        if (r[1] < -9 || r[1] > 9) return E('#NUM!');
+        return numV(roundNum(r[0], r[1]));
+      case 'ABS':
+        r = seq(args, [argNum]); if (!Array.isArray(r)) return r;
+        return numV(Math.abs(r[0]));
+      case 'INT':
+        r = seq(args, [argNum]); if (!Array.isArray(r)) return r;
+        return numV(Math.floor(r[0]));
+      case 'MOD':
+        r = seq(args, [argNum, argNum]); if (!Array.isArray(r)) return r;
+        if (r[1] === 0) return E('#DIV/0!');
+        return numV(r[0] - r[1] * Math.floor(r[0] / r[1]));
+      case 'IF':
+        v = argLogical(args[0]);
+        if (isErr(v)) return v;
+        return ev(v.v ? args[1] : args[2]);
+      case 'AND': case 'OR': {
+        var all = true, any = false;
+        for (var i = 0; i < args.length; i++) {
+          v = argLogical(args[i]);
+          if (isErr(v)) return v;
+          if (v.v) any = true; else all = false;
+        }
+        return { t: 'b', v: name === 'AND' ? all : any };
+      }
+      case 'NOT':
+        v = argLogical(args[0]);
+        return isErr(v) ? v : { t: 'b', v: !v.v };
+      case 'IFERROR':
+        v = ev(args[0]);
+        return isErr(v) ? ev(args[1]) : v;
+      case 'ISERROR':
+        return { t: 'b', v: isErr(ev(args[0])) };
+      case 'ISBLANK': {
+        var a = args[0];
+        if (isRangeArg(a)) {
+          var rg = resolveRange(a);
+          if (rg.e) return rg.e;
+          if (a.k === 'range') return E('#VALUE!');
+          return { t: 'b', v: raws[rg.cells[0]] === '' };
+        }
+        v = ev(a);
+        return isErr(v) ? v : { t: 'b', v: false };
+      }
+      case 'LEN':
+        r = seq(args, [argText]); if (!Array.isArray(r)) return r;
+        return numV(r[0].length);
+      case 'UPPER':
+        r = seq(args, [argText]); if (!Array.isArray(r)) return r;
+        return { t: 's', v: r[0].toUpperCase() };
+      case 'LEFT': case 'RIGHT':
+        r = seq(args, [argText, argInt]); if (!Array.isArray(r)) return r;
+        if (r[1] < 0) return E('#VALUE!');
+        if (name === 'LEFT') return { t: 's', v: r[0].slice(0, r[1]) };
+        return { t: 's', v: r[1] >= r[0].length ? r[0] : r[0].slice(r[0].length - r[1]) };
+      case 'MID':
+        r = seq(args, [argText, argInt, argInt]); if (!Array.isArray(r)) return r;
+        if (r[1] < 1 || r[2] < 0) return E('#VALUE!');
+        return { t: 's', v: r[0].substr(r[1] - 1, r[2]) };
+      case 'CONCAT': {
+        var out = '';
+        for (var k = 0; k < args.length; k++) {
+          if (isRangeArg(args[k])) {
+            var rr = resolveRange(args[k]);
+            if (rr.e) return rr.e;
+            for (var j = 0; j < rr.cells.length; j++) {
+              var cv = cellVal(rr.cells[j]);
+              if (isErr(cv)) return cv;
+              out += toText(cv);
+            }
+          } else {
+            v = ev(args[k]);
+            if (isErr(v)) return v;
+            out += toText(v);
+          }
+        }
+        return { t: 's', v: out };
+      }
+      case 'COUNTIF': case 'SUMIF':
+        return conditional(name, args);
+    }
+    return E('#NAME?');
+  }
+
+  for (var i = 0; i < NCELLS; i++) {
+    try { cellVal(i); } catch (e) { vals[i] = E('#NUM!'); }
+  }
+  return vals;
+}
+function displayText(v, fmt) {
+  switch (v.t) {
+    case 'blank': return '';
+    case 's': return v.v;
+    case 'b': return v.v ? 'TRUE' : 'FALSE';
+    case 'e': return v.v;
+    case 'n': return fmtNum(v.v, fmt);
+  }
+  return '';
+}
+function kindOf(raw, v) {
+  if (raw === '') return 'empty';
+  return { n: 'number', s: 'text', b: 'logical', e: 'error', blank: 'number' }[v.t];
+}
+
+/* ---- rewriting ---- */
+function mapAst(n, fRef, fRange) {
+  switch (n.k) {
+    case 'ref': { var r = fRef(n.ref); return r ? { k: 'ref', ref: r } : { k: 'referr' }; }
+    case 'range': { var g = fRange(n); return g ? g : { k: 'referr' }; }
+    case 'call': return { k: 'call', name: n.name, args: n.args.map(function (a) { return mapAst(a, fRef, fRange); }) };
+    case 'paren': case 'un': case 'pct':
+      return { k: n.k, op: n.op, e: mapAst(n.e, fRef, fRange) };
+    case 'bin': return { k: 'bin', op: n.op, l: mapAst(n.l, fRef, fRange), r: mapAst(n.r, fRef, fRange) };
+  }
+  return n;
+}
+function rewriteRaw(raw, fRef, fRange) {
+  if (raw[0] !== '=') return raw;
+  var ast = parseFormula(raw);
+  if (!ast) return raw;
+  return '=' + ser(mapAst(ast, fRef, fRange));
+}
+function axisOps(axis) {
+  if (axis === 'r') return {
+    g: function (p) { return +p.row; }, s: function (p, v) { var o = Object.assign({}, p); o.row = String(v); return o; },
+    max: ROWS, a: 'r1', b: 'r2'
+  };
+  return {
+    g: function (p) { return colIdx(p.col) + 1; }, s: function (p, v) { var o = Object.assign({}, p); o.col = LETTERS[v - 1]; return o; },
+    max: COLS, a: 'c1', b: 'c2'
+  };
+}
+/* k: 1-based row or column number of the insertion. */
+function insertFns(axis, k) {
+  var o = axisOps(axis);
+  return [
+    function (ref) {
+      if (!refInside(ref)) return ref;
+      var n = o.g(ref);
+      if (n >= k) { n++; if (n > o.max) return null; }
+      return o.s(ref, n);
+    },
+    function (nd) {
+      if (!rangeInside(nd)) return nd;
+      var t = o.g(nd[o.a]), b = o.g(nd[o.b]);
+      var t2 = t >= k ? t + 1 : t, b2 = b >= k ? b + 1 : b;
+      if (t2 > o.max) return null;
+      b2 = Math.min(b2, o.max);
+      var res = Object.assign({}, nd);
+      res[o.a] = o.s(nd[o.a], t2); res[o.b] = o.s(nd[o.b], b2);
+      return res;
+    }
+  ];
+}
+function deleteFns(axis, k) {
+  var o = axisOps(axis);
+  return [
+    function (ref) {
+      if (!refInside(ref)) return ref;
+      var n = o.g(ref);
+      if (n === k) return null;
+      return n > k ? o.s(ref, n - 1) : ref;
+    },
+    function (nd) {
+      if (!rangeInside(nd)) return nd;
+      var t = o.g(nd[o.a]), b = o.g(nd[o.b]), t2, b2;
+      if (k > b) return nd;
+      if (k < t) { t2 = t - 1; b2 = b - 1; }
+      else { if (t === b) return null; t2 = t; b2 = b - 1; }
+      var res = Object.assign({}, nd);
+      res[o.a] = o.s(nd[o.a], t2); res[o.b] = o.s(nd[o.b], b2);
+      return res;
+    }
+  ];
+}
+function pasteFns(dc, dr) {
+  function mvCol(p) { return p.abs ? colIdx(p.col) + 1 : colIdx(p.col) + 1 + dc; }
+  function mvRow(p) { return p.abs ? +p.row : +p.row + dr; }
+  function okC(c) { return c >= 1 && c <= COLS; }
+  function okR(r) { return r >= 1 && r <= ROWS; }
+  return [
+    function (ref) {
+      if (!refInside(ref)) return ref;
+      var c = mvCol({ col: ref.col, abs: ref.colAbs }), r = mvRow({ row: ref.row, abs: ref.rowAbs });
+      if (!okC(c) || !okR(r)) return null;
+      return { col: LETTERS[c - 1], colAbs: ref.colAbs, row: String(r), rowAbs: ref.rowAbs };
+    },
+    function (nd) {
+      if (!rangeInside(nd)) return nd;
+      var c1 = mvCol(nd.c1), c2 = mvCol(nd.c2), r1 = mvRow(nd.r1), r2 = mvRow(nd.r2);
+      if (!okC(c1) || !okC(c2) || !okR(r1) || !okR(r2)) return null;
+      return normRange({
+        k: 'range',
+        c1: { col: LETTERS[c1 - 1], abs: nd.c1.abs }, c2: { col: LETTERS[c2 - 1], abs: nd.c2.abs },
+        r1: { row: String(r1), abs: nd.r1.abs }, r2: { row: String(r2), abs: nd.r2.abs }
+      });
+    }
+  ];
+}
+</script>
+
+<script>
+/* ===================== Application state & UI ===================== */
+(function () {
+  var raw = new Array(NCELLS).fill('');
+  var fmt = new Array(NCELLS).fill('general');
+  var vals = computeValues(raw);
+  var anchor = { r: 0, c: 0 }, active = { r: 0, c: 0 };
+  var editing = false;
+  var clipboard = null;
+  var undoStack = [], redoStack = [];
+  var HISTORY_LIMIT = 20;
+
+  function addr(r, c) { return LETTERS[c] + (r + 1); }
+  function selRect() {
+    return {
+      r1: Math.min(anchor.r, active.r), r2: Math.max(anchor.r, active.r),
+      c1: Math.min(anchor.c, active.c), c2: Math.max(anchor.c, active.c)
+    };
+  }
+  function selCells() {
+    var s = selRect(), out = [];
+    for (var r = s.r1; r <= s.r2; r++) for (var c = s.c1; c <= s.c2; c++) out.push(r * COLS + c);
+    return out;
+  }
+  function activeIdx() { return active.r * COLS + active.c; }
+
+  /* ---- DOM ---- */
+  var $ = function (id) { return document.querySelector('[data-testid="' + id + '"]'); };
+  var input = $('formula-input'), nameBox = $('name-box'), fmtSelect = $('format-select'), summary = $('selection-summary');
+  var btn = {
+    undo: $('undo-button'), redo: $('redo-button'), copy: $('copy-button'), cut: $('cut-button'),
+    paste: $('paste-button'), clear: $('clear-button'), insRow: $('insert-row'), delRow: $('delete-row'),
+    insCol: $('insert-col'), delCol: $('delete-col')
+  };
+
+  var table = document.createElement('table');
+  table.className = 'grid';
+  table.setAttribute('role', 'grid');
+  table.setAttribute('aria-label', 'Sheet');
+  table.setAttribute('tabindex', '0');
+  table.setAttribute('data-testid', 'grid');
+  var colgroup = document.createElement('colgroup');
+  var rhCol = document.createElement('col'); rhCol.className = 'rh'; colgroup.appendChild(rhCol);
+  for (var ci = 0; ci < COLS; ci++) colgroup.appendChild(document.createElement('col'));
+  table.appendChild(colgroup);
+  var thead = document.createElement('thead');
+  var hrow = document.createElement('tr');
+  hrow.setAttribute('role', 'row');
+  var corner = document.createElement('td');
+  corner.setAttribute('role', 'presentation');
+  corner.className = 'corner';
+  corner.style.background = 'var(--head-bg)';
+  hrow.appendChild(corner);
+  var colHeads = [], rowHeads = [], cellEls = [];
+  for (var c = 0; c < COLS; c++) {
+    var th = document.createElement('th');
+    th.setAttribute('role', 'columnheader');
+    th.setAttribute('scope', 'col');
+    th.setAttribute('data-testid', 'col-header-' + LETTERS[c]);
+    th.textContent = LETTERS[c];
+    hrow.appendChild(th);
+    colHeads.push(th);
+  }
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+  var tbody = document.createElement('tbody');
+  for (var r = 0; r < ROWS; r++) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('role', 'row');
+    var rh = document.createElement('th');
+    rh.setAttribute('role', 'rowheader');
+    rh.setAttribute('scope', 'row');
+    rh.setAttribute('data-testid', 'row-header-' + (r + 1));
+    rh.textContent = String(r + 1);
+    tr.appendChild(rh);
+    rowHeads.push(rh);
+    for (var c2 = 0; c2 < COLS; c2++) {
+      var td = document.createElement('td');
+      td.setAttribute('role', 'gridcell');
+      td.setAttribute('data-testid', 'cell-' + addr(r, c2));
+      td.setAttribute('data-r', r);
+      td.setAttribute('data-c', c2);
+      td.setAttribute('data-kind', 'empty');
+      td.setAttribute('aria-selected', 'false');
+      td.setAttribute('data-in-selection', 'false');
+      tr.appendChild(td);
+      cellEls.push(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  document.getElementById('grid-wrap').appendChild(table);
+
+  /* ---- render ---- */
+  function render() {
+    var s = selRect();
+    for (var i = 0; i < NCELLS; i++) {
+      var el = cellEls[i], r = (i / COLS) | 0, c = i % COLS;
+      var text = displayText(vals[i], fmt[i]);
+      if (el.textContent !== text) el.textContent = text;
+      var kind = kindOf(raw[i], vals[i]);
+      if (el.getAttribute('data-kind') !== kind) el.setAttribute('data-kind', kind);
+      var act = r === active.r && c === active.c ? 'true' : 'false';
+      if (el.getAttribute('aria-selected') !== act) el.setAttribute('aria-selected', act);
+      var ins = r >= s.r1 && r <= s.r2 && c >= s.c1 && c <= s.c2 ? 'true' : 'false';
+      if (el.getAttribute('data-in-selection') !== ins) el.setAttribute('data-in-selection', ins);
+    }
+    colHeads.forEach(function (h, c) { h.classList.toggle('hl', c >= s.c1 && c <= s.c2); });
+    rowHeads.forEach(function (h, r) { h.classList.toggle('hl', r >= s.r1 && r <= s.r2); });
+
+    nameBox.textContent = s.r1 === s.r2 && s.c1 === s.c2 ? addr(active.r, active.c) : addr(s.r1, s.c1) + ':' + addr(s.r2, s.c2);
+    input.setAttribute('data-editing', editing ? 'true' : 'false');
+    if (!editing) {
+      if (input.value !== raw[activeIdx()]) input.value = raw[activeIdx()];
+      fmtSelect.value = fmt[activeIdx()];
+    }
+    setDisabled(btn.undo, editing || !undoStack.length);
+    setDisabled(btn.redo, editing || !redoStack.length);
+    setDisabled(btn.paste, editing || !clipboard);
+    [btn.copy, btn.cut, btn.clear, btn.insRow, btn.delRow, btn.insCol, btn.delCol, fmtSelect].forEach(function (b) { setDisabled(b, editing); });
+    renderSummary();
+  }
+  function setDisabled(el, d) { if (el.disabled !== d) el.disabled = d; }
+  function renderSummary() {
+    var cells = selCells(), sum = 0, n = 0;
+    cells.forEach(function (i) { if (vals[i].t === 'n') { sum += vals[i].v; n++; } });
+    if (!n) { summary.hidden = true; summary.textContent = ''; return; }
+    var sv = numV(sum), av = numV(sum / n);
+    var text = 'Sum: ' + (isErr(sv) ? '#NUM!' : G(sv.v)) + ' | Average: ' + (isErr(av) ? '#NUM!' : G(av.v)) + ' | Count: ' + n;
+    summary.textContent = text;
+    summary.hidden = false;
+  }
+  function recalc() { vals = computeValues(raw); }
+
+  /* ---- history ---- */
+  function snap() { return { raw: raw.slice(), fmt: fmt.slice(), anchor: { r: anchor.r, c: anchor.c }, active: { r: active.r, c: active.c } }; }
+  function restore(s) {
+    raw = s.raw.slice(); fmt = s.fmt.slice();
+    anchor = { r: s.anchor.r, c: s.anchor.c }; active = { r: s.active.r, c: s.active.c };
+    recalc();
+  }
+  function pushStep(before) {
+    undoStack.push({ before: before, after: snap() });
+    if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+    redoStack = [];
+  }
+  function undo() {
+    if (editing || !undoStack.length) return;
+    var st = undoStack.pop();
+    restore(st.before);
+    redoStack.push(st);
+    render();
+  }
+  function redo() {
+    if (editing || !redoStack.length) return;
+    var st = redoStack.pop();
+    restore(st.after);
+    undoStack.push(st);
+    render();
+  }
+
+  /* ---- editing ---- */
+  /* Commits the field when editing; returns true when the sheet changed. */
+  function commitEdit() {
+    if (!editing) return false;
+    editing = false;
+    var i = activeIdx(), nr = storedRaw(input.value);
+    if (nr === raw[i]) return false;
+    raw[i] = nr;
+    recalc();
+    return true;
+  }
+  function moveActive(dr, dc) {
+    active = { r: Math.max(0, Math.min(ROWS - 1, active.r + dr)), c: Math.max(0, Math.min(COLS - 1, active.c + dc)) };
+  }
+  function scrollActiveIntoView() {
+    var el = cellEls[activeIdx()];
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  input.addEventListener('input', function () {
+    if (!editing) { editing = true; render(); }
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.isComposing) return;
+    if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      var before = snap();
+      var changed = commitEdit();
+      if (e.key === 'Enter') moveActive(1, 0); else moveActive(0, 1);
+      anchor = { r: active.r, c: active.c };
+      if (changed) pushStep(before);
+      render();
+      scrollActiveIntoView();
+      input.focus();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      editing = false;
+      render();
+      table.focus();
+    }
+  });
+
+  /* ---- pointer selection ---- */
+  table.addEventListener('click', function (e) {
+    var td = e.target.closest ? e.target.closest('td[role="gridcell"]') : null;
+    if (!td) return;
+    var r = +td.getAttribute('data-r'), c = +td.getAttribute('data-c');
+    var before = snap();
+    var changed = commitEdit();
+    active = { r: r, c: c };
+    if (!e.shiftKey) anchor = { r: r, c: c };
+    if (changed) pushStep(before);
+    render();
+    table.focus();
+  });
+  table.addEventListener('mousedown', function (e) {
+    if (e.shiftKey) e.preventDefault();
+  });
+
+  /* ---- grid keyboard ---- */
+  var ARROWS = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  table.addEventListener('keydown', function (e) {
+    var k = e.key, d = ARROWS[k];
+    var ctrl = e.ctrlKey || e.metaKey;
+    if (d && !ctrl && !e.altKey) {
+      e.preventDefault();
+      if (editing) return;
+      moveActive(d[0], d[1]);
+      if (!e.shiftKey) anchor = { r: active.r, c: active.c };
+      render();
+      scrollActiveIntoView();
+      return;
+    }
+    if ((k === 'Delete' || k === 'Backspace') && !ctrl) {
+      e.preventDefault();
+      if (!editing) clearSelection();
+      return;
+    }
+    if (k === 'Enter' && !ctrl) {
+      e.preventDefault();
+      input.focus();
+      return;
+    }
+    if (ctrl && !e.altKey && (k === 'z' || k === 'Z')) { e.preventDefault(); undo(); return; }
+    if (ctrl && !e.altKey && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); return; }
+  });
+
+  /* ---- actions ---- */
+  function clearSelection() {
+    var cells = selCells();
+    if (cells.every(function (i) { return raw[i] === ''; })) return;
+    var before = snap();
+    cells.forEach(function (i) { raw[i] = ''; });
+    recalc();
+    pushStep(before);
+    render();
+  }
+  function setFormat(f) {
+    if (editing) return;
+    var cells = selCells();
+    if (cells.every(function (i) { return fmt[i] === f; })) { render(); return; }
+    var before = snap();
+    cells.forEach(function (i) { fmt[i] = f; });
+    pushStep(before);
+    render();
+  }
+  function takeBlock(mode) {
+    var s = selRect(), cells = [];
+    for (var r = s.r1; r <= s.r2; r++) {
+      var row = [];
+      for (var c = s.c1; c <= s.c2; c++) row.push({ raw: raw[r * COLS + c], fmt: fmt[r * COLS + c] });
+      cells.push(row);
+    }
+    clipboard = { mode: mode, r: s.r1, c: s.c1, rows: s.r2 - s.r1 + 1, cols: s.c2 - s.c1 + 1, cells: cells };
+    render();
+  }
+  function paste() {
+    if (editing || !clipboard) return;
+    var before = snap(), cb = clipboard, s = selRect();
+    var dr = s.r1 - cb.r, dc = s.c1 - cb.c;
+    if (cb.mode === 'cut') {
+      for (var r0 = cb.r; r0 < cb.r + cb.rows; r0++)
+        for (var c0 = cb.c; c0 < cb.c + cb.cols; c0++) { raw[r0 * COLS + c0] = ''; fmt[r0 * COLS + c0] = 'general'; }
+    }
+    var fns = cb.mode === 'copy' ? pasteFns(dc, dr) : null;
+    for (var i = 0; i < cb.rows; i++) {
+      for (var j = 0; j < cb.cols; j++) {
+        var r = s.r1 + i, c = s.c1 + j;
+        if (r >= ROWS || c >= COLS) continue;
+        var cell = cb.cells[i][j];
+        raw[r * COLS + c] = fns ? rewriteRaw(cell.raw, fns[0], fns[1]) : cell.raw;
+        fmt[r * COLS + c] = cell.fmt;
+      }
+    }
+    if (cb.mode === 'cut') clipboard = null;
+    anchor = { r: s.r1, c: s.c1 }; active = { r: s.r1, c: s.c1 };
+    recalc();
+    pushStep(before);
+    render();
+  }
+  function structure(kind) {
+    if (editing) return;
+    var before = snap();
+    var nr = new Array(NCELLS).fill(''), nf = new Array(NCELLS).fill('general');
+    var k, fns;
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var sr = r, sc = c;
+        if (kind === 'insRow') { if (r === active.r) continue; if (r > active.r) sr = r - 1; }
+        else if (kind === 'delRow') { if (r >= active.r) sr = r + 1; if (sr >= ROWS) continue; }
+        else if (kind === 'insCol') { if (c === active.c) continue; if (c > active.c) sc = c - 1; }
+        else if (kind === 'delCol') { if (c >= active.c) sc = c + 1; if (sc >= COLS) continue; }
+        nr[r * COLS + c] = raw[sr * COLS + sc];
+        nf[r * COLS + c] = fmt[sr * COLS + sc];
+      }
+    }
+    if (kind === 'insRow') fns = insertFns('r', active.r + 1);
+    else if (kind === 'delRow') fns = deleteFns('r', active.r + 1);
+    else if (kind === 'insCol') fns = insertFns('c', active.c + 1);
+    else fns = deleteFns('c', active.c + 1);
+    for (k = 0; k < NCELLS; k++) nr[k] = rewriteRaw(nr[k], fns[0], fns[1]);
+    raw = nr; fmt = nf;
+    recalc();
+    pushStep(before);
+    render();
+  }
+
+  btn.undo.addEventListener('click', undo);
+  btn.redo.addEventListener('click', redo);
+  btn.copy.addEventListener('click', function () { if (!editing) takeBlock('copy'); });
+  btn.cut.addEventListener('click', function () { if (!editing) takeBlock('cut'); });
+  btn.paste.addEventListener('click', paste);
+  btn.clear.addEventListener('click', function () { if (!editing) clearSelection(); });
+  btn.insRow.addEventListener('click', function () { structure('insRow'); });
+  btn.delRow.addEventListener('click', function () { structure('delRow'); });
+  btn.insCol.addEventListener('click', function () { structure('insCol'); });
+  btn.delCol.addEventListener('click', function () { structure('delCol'); });
+  fmtSelect.addEventListener('change', function () { setFormat(fmtSelect.value); });
+
+  render();
+})();
+</script>
+</body>
+</html>

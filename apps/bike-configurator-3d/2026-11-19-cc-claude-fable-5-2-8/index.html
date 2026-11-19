@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Fable 5.2</title>
+<style>
+:root {
+  --color-bg: #F6F4F0;
+  --color-surface: #FFFFFF;
+  --color-text: #1B1A18;
+  --color-muted: #67625B;
+  --color-border: #DCD6CC;
+  --color-accent: #0E6B58;
+  --color-accent-contrast: #FFFFFF;
+  --color-danger: #B42318;
+  --color-disabled-bg: #ECE8E1;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --duration-fast: 150ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121110;
+    --color-surface: #1D1B19;
+    --color-text: #F3F0EA;
+    --color-muted: #A59F96;
+    --color-border: #38342F;
+    --color-accent: #3BC4A5;
+    --color-accent-contrast: #0B0A09;
+    --color-danger: #F97066;
+    --color-disabled-bg: #2A2724;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--text-md);
+  line-height: 24px;
+}
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+header.wrap { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+header h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+main.wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+  padding-bottom: 96px;
+}
+#confirm-wrap { padding-bottom: 96px; }
+.configurator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+.panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+}
+.panel h2 {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-lg);
+  line-height: 28px;
+  font-weight: 600;
+}
+.summary { position: static; }
+@media (min-width: 1024px) {
+  .wrap { padding: 0 var(--space-5); }
+  main.wrap { grid-template-columns: minmax(0, 1fr) 360px; }
+  .summary { position: sticky; top: 24px; }
+}
+
+/* fields */
+.field-label { display: block; margin-bottom: var(--space-2); font-weight: 600; }
+.field {
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  padding: 0 var(--space-3);
+  font: inherit;
+  min-width: 0;
+}
+.field.invalid { border-color: var(--color-danger); }
+.field:focus-visible, canvas:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+#height-input { width: 160px; max-width: 100%; display: block; }
+.error { color: var(--color-danger); font-size: var(--text-sm); margin: var(--space-2) 0 0; }
+.reco { margin: var(--space-2) 0 0; font-weight: 600; color: var(--color-accent); }
+.warning {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  border-left: 4px solid var(--color-danger);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-control);
+}
+
+/* cards */
+.grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.n1 { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) {
+  .grid.w4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid.w3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid.w2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.card {
+  --bw: 1px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+.card input {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.card:not(.is-selected):not(.is-disabled):hover { border-color: var(--color-muted); }
+.card.is-selected {
+  --bw: 2px;
+  border: 2px solid var(--color-accent);
+  padding: 15px;
+}
+.card.is-disabled { opacity: 0.45; cursor: not-allowed; }
+.card:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.card [data-role="name"] {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text);
+  padding-right: 24px;
+  overflow-wrap: anywhere;
+}
+.card [data-role="price"] {
+  font-size: var(--text-sm);
+  line-height: 20px;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+.card .meta { font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); }
+.card [data-role="reason"] { font-size: var(--text-sm); line-height: 20px; color: var(--color-text); }
+.card [data-role="reason"].ghost { visibility: hidden; }
+.card [data-role="check"] {
+  position: absolute;
+  top: calc(12px - var(--bw));
+  right: calc(12px - var(--bw));
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card [data-role="check"] svg { display: block; }
+.card [data-role="badge"] {
+  position: absolute;
+  top: calc(-1 * var(--bw));
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  line-height: 20px;
+  font-weight: 600;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.card [data-role="swatch"] {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-1);
+  flex: none;
+}
+
+/* buttons */
+button {
+  font: inherit;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.btn {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  height: 40px;
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-4);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:not(:disabled):hover { border-color: var(--color-muted); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.square { width: 40px; padding: 0; font-size: var(--text-lg); line-height: 1; }
+.primary {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: var(--text-md);
+  font-weight: 600;
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  cursor: pointer;
+}
+.primary:disabled {
+  background-color: var(--color-disabled-bg);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+.stepper { display: flex; align-items: center; gap: var(--space-3); }
+.stepper [data-testid="qty-value"] {
+  min-width: 32px;
+  text-align: center;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* summary */
+#bike-preview {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border: 0;
+  padding: 0;
+  background-color: #EDEDF2;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+#bike-preview.dragging { cursor: grabbing; }
+.lines { margin-top: var(--space-4); }
+.line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 2px 0;
+}
+.line [data-role="label"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.line [data-role="value"] {
+  flex: none;
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.line.sub [data-role="label"] { color: var(--color-muted); }
+.line.sep { margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+.line.discount [data-role="value"] { color: var(--color-accent); }
+.line.total {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+}
+.line.total [data-role="label"], .line.total [data-role="value"] {
+  font-size: var(--text-xl);
+  line-height: 36px;
+  font-weight: 700;
+}
+.line.small { font-size: var(--text-sm); color: var(--color-muted); }
+.line.delivery { margin-top: var(--space-2); font-size: var(--text-sm); }
+.promo { margin: var(--space-5) 0; }
+.promo-row { display: flex; gap: var(--space-2); }
+.promo-row .field { flex: 1 1 auto; width: 100%; }
+.promo-state { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.promo-state p { margin: 0; flex: 1 1 auto; min-width: 0; font-size: var(--text-sm); line-height: 20px; }
+.promo-state .on { color: var(--color-accent); }
+.promo-state .off { color: var(--color-muted); }
+.hint { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--color-muted); text-align: center; }
+
+/* notice */
+.status {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  pointer-events: none;
+  z-index: 10;
+}
+.notice {
+  max-width: 480px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+}
+
+/* confirmation */
+.confirmation { max-width: 560px; margin: 0 auto; }
+.confirmation h2 { font-size: var(--text-xl); line-height: 36px; font-weight: 700; outline: none; }
+.confirmation dl { margin: 0 0 var(--space-5); }
+.confirmation .row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+.confirmation dt { color: var(--color-muted); }
+.confirmation dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}
+</style>
+</head>
+<body>
+<header class="wrap" data-testid="app-header"><h1>Claude Fable 5.2</h1></header>
+
+<main class="wrap" id="main">
+  <div class="configurator" data-testid="configurator">
+    <section class="panel" data-testid="section-rider">
+      <h2>1. Rider</h2>
+      <label class="field-label" for="height-input">Your height (cm)</label>
+      <input class="field" id="height-input" data-testid="height-input" type="text" inputmode="numeric" autocomplete="off">
+      <p class="error" id="height-error" data-testid="height-error" hidden>Enter a height between 150 and 200 cm.</p>
+      <p class="reco" id="height-recommendation" data-testid="height-recommendation" hidden></p>
+    </section>
+    <section class="panel" data-testid="section-frame">
+      <h2>2. Frame</h2>
+      <div class="grid w4" id="grid-frame"></div>
+      <p class="warning" id="frame-warning" data-testid="frame-warning" hidden></p>
+    </section>
+    <section class="panel" data-testid="section-wheels">
+      <h2>3. Wheels</h2>
+      <div class="grid w2" id="grid-wheels"></div>
+    </section>
+    <section class="panel" data-testid="section-drivetrain">
+      <h2>4. Drivetrain</h2>
+      <div class="grid w3 n1" id="grid-drivetrain"></div>
+    </section>
+    <section class="panel" data-testid="section-color">
+      <h2>5. Color</h2>
+      <div class="grid w4" id="grid-color"></div>
+    </section>
+    <section class="panel" data-testid="section-accessories">
+      <h2>6. Accessories</h2>
+      <div class="grid w2" id="grid-accessory"></div>
+    </section>
+    <section class="panel" data-testid="section-quantity">
+      <h2>7. Quantity</h2>
+      <div class="stepper">
+        <button type="button" class="btn square" id="qty-decrease" data-testid="qty-decrease" aria-label="Decrease quantity">&#x2212;</button>
+        <span id="qty-value" data-testid="qty-value">1</span>
+        <button type="button" class="btn square" id="qty-increase" data-testid="qty-increase" aria-label="Increase quantity">+</button>
+      </div>
+    </section>
+  </div>
+
+  <aside class="panel summary" data-testid="summary">
+    <canvas id="bike-preview" data-testid="bike-preview" tabindex="0" role="img" aria-label="Bike preview" width="310" height="260"></canvas>
+    <div class="lines" id="lines"></div>
+    <div class="promo">
+      <label class="field-label" for="promo-input">Promo code</label>
+      <div class="promo-row">
+        <input class="field" id="promo-input" data-testid="promo-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button type="button" class="btn" id="promo-apply" data-testid="promo-apply" disabled>Apply</button>
+      </div>
+      <p class="error" id="promo-error" data-testid="promo-error" hidden>This code is not valid.</p>
+      <div class="promo-state" id="promo-state" hidden>
+        <p id="promo-status" data-testid="promo-status"></p>
+        <button type="button" class="btn" id="promo-remove" data-testid="promo-remove">Remove code</button>
+      </div>
+    </div>
+    <button type="button" class="primary" id="order-button" data-testid="order-button" disabled>Order 1 bike</button>
+    <p class="hint" id="order-hint" data-testid="order-hint">Enter your height to continue.</p>
+  </aside>
+</main>
+
+<div class="wrap" id="confirm-wrap" hidden>
+  <section class="panel confirmation" id="confirmation" data-testid="confirmation">
+    <h2 id="confirmation-title" data-testid="confirmation-title" tabindex="-1">Order confirmed</h2>
+    <dl>
+      <div class="row"><dt>Reference</dt><dd id="confirmation-reference" data-testid="confirmation-reference"></dd></div>
+      <div class="row"><dt>Total</dt><dd id="confirmation-total" data-testid="confirmation-total"></dd></div>
+      <div class="row"><dt>Estimated delivery</dt><dd id="confirmation-delivery" data-testid="confirmation-delivery"></dd></div>
+    </dl>
+    <button type="button" class="btn" id="confirmation-new" data-testid="confirmation-new">Configure another bike</button>
+  </section>
+</div>
+
+<div class="status" role="status"><div class="notice" id="notice" data-testid="notice" hidden></div></div>
+
+<script>
+/* ---------- Core: catalog, prices, delivery, 3D model (no DOM) ---------- */
+var Core = (function () {
+  'use strict';
+  var CAT = {
+    frame: [
+      { id: 'S', name: 'Frame S', min: 150, max: 164, price: 119000, L: 430 },
+      { id: 'M', name: 'Frame M', min: 165, max: 174, price: 119000, L: 470 },
+      { id: 'L', name: 'Frame L', min: 175, max: 184, price: 124000, L: 510 },
+      { id: 'XL', name: 'Frame XL', min: 185, max: 200, price: 129000, L: 550 }
+    ],
+    wheels: [
+      { id: '275', name: '27.5" wheels', price: 0, R: 350 },
+      { id: '29', name: '29" wheels', price: 12000, R: 375 }
+    ],
+    drivetrain: [
+      { id: 'essential', name: 'Essential 1×10', price: 0, lead: 5 },
+      { id: 'sport', name: 'Sport 1×12', price: 24000, lead: 7 },
+      { id: 'pro', name: 'Pro Electronic 2×12', price: 69000, lead: 12 }
+    ],
+    color: [
+      { id: 'graphite', name: 'Graphite', hex: '#3A3A3C', price: 0 },
+      { id: 'sand', name: 'Sand', hex: '#D8C7A6', price: 0 },
+      { id: 'red', name: 'Racing Red', hex: '#C8102E', price: 6000 },
+      { id: 'glacier', name: 'Glacier', hex: '#A9D6E5', price: 0 }
+    ],
+    accessory: [
+      { id: 'mudguards', name: 'Mudguards', price: 4500 },
+      { id: 'rack', name: 'Rear rack', price: 6900 },
+      { id: 'lights', name: 'Lights', price: 3990 },
+      { id: 'kickstand', name: 'Kickstand', price: 2450 }
+    ]
+  };
+  var CODES = ['SPRING10', 'WELCOME50', 'FREESHIP'];
+  var CLOSED = { '2026-12-24': 1, '2026-12-25': 1, '2026-12-31': 1, '2027-01-01': 1 };
+  var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  function find(group, id) {
+    var list = CAT[group];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function pad(n, len) { var s = String(n); while (s.length < len) s = '0' + s; return s; }
+  function amount(cents) {
+    var euros = String(Math.floor(cents / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return '€' + euros + '.' + pad(cents % 100, 2);
+  }
+  function signed(cents) { return cents === 0 ? 'Included' : '+' + amount(cents); }
+  function discount(cents) { return '−' + amount(cents); }
+  function recommend(h) {
+    for (var i = 0; i < CAT.frame.length; i++) if (h >= CAT.frame[i].min && h <= CAT.frame[i].max) return CAT.frame[i].id;
+    return null;
+  }
+  function frameIndex(id) {
+    for (var i = 0; i < CAT.frame.length; i++) if (CAT.frame[i].id === id) return i;
+    return -1;
+  }
+  function colorPrice(s) { return (s.color === 'red' && s.drivetrain === 'pro') ? 0 : find('color', s.color).price; }
+
+  /* s: {frame, wheels, drivetrain, color, acc:{id:bool}, qty, promo} */
+  function price(s) {
+    var r = { hasFrame: !!s.frame, promoActive: false, qtyDiscount: 0, promoDiscount: 0 };
+    r.promoActive = s.promo === 'FREESHIP' || (s.promo === 'WELCOME50' && s.qty < 3);
+    if (!s.frame) return r;
+    var unit = find('frame', s.frame).price + find('wheels', s.wheels).price + find('drivetrain', s.drivetrain).price + colorPrice(s);
+    CAT.accessory.forEach(function (a) { if (s.acc[a.id]) unit += a.price; });
+    r.unit = unit;
+    r.subtotal = unit * s.qty;
+    r.qtyDiscount = s.qty >= 3 ? Math.floor((r.subtotal * 5 + 50) / 100) : 0;
+    r.after = r.subtotal - r.qtyDiscount;
+    if (s.promo === 'SPRING10' && r.after >= 150000) {
+      r.promoActive = true;
+      r.promoDiscount = Math.floor((r.after * 10 + 50) / 100);
+    } else if (s.promo === 'WELCOME50' && s.qty < 3) {
+      r.promoDiscount = 5000;
+    }
+    r.merchandise = r.after - r.promoDiscount;
+    r.shipping = (s.promo === 'FREESHIP' || r.merchandise >= 200000) ? 0 : 4900;
+    r.total = r.merchandise + r.shipping;
+    r.vat = Math.floor((r.total * 20 + 60) / 120);
+    return r;
+  }
+  function leadTime(s) {
+    return find('drivetrain', s.drivetrain).lead + (s.color === 'red' ? 3 : 0) + (s.qty >= 3 ? 2 : 0);
+  }
+  function isBusiness(d) {
+    var wd = d.getDay();
+    if (wd === 0 || wd === 6) return false;
+    return !CLOSED[d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2)];
+  }
+  function deliveryDate(today, lead) {
+    var d = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
+    var n = 0;
+    while (n < lead) {
+      d.setDate(d.getDate() + 1);
+      if (isBusiness(d)) n++;
+    }
+    return d;
+  }
+  function formatDate(d) {
+    return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  /* ---------- 3D model ---------- */
+  var RAD = Math.PI / 180;
+  var PART_NAMES = ['frame', 'saddle', 'wheel-rear', 'wheel-front', 'mudguard-rear', 'mudguard-front', 'rack', 'light', 'kickstand'];
+
+  function hexRgb(hex) {
+    return [parseInt(hex.substr(1, 2), 16), parseInt(hex.substr(3, 2), 16), parseInt(hex.substr(5, 2), 16)];
+  }
+  function modelParams(s) {
+    return {
+      R: find('wheels', s.wheels).R,
+      L: s.frame ? find('frame', s.frame).L : 470,
+      C: find('color', s.color).hex,
+      mudguards: !!s.acc.mudguards, rack: !!s.acc.rack, lights: !!s.acc.lights, kickstand: !!s.acc.kickstand
+    };
+  }
+  function presentParts(m) {
+    var p = ['frame', 'saddle', 'wheel-rear', 'wheel-front'];
+    if (m.mudguards) p.push('mudguard-rear', 'mudguard-front');
+    if (m.rack) p.push('rack');
+    if (m.lights) p.push('light');
+    if (m.kickstand) p.push('kickstand');
+    return p;
+  }
+  function buildModel(m) {
+    var prims = [];
+    var R = m.R, L = m.L;
+    function cap(part, col, P, Q, r) {
+      var bx = Q[0] - P[0], by = Q[1] - P[1], bz = Q[2] - P[2];
+      prims.push({ box: false, part: part, col: col, ax: P[0], ay: P[1], az: P[2], bx: Q[0], by: Q[1], bz: Q[2],
+        dx: bx, dy: by, dz: bz, baba: bx * bx + by * by + bz * bz, r: r });
+    }
+    function box(part, col, mn, mx) {
+      prims.push({ box: true, part: part, col: col, mn: mn, mx: mx });
+    }
+    function add(P, v) { return [P[0] + v[0], P[1] + v[1], P[2] + v[2]]; }
+    var RA = [0, R, 0], FA = [1080, R, 0], BB = [420, 300, 0];
+    var ST = [420 - 0.25 * L, 300 + L, 0], HT = [1000, 340 + L, 0], HB = [1020, 220 + L, 0];
+    var SP = add(ST, [-15, 60, 0]), HS = add(HT, [-60, 60, 0]);
+    var C = hexRgb(m.C), tyre = hexRgb('#1C1C1E');
+    cap('frame', C, BB, ST, 18); cap('frame', C, ST, HT, 18); cap('frame', C, BB, HB, 20); cap('frame', C, HB, HT, 20);
+    cap('frame', C, ST, RA, 16); cap('frame', C, BB, RA, 16); cap('frame', C, HB, FA, 16); cap('frame', C, ST, SP, 13);
+    cap('frame', C, HT, HS, 15); cap('frame', C, add(HS, [0, 0, -260]), add(HS, [0, 0, 260]), 16);
+    cap('saddle', tyre, add(SP, [-90, 0, 0]), add(SP, [80, 0, 0]), 24);
+    function wheel(part, A) {
+      function T(k) { k = k % 36; return [A[0] + R * Math.cos(10 * k * RAD), A[1] + R * Math.sin(10 * k * RAD), 0]; }
+      for (var k = 0; k < 36; k++) cap(part, tyre, T(k), T(k + 1), 22);
+      cap(part, tyre, add(A, [0, 0, -50]), add(A, [0, 0, 50]), 15);
+    }
+    wheel('wheel-rear', RA);
+    wheel('wheel-front', FA);
+    function guard(part, A) {
+      var col = hexRgb('#2C2C2E');
+      function G(k) { var a = (30 + 10 * k) * RAD; return [A[0] + (R + 45) * Math.cos(a), A[1] + (R + 45) * Math.sin(a), 0]; }
+      for (var k = 0; k < 12; k++) cap(part, col, G(k), G(k + 1), 25);
+    }
+    if (m.mudguards) { guard('mudguard-rear', RA); guard('mudguard-front', FA); }
+    if (m.rack) {
+      var rc = hexRgb('#48484A');
+      box('rack', rc, [-120, 2 * R + 80, -90], [260, 2 * R + 92, 90]);
+      cap('rack', rc, [-100, 2 * R + 86, 0], RA, 14);
+    }
+    if (m.lights) box('light', hexRgb('#FFD60A'), add(HT, [20, -60, -25]), add(HT, [70, -20, 25]));
+    if (m.kickstand) cap('kickstand', hexRgb('#8E8E93'), [380, 300, 60], [300, 0, 160], 20);
+    return prims;
+  }
+
+  function makeCam(yaw, pitch, W, H) {
+    var th = yaw * RAD, ph = pitch * RAD;
+    var cx = Math.sin(th) * Math.cos(ph), cy = Math.sin(ph), cz = Math.cos(th) * Math.cos(ph);
+    var f = [-cx, -cy, -cz];
+    var rx = -f[2], rz = f[0], rl = Math.sqrt(rx * rx + rz * rz);
+    var r = [rx / rl, 0, rz / rl];
+    var u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+    return { E: [540 + 3600 * cx, 450 + 3600 * cy, 3600 * cz], f: f, r: r, u: u, F: (H / 2) / Math.tan(15 * RAD), W: W, H: H };
+  }
+  function project(cam, Q) {
+    var dx = Q[0] - cam.E[0], dy = Q[1] - cam.E[1], dz = Q[2] - cam.E[2];
+    var z = dx * cam.f[0] + dy * cam.f[1] + dz * cam.f[2];
+    return [cam.W / 2 + cam.F * (dx * cam.r[0] + dy * cam.r[1] + dz * cam.r[2]) / z,
+      cam.H / 2 - cam.F * (dx * cam.u[0] + dy * cam.u[1] + dz * cam.u[2]) / z, z];
+  }
+  function rayDir(cam, px, py, out) {
+    var a = (px - cam.W / 2) / cam.F, b = (py - cam.H / 2) / cam.F;
+    var x = cam.f[0] + a * cam.r[0] - b * cam.u[0];
+    var y = cam.f[1] + a * cam.r[1] - b * cam.u[1];
+    var z = cam.f[2] + a * cam.r[2] - b * cam.u[2];
+    var l = Math.sqrt(x * x + y * y + z * z);
+    out[0] = x / l; out[1] = y / l; out[2] = z / l;
+  }
+  function sphere(ocx, ocy, ocz, dx, dy, dz, r) {
+    var b = dx * ocx + dy * ocy + dz * ocz;
+    var c = ocx * ocx + ocy * ocy + ocz * ocz - r * r;
+    var h = b * b - c;
+    if (h < 0) return -1;
+    var t = -b - Math.sqrt(h);
+    return t > 0 ? t : -1;
+  }
+  /* distance along the unit ray (o, d) to the first point of the primitive, or -1 */
+  function hit(p, ox, oy, oz, dx, dy, dz) {
+    if (p.box) {
+      var t0 = -Infinity, t1 = Infinity, o = [ox, oy, oz], d = [dx, dy, dz];
+      for (var i = 0; i < 3; i++) {
+        if (d[i] === 0) {
+          if (o[i] < p.mn[i] || o[i] > p.mx[i]) return -1;
+        } else {
+          var ta = (p.mn[i] - o[i]) / d[i], tb = (p.mx[i] - o[i]) / d[i];
+          if (ta > tb) { var tmp = ta; ta = tb; tb = tmp; }
+          if (ta > t0) t0 = ta;
+          if (tb < t1) t1 = tb;
+          if (t0 > t1) return -1;
+        }
+      }
+      return t0 > 0 ? t0 : -1;
+    }
+    var oax = ox - p.ax, oay = oy - p.ay, oaz = oz - p.az;
+    var baba = p.baba, r = p.r;
+    var bard = p.dx * dx + p.dy * dy + p.dz * dz;
+    var baoa = p.dx * oax + p.dy * oay + p.dz * oaz;
+    var rdoa = dx * oax + dy * oay + dz * oaz;
+    var oaoa = oax * oax + oay * oay + oaz * oaz;
+    var a = baba - bard * bard;
+    if (a > 1e-10 * baba) {
+      var b = baba * rdoa - baoa * bard;
+      var c = baba * oaoa - baoa * baoa - r * r * baba;
+      var h = b * b - a * c;
+      if (h < 0) return -1;
+      var t = (-b - Math.sqrt(h)) / a;
+      var y = baoa + t * bard;
+      if (y > 0 && y < baba) return t > 0 ? t : -1;
+      if (y <= 0) return sphere(oax, oay, oaz, dx, dy, dz, r);
+      return sphere(ox - p.bx, oy - p.by, oz - p.bz, dx, dy, dz, r);
+    }
+    var s1 = sphere(oax, oay, oaz, dx, dy, dz, r);
+    var s2 = sphere(ox - p.bx, oy - p.by, oz - p.bz, dx, dy, dz, r);
+    if (s1 < 0) return s2;
+    if (s2 < 0) return s1;
+    return s1 < s2 ? s1 : s2;
+  }
+  function pick(prims, cam, px, py) {
+    var d = [0, 0, 0];
+    rayDir(cam, px, py, d);
+    var best = Infinity, part = null;
+    for (var i = 0; i < prims.length; i++) {
+      var t = hit(prims[i], cam.E[0], cam.E[1], cam.E[2], d[0], d[1], d[2]);
+      if (t > 0 && t < best) { best = t; part = prims[i].part; }
+    }
+    return part;
+  }
+  function normalAt(p, x, y, z, n) {
+    if (p.box) {
+      var X = [x, y, z], bd = Infinity, ax = 0, sg = 1;
+      for (var i = 0; i < 3; i++) {
+        var d0 = Math.abs(X[i] - p.mn[i]), d1 = Math.abs(X[i] - p.mx[i]);
+        if (d0 < bd) { bd = d0; ax = i; sg = -1; }
+        if (d1 < bd) { bd = d1; ax = i; sg = 1; }
+      }
+      n[0] = n[1] = n[2] = 0; n[ax] = sg;
+      return;
+    }
+    var h = ((x - p.ax) * p.dx + (y - p.ay) * p.dy + (z - p.az) * p.dz) / p.baba;
+    if (h < 0) h = 0; else if (h > 1) h = 1;
+    n[0] = (x - p.ax - h * p.dx) / p.r; n[1] = (y - p.ay - h * p.dy) / p.r; n[2] = (z - p.az - h * p.dz) / p.r;
+  }
+  /* fills buf (RGBA, W*H*4) */
+  function render(prims, cam, buf) {
+    var W = cam.W, H = cam.H, N = W * H, E = cam.E;
+    var DX = new Float64Array(N), DY = new Float64Array(N), DZ = new Float64Array(N);
+    var depth = new Float64Array(N), owner = new Int16Array(N);
+    var d = [0, 0, 0], i, j, k;
+    for (j = 0, k = 0; j < H; j++) for (i = 0; i < W; i++, k++) {
+      rayDir(cam, i + 0.5, j + 0.5, d);
+      DX[k] = d[0]; DY[k] = d[1]; DZ[k] = d[2];
+      depth[k] = Infinity; owner[k] = -1;
+    }
+    for (var pi = 0; pi < prims.length; pi++) {
+      var p = prims[pi], x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, full = false, pts, rad;
+      if (p.box) {
+        pts = [];
+        for (i = 0; i < 8; i++) pts.push([(i & 1) ? p.mx[0] : p.mn[0], (i & 2) ? p.mx[1] : p.mn[1], (i & 4) ? p.mx[2] : p.mn[2]]);
+        rad = 0;
+      } else {
+        pts = [[p.ax, p.ay, p.az], [p.bx, p.by, p.bz]];
+        rad = p.r;
+      }
+      for (i = 0; i < pts.length; i++) {
+        var s = project(cam, pts[i]);
+        if (s[2] - rad < 50) { full = true; break; }
+        var pr = cam.F * rad / (s[2] - rad) * 1.6 + 2;
+        if (s[0] - pr < x0) x0 = s[0] - pr;
+        if (s[0] + pr > x1) x1 = s[0] + pr;
+        if (s[1] - pr < y0) y0 = s[1] - pr;
+        if (s[1] + pr > y1) y1 = s[1] + pr;
+      }
+      if (full) { x0 = 0; y0 = 0; x1 = W; y1 = H; }
+      var ia = Math.max(0, Math.floor(x0)), ib = Math.min(W - 1, Math.ceil(x1));
+      var ja = Math.max(0, Math.floor(y0)), jb = Math.min(H - 1, Math.ceil(y1));
+      for (j = ja; j <= jb; j++) {
+        for (i = ia, k = j * W + ia; i <= ib; i++, k++) {
+          var t = hit(p, E[0], E[1], E[2], DX[k], DY[k], DZ[k]);
+          if (t > 0 && t < depth[k]) { depth[k] = t; owner[k] = pi; }
+        }
+      }
+    }
+    var lx = -cam.f[0] + 0.55 * cam.u[0] + 0.35 * cam.r[0];
+    var ly = -cam.f[1] + 0.55 * cam.u[1] + 0.35 * cam.r[1];
+    var lz = -cam.f[2] + 0.55 * cam.u[2] + 0.35 * cam.r[2];
+    var ll = Math.sqrt(lx * lx + ly * ly + lz * lz);
+    lx /= ll; ly /= ll; lz /= ll;
+    var n = [0, 0, 0];
+    for (k = 0; k < N; k++) {
+      var o = k * 4, w = owner[k];
+      if (w < 0) { buf[o] = 237; buf[o + 1] = 237; buf[o + 2] = 242; buf[o + 3] = 255; continue; }
+      var q = prims[w], tt = depth[k];
+      normalAt(q, E[0] + tt * DX[k], E[1] + tt * DY[k], E[2] + tt * DZ[k], n);
+      var dot = n[0] * lx + n[1] * ly + n[2] * lz;
+      var sh = 0.46 + 0.54 * (dot > 0 ? (dot < 1 ? dot : 1) : 0);
+      buf[o] = Math.round(q.col[0] * sh); buf[o + 1] = Math.round(q.col[1] * sh); buf[o + 2] = Math.round(q.col[2] * sh); buf[o + 3] = 255;
+    }
+  }
+
+  return { CAT: CAT, CODES: CODES, PART_NAMES: PART_NAMES, find: find, pad: pad, amount: amount, signed: signed, discount: discount,
+    recommend: recommend, frameIndex: frameIndex, colorPrice: colorPrice, price: price, leadTime: leadTime,
+    deliveryDate: deliveryDate, formatDate: formatDate, modelParams: modelParams, presentParts: presentParts,
+    buildModel: buildModel, makeCam: makeCam, project: project, pick: pick, render: render };
+})();
+</script>
+<script>
+/* ---------- UI ---------- */
+(function () {
+  'use strict';
+  var CAT = Core.CAT;
+  var GROUPS = ['frame', 'wheels', 'drivetrain', 'color', 'accessory'];
+  var $ = function (id) { return document.getElementById(id); };
+
+  var orderSeq = 0;
+  var view = { yaw: 0, pitch: 10 };
+  var state;
+  function freshState() {
+    return { heightRaw: '', heightValid: false, recommended: null, auto: true, frame: null, wheels: '275',
+      drivetrain: 'essential', color: 'graphite', acc: { mudguards: false, rack: false, lights: false, kickstand: false },
+      qty: 1, promo: null, promoError: false, notice: null };
+  }
+  state = freshState();
+
+  var MSG7 = '29" wheels were replaced by 27.5" wheels: not available with frame S.';
+  var MSG8 = 'Mudguards were added: required by the rear rack.';
+  var MSG9 = 'Rear rack was removed: it requires mudguards.';
+
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  /* ----- build the option cards ----- */
+  var cards = {};
+  GROUPS.forEach(function (group) {
+    var grid = $('grid-' + group);
+    cards[group] = {};
+    CAT[group].forEach(function (opt) {
+      var card = el('label', { 'class': 'card', 'data-testid': 'card-' + group + '-' + opt.id });
+      var input = el('input', { type: group === 'accessory' ? 'checkbox' : 'radio', name: group, value: opt.id, 'aria-label': opt.name });
+      card.appendChild(input);
+      var c = { card: card, input: input, opt: opt };
+      if (group === 'frame') {
+        c.badge = el('span', { 'data-role': 'badge' }, 'Recommended');
+        c.badge.hidden = true;
+        card.appendChild(c.badge);
+      }
+      if (group === 'color') {
+        var sw = el('span', { 'data-role': 'swatch' });
+        sw.style.backgroundColor = opt.hex;
+        card.appendChild(sw);
+      }
+      card.appendChild(el('span', { 'data-role': 'name' }, opt.name));
+      if (group === 'frame') card.appendChild(el('span', { 'class': 'meta' }, opt.min + '–' + opt.max + ' cm'));
+      if (group === 'drivetrain') card.appendChild(el('span', { 'class': 'meta' }, opt.lead + ' business days'));
+      c.price = el('span', { 'data-role': 'price' });
+      card.appendChild(c.price);
+      c.check = el('span', { 'data-role': 'check', 'aria-hidden': 'true' });
+      c.check.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5.5"/></svg>';
+      c.check.hidden = true;
+      card.appendChild(c.check);
+      if (group === 'wheels' && opt.id === '29') {
+        /* space is reserved while enabled so the card never changes size */
+        c.reason = el('span', { 'data-role': 'reason', 'class': 'ghost' }, 'Not available with frame S');
+        card.appendChild(c.reason);
+      }
+      if (group === 'color' && opt.id === 'glacier') {
+        c.reason = el('span', { 'data-role': 'reason' }, 'Out of stock');
+        card.appendChild(c.reason);
+      }
+      var handler = function () { onOption(group, opt.id, input); };
+      input.addEventListener('change', handler);
+      if (group === 'frame') input.addEventListener('click', handler);
+      grid.appendChild(card);
+      cards[group][opt.id] = c;
+    });
+  });
+
+  /* ----- configuration changes ----- */
+  function selectFrame(id) {
+    state.frame = id;
+    if (id === 'S' && state.wheels === '29') {
+      state.wheels = '275';
+      state.notice = MSG7;
+    }
+  }
+  function onOption(group, id, input) {
+    if (group === 'frame') {
+      if (input.checked) {
+        state.auto = false;
+        if (state.frame !== id) { state.notice = null; selectFrame(id); }
+      }
+    } else if (group === 'accessory') {
+      var on = input.checked;
+      if (state.acc[id] !== on) {
+        state.notice = null;
+        state.acc[id] = on;
+        if (id === 'rack' && on && !state.acc.mudguards) { state.acc.mudguards = true; state.notice = MSG8; }
+        if (id === 'mudguards' && !on && state.acc.rack) { state.acc.rack = false; state.notice = MSG9; }
+      }
+    } else if (input.checked && state[group] !== id) {
+      if ((group === 'wheels' && id === '29' && state.frame === 'S') || (group === 'color' && id === 'glacier')) {
+        update();
+        return;
+      }
+      state.notice = null;
+      state[group] = id;
+    }
+    update();
+  }
+
+  var heightInput = $('height-input');
+  heightInput.addEventListener('input', function () {
+    var raw = heightInput.value;
+    if (raw === state.heightRaw) return;
+    state.heightRaw = raw;
+    state.notice = null;
+    var t = raw.trim();
+    var n = /^[0-9]+$/.test(t) ? Number(t) : NaN;
+    state.heightValid = n >= 150 && n <= 200;
+    state.recommended = state.heightValid ? Core.recommend(n) : null;
+    if (state.heightValid && state.auto && state.frame !== state.recommended) selectFrame(state.recommended);
+    update();
+  });
+
+  $('qty-decrease').addEventListener('click', function () {
+    if (state.qty > 1) { state.qty--; state.notice = null; update(); }
+  });
+  $('qty-increase').addEventListener('click', function () {
+    if (state.qty < 5) { state.qty++; state.notice = null; update(); }
+  });
+
+  /* ----- promo ----- */
+  var promoInput = $('promo-input');
+  function applyPromo() {
+    var code = promoInput.value.trim().toUpperCase();
+    if (!code) return;
+    if (Core.CODES.indexOf(code) >= 0) {
+      state.promo = code;
+      state.promoError = false;
+      promoInput.value = '';
+    } else {
+      state.promoError = true;
+    }
+    update();
+  }
+  promoInput.addEventListener('input', function () {
+    state.promoError = false;
+    update();
+  });
+  promoInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!$('promo-apply').disabled) applyPromo();
+    }
+  });
+  $('promo-apply').addEventListener('click', applyPromo);
+  $('promo-remove').addEventListener('click', function () {
+    state.promo = null;
+    update();
+    promoInput.focus();
+  });
+
+  /* ----- order ----- */
+  $('order-button').addEventListener('click', function () {
+    if (!state.heightValid || !state.frame) return;
+    var p = Core.price(state), now = new Date();
+    orderSeq++;
+    $('confirmation-reference').textContent = 'BK-' + now.getFullYear() + Core.pad(now.getMonth() + 1, 2) + Core.pad(now.getDate(), 2) + '-' + Core.pad(orderSeq, 3);
+    $('confirmation-total').textContent = Core.amount(p.total);
+    $('confirmation-delivery').textContent = Core.formatDate(Core.deliveryDate(now, Core.leadTime(state)));
+    state.notice = null;
+    update();
+    $('main').hidden = true;
+    $('confirm-wrap').hidden = false;
+    $('confirmation-title').focus();
+  });
+  $('confirmation-new').addEventListener('click', function () {
+    state = freshState();
+    heightInput.value = '';
+    promoInput.value = '';
+    $('confirm-wrap').hidden = true;
+    $('main').hidden = false;
+    update();
+    heightInput.focus();
+  });
+
+  /* ----- rendering of the page state ----- */
+  function line(key, label, value, cls) {
+    var row = el('div', { 'class': 'line' + (cls ? ' ' + cls : ''), 'data-testid': 'summary-line-' + key });
+    row.appendChild(el('span', { 'data-role': 'label' }, label));
+    row.appendChild(el('span', { 'data-role': 'value' }, value));
+    return row;
+  }
+  function update() {
+    var s = state, p = Core.price(s), DASH = '—';
+
+    /* rider */
+    var showErr = !s.heightValid && s.heightRaw.trim() !== '';
+    $('height-error').hidden = !showErr;
+    heightInput.classList.toggle('invalid', showErr);
+    if (showErr) {
+      heightInput.setAttribute('aria-invalid', 'true');
+      heightInput.setAttribute('aria-describedby', 'height-error');
+    } else {
+      heightInput.removeAttribute('aria-invalid');
+      heightInput.removeAttribute('aria-describedby');
+    }
+    var reco = $('height-recommendation');
+    reco.hidden = !s.heightValid;
+    reco.textContent = s.heightValid ? 'Recommended frame: ' + s.recommended : '';
+    var warn = $('frame-warning'), gap = 0;
+    if (s.heightValid && s.frame) gap = Core.frameIndex(s.frame) - Core.frameIndex(s.recommended);
+    if (Math.abs(gap) >= 2) {
+      warn.textContent = 'Frame ' + s.frame + ' is ' + Math.abs(gap) + ' sizes ' + (gap > 0 ? 'larger' : 'smaller') + ' than recommended.';
+      warn.hidden = false;
+    } else {
+      warn.hidden = true;
+      warn.textContent = '';
+    }
+
+    /* cards */
+    GROUPS.forEach(function (group) {
+      CAT[group].forEach(function (opt) {
+        var c = cards[group][opt.id];
+        var selected = group === 'accessory' ? !!s.acc[opt.id] : s[group] === opt.id;
+        var disabled = (group === 'wheels' && opt.id === '29' && s.frame === 'S') || (group === 'color' && opt.id === 'glacier');
+        if (c.input.checked !== selected) c.input.checked = selected;
+        if (c.input.disabled !== disabled) c.input.disabled = disabled;
+        c.card.classList.toggle('is-selected', selected);
+        c.card.classList.toggle('is-disabled', disabled);
+        c.check.hidden = !selected;
+        if (c.reason && group === 'wheels') c.reason.classList.toggle('ghost', !disabled);
+        if (c.badge) c.badge.hidden = !(s.heightValid && s.recommended === opt.id);
+        var txt;
+        if (group === 'frame') txt = Core.amount(opt.price);
+        else if (group === 'color' && opt.id === 'red' && s.drivetrain === 'pro') txt = 'Included with Pro';
+        else txt = Core.signed(opt.price);
+        if (c.price.textContent !== txt) c.price.textContent = txt;
+      });
+    });
+
+    /* quantity */
+    $('qty-value').textContent = String(s.qty);
+    $('qty-decrease').disabled = s.qty <= 1;
+    $('qty-increase').disabled = s.qty >= 5;
+
+    /* summary lines */
+    var rows = [];
+    var f = s.frame ? Core.find('frame', s.frame) : null;
+    rows.push(f ? line('frame', 'Frame ' + f.id, Core.amount(f.price)) : line('frame', 'Frame', DASH));
+    var w = Core.find('wheels', s.wheels), d = Core.find('drivetrain', s.drivetrain), col = Core.find('color', s.color);
+    rows.push(line('wheels', w.name, Core.signed(w.price), 'sub'));
+    rows.push(line('drivetrain', d.name, Core.signed(d.price), 'sub'));
+    rows.push(line('color', col.name, Core.signed(Core.colorPrice(s)), 'sub'));
+    CAT.accessory.forEach(function (a) {
+      if (s.acc[a.id]) rows.push(line('accessory-' + a.id, a.name, Core.signed(a.price), 'sub'));
+    });
+    rows.push(line('unit', 'Unit price', f ? Core.amount(p.unit) : DASH, 'sep'));
+    rows.push(line('quantity', 'Quantity', '× ' + s.qty));
+    rows.push(line('subtotal', 'Subtotal', f ? Core.amount(p.subtotal) : DASH));
+    if (f && s.qty >= 3) rows.push(line('qty-discount', 'Quantity discount (5%)', Core.discount(p.qtyDiscount), 'discount'));
+    if (f && s.promo && p.promoActive && p.promoDiscount > 0) rows.push(line('promo', 'Code ' + s.promo, Core.discount(p.promoDiscount), 'discount'));
+    rows.push(line('shipping', 'Shipping', f ? (p.shipping === 0 ? 'Free' : Core.amount(p.shipping)) : DASH));
+    rows.push(line('total', 'Total', f ? Core.amount(p.total) : DASH, 'total'));
+    rows.push(line('vat', 'Including VAT (20%)', f ? Core.amount(p.vat) : DASH, 'small'));
+    rows.push(line('delivery', 'Estimated delivery', Core.formatDate(Core.deliveryDate(new Date(), Core.leadTime(s))), 'delivery'));
+    var lines = $('lines');
+    lines.textContent = '';
+    rows.forEach(function (r) { lines.appendChild(r); });
+
+    /* promo */
+    $('promo-apply').disabled = promoInput.value.trim() === '';
+    $('promo-error').hidden = !s.promoError;
+    if (s.promoError) {
+      promoInput.setAttribute('aria-invalid', 'true');
+      promoInput.setAttribute('aria-describedby', 'promo-error');
+    } else {
+      promoInput.removeAttribute('aria-invalid');
+      promoInput.removeAttribute('aria-describedby');
+    }
+    promoInput.classList.toggle('invalid', s.promoError);
+    var st = $('promo-status');
+    $('promo-state').hidden = !s.promo;
+    if (s.promo) {
+      st.textContent = p.promoActive ? 'Code ' + s.promo + ' applied.'
+        : s.promo === 'SPRING10' ? 'SPRING10 requires €1,500.00 or more after the quantity discount.'
+        : 'WELCOME50 cannot be combined with the quantity discount.';
+      st.className = p.promoActive ? 'on' : 'off';
+    } else {
+      st.textContent = '';
+    }
+
+    /* order */
+    $('order-button').textContent = s.qty === 1 ? 'Order 1 bike' : 'Order ' + s.qty + ' bikes';
+    $('order-button').disabled = !(s.heightValid && s.frame);
+    $('order-hint').hidden = s.heightValid;
+
+    /* notice */
+    var notice = $('notice');
+    if (s.notice) {
+      if (notice.textContent !== s.notice) notice.textContent = s.notice;
+      notice.hidden = false;
+    } else {
+      notice.hidden = true;
+      notice.textContent = '';
+    }
+
+    draw();
+  }
+
+  /* ----- 3D preview ----- */
+  var canvas = $('bike-preview'), ctx = canvas.getContext('2d');
+  var size = { W: 310, H: 260 };
+  var modelKey = '', prims = [], drawnKey = '';
+  function measure() {
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    if (w > 0 && h > 0) { size.W = w; size.H = h; }
+  }
+  function model() {
+    var m = Core.modelParams(state);
+    var key = JSON.stringify(m);
+    if (key !== modelKey) { modelKey = key; prims = Core.buildModel(m); }
+    return prims;
+  }
+  function draw() {
+    measure();
+    var pr = model();
+    var key = modelKey + '|' + view.yaw + '|' + view.pitch + '|' + size.W + '|' + size.H;
+    if (key === drawnKey) return;
+    drawnKey = key;
+    if (canvas.width !== size.W) canvas.width = size.W;
+    if (canvas.height !== size.H) canvas.height = size.H;
+    var img = ctx.createImageData(size.W, size.H);
+    Core.render(pr, Core.makeCam(view.yaw, view.pitch, size.W, size.H), img.data);
+    ctx.putImageData(img, 0, 0);
+  }
+  window.bikePreviewState = function () {
+    return { yaw: view.yaw, pitch: view.pitch, parts: Core.presentParts(Core.modelParams(state)) };
+  };
+  window.bikePickAt = function (px, py) {
+    measure();
+    return Core.pick(model(), Core.makeCam(view.yaw, view.pitch, size.W, size.H), Number(px), Number(py));
+  };
+  function turn(dyaw, dpitch) {
+    var y = (view.yaw + dyaw) % 360;
+    if (y < 0) y += 360;
+    if (y >= 360) y -= 360;
+    view.yaw = y;
+    view.pitch = Math.min(60, Math.max(-20, view.pitch + dpitch));
+    draw();
+  }
+  var drag = null;
+  function endDrag(e) {
+    if (!drag) return;
+    try { canvas.releasePointerCapture(drag.id); } catch (err) {}
+    drag = null;
+    canvas.classList.remove('dragging');
+  }
+  canvas.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0 || !e.isPrimary) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    canvas.classList.add('dragging');
+    e.preventDefault();
+    canvas.focus({ preventScroll: true });
+  });
+  canvas.addEventListener('mousedown', function (e) { e.preventDefault(); });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) { endDrag(e); return; }
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (dx || dy) turn(0.9 * dx, 0.5 * dy);
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('lostpointercapture', endDrag);
+  canvas.addEventListener('selectstart', function (e) { e.preventDefault(); });
+  canvas.addEventListener('dragstart', function (e) { e.preventDefault(); });
+  canvas.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    switch (e.key) {
+      case 'ArrowRight': turn(15, 0); break;
+      case 'ArrowLeft': turn(-15, 0); break;
+      case 'ArrowUp': turn(0, 5); break;
+      case 'ArrowDown': turn(0, -5); break;
+      case 'Home': view.yaw = 0; view.pitch = 10; draw(); break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(function () { draw(); }).observe(canvas);
+  window.addEventListener('resize', draw);
+
+  update();
+})();
+</script>
+</body>
+</html>

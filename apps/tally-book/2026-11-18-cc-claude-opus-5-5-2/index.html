@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+:root{--ink:#1b1f24;--muted:#3d4450;--line:#a7aeb8;--accent:#1d4ed8;--sel:#dbeafe;--head:#eef1f5;--panel:#f7f8fa;--focus:#b45309}
+*{box-sizing:border-box}
+html,body{margin:0;background:#ffffff;color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:#ffffff;border-bottom:1px solid var(--line);padding:10px 16px}
+header h1{margin:0;font-size:20px;font-weight:650;color:var(--ink)}
+main{max-width:1200px;margin:0 auto;padding:12px 16px 40px;display:flex;flex-direction:column;gap:12px}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{background:#f1f3f6;border:1px solid #8a929e;border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover:not(:disabled){background:#e3e7ed}
+button:disabled{color:#767b83;background:#f6f7f9;border-color:#c9ced5;cursor:default}
+select,input[type=text],textarea{background:#ffffff;border:1px solid #8a929e;border-radius:6px;padding:5px 8px}
+select:disabled,input:disabled,textarea:disabled{background:#f3f4f6;color:#6b7078}
+button:focus-visible,select:focus-visible,input[type=checkbox]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+input[type=text]:focus,textarea:focus{outline:3px solid var(--focus);outline-offset:1px}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--panel);border:1px solid #d5d9df;border-radius:8px;padding:8px}
+.toolbar .sep{width:1px;height:22px;background:#c9ced5;margin:0 2px}
+.toolbar label{color:var(--muted);margin-left:4px}
+.fbar{display:flex;gap:8px;align-items:center}
+.namebox{min-width:72px;padding:5px 8px;border:1px solid #8a929e;border-radius:6px;background:#ffffff;font-family:ui-monospace,Consolas,monospace;text-align:center}
+.fbar input{flex:1;min-width:0;font-family:ui-monospace,Consolas,monospace}
+.fbar input[data-editing=true]{background:#fffbea}
+.gridwrap{overflow:auto;max-width:100%;border:1px solid #c9ced5;border-radius:6px;background:#ffffff}
+table.grid{border-collapse:collapse;table-layout:fixed;width:872px;user-select:none;-webkit-user-select:none;background:#ffffff}
+table.grid:focus{outline:3px solid var(--focus);outline-offset:-3px}
+table.grid th,table.grid td{border:1px solid #d0d5dc;height:28px;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+table.grid th{background:var(--head);color:#2b313a;font-weight:600;text-align:center}
+table.grid td.corner{background:var(--head);width:40px}
+table.grid th.rh{width:40px}
+table.grid td.c{background:#ffffff;color:var(--ink);cursor:cell}
+table.grid td.c[data-kind=number]{text-align:right}
+table.grid td.c[data-kind=error]{color:#a30016}
+table.grid td.c[data-in-selection=true]{background:var(--sel)}
+table.grid td.c[aria-selected=true]{box-shadow:inset 0 0 0 2px var(--accent)}
+.summary{background:#eef2ff;color:#1e2a52;border:1px solid #c7d2fe;border-radius:6px;padding:6px 10px;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+.panel{background:var(--panel);border:1px solid #d5d9df;border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.panel h2{margin:0 0 2px;font-size:14px;width:100%;color:var(--muted)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;width:100%}
+.tabs button{max-width:100%;overflow-wrap:anywhere;border-radius:6px 6px 0 0;background:#ffffff}
+.tabs button[aria-selected=true]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+.tabs button:disabled[aria-selected=true]{background:#cfd8ee;color:#3b4252}
+.field{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.field input[type=text]{width:190px;max-width:100%}
+.check{display:flex;gap:4px;align-items:center}
+.msg{background:#fff5ec;color:#7a1f00;border:1px solid #f3c9a6;border-radius:6px;padding:4px 8px;overflow-wrap:anywhere}
+.msg[hidden]{display:none}
+ul.names{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:2px}
+ul.names li{background:#ffffff;border:1px solid #d5d9df;border-radius:4px;padding:3px 8px;font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere;color:var(--ink)}
+textarea{width:100%;min-height:110px;font-family:ui-monospace,Consolas,monospace;resize:vertical}
+.csvlabel{width:100%;color:var(--muted)}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+<main>
+  <div class="toolbar" data-testid="toolbar">
+    <button type="button" data-testid="undo-button">Undo</button>
+    <button type="button" data-testid="redo-button">Redo</button>
+    <span class="sep"></span>
+    <button type="button" data-testid="copy-button">Copy</button>
+    <button type="button" data-testid="cut-button">Cut</button>
+    <button type="button" data-testid="paste-button">Paste</button>
+    <button type="button" data-testid="clear-button">Clear</button>
+    <span class="sep"></span>
+    <button type="button" data-testid="insert-row">Insert row</button>
+    <button type="button" data-testid="delete-row">Delete row</button>
+    <button type="button" data-testid="insert-col">Insert column</button>
+    <button type="button" data-testid="delete-col">Delete column</button>
+    <span class="sep"></span>
+    <button type="button" data-testid="sort-asc">Sort ascending</button>
+    <button type="button" data-testid="sort-desc">Sort descending</button>
+    <button type="button" data-testid="fill-down">Fill down</button>
+    <button type="button" data-testid="fill-right">Fill right</button>
+    <button type="button" data-testid="fill-series">Fill series</button>
+    <label for="format-select">Number format</label>
+    <select id="format-select" data-testid="format-select" autocomplete="off">
+      <option value="general">General</option>
+      <option value="fixed2">1,234.50</option>
+      <option value="percent1">12.5%</option>
+      <option value="date">2024-12-31</option>
+    </select>
+  </div>
+  <div class="fbar">
+    <div class="namebox" data-testid="name-box">A1</div>
+    <input type="text" id="formula-input" data-testid="formula-input" aria-label="Cell content" autocomplete="off" spellcheck="false" data-editing="false">
+  </div>
+  <div class="gridwrap" id="gridwrap"></div>
+  <div class="summary" data-testid="selection-summary" hidden></div>
+  <section class="panel" data-testid="sheet-bar">
+    <div class="tabs" role="tablist" aria-label="Sheets" data-testid="sheet-tabs"></div>
+    <button type="button" data-testid="add-sheet">Add sheet</button>
+    <span class="field"><label for="sheet-name-input">Sheet name</label><input type="text" id="sheet-name-input" data-testid="sheet-name-input" autocomplete="off" spellcheck="false"></span>
+    <button type="button" data-testid="rename-sheet">Rename sheet</button>
+    <button type="button" data-testid="delete-sheet">Delete sheet</button>
+    <div class="msg" data-testid="sheet-message" hidden></div>
+  </section>
+  <section class="panel" data-testid="names-panel">
+    <span class="field"><label for="name-input">Name</label><input type="text" id="name-input" data-testid="name-input" autocomplete="off" spellcheck="false"></span>
+    <button type="button" data-testid="define-name">Define name</button>
+    <button type="button" data-testid="delete-name">Delete name</button>
+    <div class="msg" data-testid="name-message" hidden></div>
+    <ul class="names" role="list" aria-label="Names" data-testid="name-list"></ul>
+  </section>
+  <section class="panel" data-testid="find-panel">
+    <span class="field"><label for="find-input">Find</label><input type="text" id="find-input" data-testid="find-input" autocomplete="off" spellcheck="false"></span>
+    <span class="field"><label for="replace-input">Replace with</label><input type="text" id="replace-input" data-testid="replace-input" autocomplete="off" spellcheck="false"></span>
+    <span class="check"><input type="checkbox" id="find-case" data-testid="find-case" autocomplete="off"><label for="find-case">Match case</label></span>
+    <span class="check"><input type="checkbox" id="find-whole" data-testid="find-whole" autocomplete="off"><label for="find-whole">Whole cell</label></span>
+    <button type="button" data-testid="find-next">Find next</button>
+    <button type="button" data-testid="replace-all">Replace all</button>
+    <div class="msg" data-testid="find-status" hidden></div>
+  </section>
+  <section class="panel" data-testid="csv-panel">
+    <span class="check"><input type="checkbox" id="csv-raw" data-testid="csv-raw" autocomplete="off"><label for="csv-raw">Raw contents</label></span>
+    <button type="button" data-testid="csv-export">Export CSV</button>
+    <button type="button" data-testid="csv-import">Import CSV</button>
+    <label class="csvlabel" for="csv-text">CSV</label>
+    <textarea id="csv-text" data-testid="csv-text" autocomplete="off" spellcheck="false"></textarea>
+    <div class="msg" data-testid="csv-message" hidden></div>
+  </section>
+</main>
+<script>
+"use strict";
+/* ================= Engine ================= */
+const COLS = 8, ROWS = 12, NC = 96, L = 'ABCDEFGH', MAXSERIAL = 2958464;
+const FORMATS = ['general', 'fixed2', 'percent1', 'date'];
+class Err { constructor(c) { this.c = c; } }
+const E = {
+  SYNTAX: new Err('#SYNTAX!'), NAME: new Err('#NAME?'), ARGS: new Err('#ARGS!'), REF: new Err('#REF!'),
+  VALUE: new Err('#VALUE!'), DIV: new Err('#DIV/0!'), NUM: new Err('#NUM!'), NA: new Err('#N/A'), CYCLE: new Err('#CYCLE!')
+};
+const isErr = v => v instanceof Err;
+const addr = (r, c) => L[c] + (r + 1);
+
+function N(x) {
+  if (typeof x !== 'number' || !isFinite(x)) return E.NUM;
+  let y = Number(x.toPrecision(12));
+  if (y === 0) y = 0;
+  if (Math.abs(y) >= 1e15) return E.NUM;
+  return y;
+}
+function N0(x) { let y = Number(x.toPrecision(12)); return y === 0 ? 0 : y; }
+
+/* decimal digits of a normalized number */
+function decParts(x) {
+  if (x === 0 || !isFinite(x)) return { neg: false, int: '0', frac: '' };
+  const neg = x < 0;
+  const s = Math.abs(x).toPrecision(12);
+  const ei = s.indexOf('e');
+  const m = ei < 0 ? s : s.slice(0, ei);
+  const e = ei < 0 ? 0 : parseInt(s.slice(ei + 1), 10);
+  const dot = m.indexOf('.');
+  const digits = m.replace('.', '');
+  const point = (dot < 0 ? m.length : dot) + e;
+  let int, frac;
+  if (point <= 0) { int = '0'; frac = '0'.repeat(-point) + digits; }
+  else if (point >= digits.length) { int = digits + '0'.repeat(point - digits.length); frac = ''; }
+  else { int = digits.slice(0, point); frac = digits.slice(point); }
+  int = int.replace(/^0+(?=\d)/, '');
+  return { neg, int, frac };
+}
+function incDigits(s) {
+  const a = s.split('');
+  let i = a.length - 1;
+  while (i >= 0) { if (a[i] === '9') { a[i] = '0'; i--; } else { a[i] = String(+a[i] + 1); break; } }
+  if (i < 0) a.unshift('1');
+  return a.join('');
+}
+/* mode: 'h' half away from zero, 'd' toward zero, 'u' away from zero */
+function roundParts(p, d, mode) {
+  let all = p.int + p.frac;
+  const ip = p.int.length;
+  let kept, dropped;
+  if (d >= 0) {
+    const need = ip + d;
+    if (all.length < need) all = all + '0'.repeat(need - all.length);
+    kept = all.slice(0, need); dropped = all.slice(need);
+  } else {
+    const cut = ip + d;
+    if (cut <= 0) { kept = ''; dropped = (cut < 0 ? '0'.repeat(-cut) : '') + all; }
+    else { kept = all.slice(0, cut); dropped = all.slice(cut); }
+  }
+  let inc = false;
+  if (mode === 'h') inc = dropped.length > 0 && dropped[0] >= '5';
+  else if (mode === 'u') inc = /[1-9]/.test(dropped);
+  if (kept === '') kept = '0';
+  if (inc) kept = incDigits(kept);
+  let int, frac;
+  if (d >= 0) {
+    if (kept.length < d + 1) kept = '0'.repeat(d + 1 - kept.length) + kept;
+    int = kept.slice(0, kept.length - d); frac = d > 0 ? kept.slice(kept.length - d) : '';
+  } else { int = kept + '0'.repeat(-d); frac = ''; }
+  int = int.replace(/^0+(?=\d)/, '');
+  const zero = !/[1-9]/.test(int + frac);
+  return { neg: p.neg && !zero, int, frac };
+}
+const partsNum = p => { const v = parseFloat((p.neg ? '-' : '') + p.int + '.' + (p.frac || '0')); return v === 0 ? 0 : v; };
+const groupInt = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+function partsText(p, group, trim) {
+  let f = p.frac; if (trim) f = f.replace(/0+$/, '');
+  const zero = !/[1-9]/.test(p.int + f);
+  return (p.neg && !zero ? '-' : '') + (group ? groupInt(p.int) : p.int) + (f ? '.' + f : '');
+}
+function G(x) { return partsText(roundParts(decParts(x), 6, 'h'), false, true); }
+function P(x) { return partsText(decParts(x), false, true); }
+function fixed2(x) { return partsText(roundParts(decParts(x), 2, 'h'), true, false); }
+function percent1(x) { return partsText(roundParts(decParts(N0(x * 100)), 1, 'h'), false, false) + '%'; }
+
+/* dates */
+function dfc(y, m, d) {
+  y -= m <= 2 ? 1 : 0;
+  const era = Math.floor(y / 400), yoe = y - era * 400;
+  const doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return era * 146097 + doe - 719468;
+}
+function cfd(z) {
+  z += 719468;
+  const era = Math.floor(z / 146097), doe = z - era * 146097;
+  const yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365);
+  let y = yoe + era * 400;
+  const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
+  const mp = Math.floor((5 * doy + 2) / 153);
+  const d = doy - Math.floor((153 * mp + 2) / 5) + 1;
+  const m = mp + (mp < 10 ? 3 : -9);
+  if (m <= 2) y++;
+  return [y, m, d];
+}
+const BASE = dfc(1900, 1, 1);
+const serialOf = (y, m, d) => dfc(y, m, d) - BASE + 1;
+const ymdOf = s => cfd(s - 1 + BASE);
+const isSerial = s => Number.isInteger(s) && s >= 1 && s <= MAXSERIAL;
+const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+const dim = (y, m) => [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+function dateText(s) {
+  const [y, m, d] = ymdOf(s);
+  return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+
+/* entered content */
+const trimSp = s => s.replace(/^ +| +$/g, '');
+function dateEntry(t) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if (y < 1900 || mo < 1 || mo > 12 || d < 1 || d > dim(y, mo)) return null;
+  return serialOf(y, mo, d);
+}
+function entryNumber(t) {
+  if (!/^[+-]?(\d+(\.\d+)?|\.\d+)%?$/.test(t)) return null;
+  const pct = t.endsWith('%');
+  let v = parseFloat(pct ? t.slice(0, -1) : t);
+  if (!isFinite(v)) return null;
+  if (pct) v = v / 100;
+  v = N0(v);
+  if (!isFinite(v) || Math.abs(v) >= 1e15) return null;
+  return v;
+}
+function literalValue(raw) {
+  if (raw === '') return null;
+  if (raw[0] === "'") return raw.slice(1);
+  const t = trimSp(raw);
+  const d = dateEntry(t); if (d !== null) return d;
+  const n = entryNumber(t); if (n !== null) return n;
+  const u = t.toUpperCase();
+  if (u === 'TRUE') return true;
+  if (u === 'FALSE') return false;
+  return raw;
+}
+function isNumberKind(raw) {
+  if (raw === '' || raw[0] === '=' || raw[0] === "'") return false;
+  const t = trimSp(raw);
+  return dateEntry(t) !== null || entryNumber(t) !== null;
+}
+
+/* ---------- tokens ---------- */
+function colNum(cs) { if (cs.length > 4) return Infinity; let n = 0; for (const ch of cs) n = n * 26 + (ch.charCodeAt(0) - 64); return n; }
+function rowNum(rs) { return rs.length > 6 ? Infinity : parseInt(rs, 10); }
+const refIn = r => { const c = colNum(r.cs), w = rowNum(r.rs); return c >= 1 && c <= COLS && w >= 1 && w <= ROWS; };
+
+function tokenize(src) {
+  const T = [];
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i];
+    if (ch === ' ') { i++; continue; }
+    if ((ch >= '0' && ch <= '9') || ch === '.') {
+      const m = /^(\d+(\.\d+)?|\.\d+)/.exec(src.slice(i, i + 400));
+      if (!m) return null;
+      let len = m[0].length;
+      if (len >= 399) { const m2 = /^(\d+(\.\d+)?|\.\d+)/.exec(src.slice(i)); len = m2[0].length; T.push({ k: 'num', text: m2[0] }); }
+      else T.push({ k: 'num', text: m[0] });
+      i += len; continue;
+    }
+    if (ch === '"') {
+      let j = i + 1, v = '';
+      for (;;) {
+        if (j >= n) return null;
+        if (src[j] === '"') { if (src[j + 1] === '"') { v += '"'; j += 2; continue; } j++; break; }
+        v += src[j++];
+      }
+      T.push({ k: 'str', text: src.slice(i, j), v }); i = j; continue;
+    }
+    if (ch === "'") {
+      let j = i + 1, v = '';
+      for (;;) {
+        if (j >= n) return null;
+        if (src[j] === "'") { if (src[j + 1] === "'") { v += "'"; j += 2; continue; } j++; break; }
+        v += src[j++];
+      }
+      if (v === '' || src[j] !== '!') return null;
+      T.push({ k: 'pre', name: v }); i = j + 1; continue;
+    }
+    if (ch === '#') {
+      if (src.substr(i, 5).toUpperCase() === '#REF!') { T.push({ k: 'referr' }); i += 5; continue; }
+      return null;
+    }
+    if (/[A-Za-z_$]/.test(ch)) {
+      let j = i; while (j < n && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      const w = src.slice(i, j); i = j;
+      if (src[i] === '!') { if (w.includes('$')) return null; T.push({ k: 'pre', name: w }); i++; continue; }
+      const u = w.toUpperCase();
+      if (u === 'TRUE' || u === 'FALSE') { T.push({ k: 'bool', v: u === 'TRUE' }); continue; }
+      const rm = /^(\$?)([A-Za-z]+)(\$?)([0-9]+)$/.exec(w);
+      if (rm) { T.push({ k: 'ref', r: { ca: rm[1] === '$', cs: rm[2].toUpperCase(), ra: rm[3] === '$', rs: rm[4].replace(/^0+(?=\d)/, '') } }); continue; }
+      if (/^[A-Za-z0-9_]+$/.test(w)) { T.push({ k: 'name', text: u }); continue; }
+      return null;
+    }
+    const two = src.substr(i, 2);
+    if (two === '<>' || two === '<=' || two === '>=') { T.push({ k: 'op', text: two }); i += 2; continue; }
+    if ('+-*/^&%=<>'.includes(ch)) { T.push({ k: 'op', text: ch }); i++; continue; }
+    if ('(),:'.includes(ch)) { T.push({ k: 'p', text: ch }); i++; continue; }
+    return null;
+  }
+  const Gt = [];
+  for (let j = 0; j < T.length; j++) {
+    const t = T[j];
+    if (t.k === 'pre' || t.k === 'ref') {
+      let pre = null;
+      if (t.k === 'pre') { pre = t.name; j++; if (!T[j] || T[j].k !== 'ref') return null; }
+      const a = T[j].r; let b = null;
+      if (T[j + 1] && T[j + 1].k === 'p' && T[j + 1].text === ':' && T[j + 2] && T[j + 2].k === 'ref') { b = T[j + 2].r; j += 2; }
+      Gt.push({ k: 'unit', pre, a, b });
+    } else Gt.push(t);
+  }
+  return Gt;
+}
+
+const CMP_OPS = ['=', '<>', '<', '<=', '>', '>='];
+function parseTokens(toks) {
+  let p = 0;
+  const fail = () => { throw 0; };
+  const isOp = list => { const t = toks[p]; return t && t.k === 'op' && list.includes(t.text); };
+  const isP = s => { const t = toks[p]; return t && t.k === 'p' && t.text === s; };
+  function expr() { return comparison(); }
+  function comparison() { let l = concat(); while (isOp(CMP_OPS)) { const op = toks[p++].text; l = { t: 'bin', op, l, r: concat() }; } return l; }
+  function concat() { let l = sum(); while (isOp(['&'])) { p++; l = { t: 'bin', op: '&', l, r: sum() }; } return l; }
+  function sum() { let l = product(); while (isOp(['+', '-'])) { const op = toks[p++].text; l = { t: 'bin', op, l, r: product() }; } return l; }
+  function product() { let l = signed(); while (isOp(['*', '/'])) { const op = toks[p++].text; l = { t: 'bin', op, l, r: signed() }; } return l; }
+  function signed() { if (isOp(['+', '-'])) { const op = toks[p++].text; return { t: 'un', op, e: signed() }; } return power(); }
+  function power() { const b = percent(); if (isOp(['^'])) { p++; return { t: 'bin', op: '^', l: b, r: signed() }; } return b; }
+  function percent() { let e = primary(); while (isOp(['%'])) { p++; e = { t: 'pct', e }; } return e; }
+  function primary() {
+    const t = toks[p++];
+    if (!t) fail();
+    switch (t.k) {
+      case 'num': { const v = parseFloat(t.text); return { t: 'num', v: N(v) }; }
+      case 'str': return { t: 'str', v: t.v };
+      case 'bool': return { t: 'bool', v: t.v };
+      case 'referr': return { t: 'referr' };
+      case 'unit': return { t: 'unit', u: t };
+      case 'name':
+        if (isP('(')) {
+          p++;
+          const args = [];
+          if (isP(')')) { p++; return { t: 'call', name: t.text, args }; }
+          for (;;) {
+            args.push(expr());
+            if (isP(',')) { p++; continue; }
+            if (isP(')')) { p++; break; }
+            fail();
+          }
+          return { t: 'call', name: t.text, args };
+        }
+        return { t: 'name', name: t.text };
+      case 'p':
+        if (t.text === '(') { const e = expr(); if (!isP(')')) fail(); p++; return { t: 'paren', e }; }
+        fail();
+      default: fail();
+    }
+  }
+  const ast = expr();
+  if (p !== toks.length) fail();
+  return ast;
+}
+const parseCache = new Map();
+function parseFormula(raw) {
+  let r = parseCache.get(raw);
+  if (r) return r;
+  r = { ok: false };
+  try {
+    const toks = tokenize(raw.slice(1));
+    if (toks && toks.length) r = { ok: true, toks, ast: parseTokens(toks) };
+  } catch (e) { r = { ok: false }; }
+  if (parseCache.size > 5000) parseCache.clear();
+  parseCache.set(raw, r);
+  return r;
+}
+
+/* ---------- canonical writing ---------- */
+const quoteSheet = n => /^[A-Za-z_][A-Za-z0-9_]*$/.test(n) ? n : "'" + n.replace(/'/g, "''") + "'";
+const cmpLen = (a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0);
+const refText = r => (r.ca ? '$' : '') + r.cs + (r.ra ? '$' : '') + r.rs;
+function normUnit(u) {
+  if (!u.b) return u;
+  let c1 = { a: u.a.ca, s: u.a.cs }, c2 = { a: u.b.ca, s: u.b.cs };
+  if (cmpLen(c1.s, c2.s) > 0) [c1, c2] = [c2, c1];
+  let r1 = { a: u.a.ra, s: u.a.rs }, r2 = { a: u.b.ra, s: u.b.rs };
+  if (cmpLen(r1.s, r2.s) > 0) [r1, r2] = [r2, r1];
+  return { k: 'unit', pre: u.pre, a: { ca: c1.a, cs: c1.s, ra: r1.a, rs: r1.s }, b: { ca: c2.a, cs: c2.s, ra: r2.a, rs: r2.s } };
+}
+function unitText(u, resolve) {
+  let s = '';
+  if (u.pre !== null) {
+    let nm = u.pre;
+    if (resolve) { const si = findSheet(nm); if (si >= 0) nm = wb.sheets[si].name; }
+    s = quoteSheet(nm) + '!';
+  }
+  if (!u.b) return s + refText(u.a);
+  const v = normUnit(u);
+  return s + refText(v.a) + ':' + refText(v.b);
+}
+function serialize(toks, resolve) {
+  let out = '=';
+  for (const t of toks) {
+    switch (t.k) {
+      case 'num': case 'str': out += t.text; break;
+      case 'bool': out += t.v ? 'TRUE' : 'FALSE'; break;
+      case 'referr': out += '#REF!'; break;
+      case 'name': out += t.text; break;
+      case 'unit': out += unitText(t, resolve); break;
+      default: out += t.text;
+    }
+  }
+  return out;
+}
+/* rewrite units of a valid formula; fn returns unit or null (#REF!) */
+function rewriteRaw(raw, fn) {
+  if (raw[0] !== '=') return raw;
+  const pf = parseFormula(raw);
+  if (!pf.ok) return raw;
+  let changed = false;
+  const toks = pf.toks.map(t => {
+    if (t.k !== 'unit') return t;
+    const r = fn(t);
+    if (r === t) return t;
+    changed = true;
+    return r === null ? { k: 'referr' } : r;
+  });
+  return changed ? serialize(toks, false) : raw;
+}
+
+/* ================= Workbook ================= */
+let wb;
+let nextId = 1;
+function newSheet(name) { return { id: nextId++, name, raw: Array(NC).fill(''), fmt: Array(NC).fill('general'), anchor: [0, 0], act: [0, 0] }; }
+function newWorkbook() { return { sheets: [newSheet('Sheet1')], names: [], active: 0 }; }
+function findSheet(name) { const u = name.toUpperCase(); return wb.sheets.findIndex(s => s.name.toUpperCase() === u); }
+function sheetIndexById(id) { return wb.sheets.findIndex(s => s.id === id); }
+function findName(name) { const u = name.toUpperCase(); return wb.names.find(x => x.name.toUpperCase() === u); }
+const FN_LIST = ['SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT', 'COUNTA', 'ROUND', 'ROUNDUP', 'ROUNDDOWN', 'ABS', 'INT', 'MOD', 'IF', 'AND', 'OR', 'NOT', 'IFERROR', 'ISERROR', 'ISBLANK', 'CHOOSE', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'LEFT', 'RIGHT', 'MID', 'CONCAT', 'REPT', 'FIND', 'SUBSTITUTE', 'TEXT', 'MATCH', 'INDEX', 'VLOOKUP', 'COUNTIF', 'COUNTIFS', 'SUMIF', 'SUMIFS', 'AVERAGEIF', 'DATE', 'YEAR', 'MONTH', 'DAY', 'WEEKDAY', 'EDATE', 'DAYS'];
+const FN_SET = new Set(FN_LIST);
+function validName(s) {
+  return /^[A-Za-z_][A-Za-z0-9_]{0,19}$/.test(s) && !/^(TRUE|FALSE)$/i.test(s) && !FN_SET.has(s.toUpperCase()) && !/^[A-Za-z]+[0-9]+$/.test(s);
+}
+function validSheetName(s) {
+  return s.length >= 1 && s.length <= 20 && /^[A-Za-z0-9 _.'-]+$/.test(s) && s[0] !== ' ' && s[s.length - 1] !== ' ';
+}
+function targetText(t) {
+  if (t.removed) return '#REF!';
+  const si = sheetIndexById(t.sid);
+  if (si < 0) return '#REF!';
+  return quoteSheet(wb.sheets[si].name) + '!' + addr(t.r1, t.c1) + (t.range ? ':' + addr(t.r2, t.c2) : '');
+}
+
+/* ================= Evaluation ================= */
+let vals = [], done = [], circ = [];
+function recalc() {
+  const S = wb.sheets.length;
+  vals = []; done = []; circ = [];
+  for (let s = 0; s < S; s++) { vals.push(Array(NC).fill(null)); done.push(Array(NC).fill(false)); circ.push(Array(NC).fill(false)); }
+  // precedents graph
+  const total = S * NC;
+  const adj = Array.from({ length: total }, () => []);
+  for (let s = 0; s < S; s++) {
+    const sh = wb.sheets[s];
+    for (let i = 0; i < NC; i++) {
+      const raw = sh.raw[i];
+      if (raw[0] !== '=') continue;
+      const pf = parseFormula(raw);
+      if (!pf.ok) continue;
+      const list = adj[s * NC + i];
+      for (const t of pf.toks) {
+        if (t.k === 'unit') {
+          const ts = t.pre !== null ? findSheet(t.pre) : s;
+          if (ts < 0) continue;
+          if (!t.b) { if (refIn(t.a)) list.push(ts * NC + (rowNum(t.a.rs) - 1) * COLS + colNum(t.a.cs) - 1); }
+          else if (refIn(t.a) && refIn(t.b)) {
+            const ra = rowNum(t.a.rs) - 1, rb = rowNum(t.b.rs) - 1, ca = colNum(t.a.cs) - 1, cb = colNum(t.b.cs) - 1;
+            for (let r = Math.min(ra, rb); r <= Math.max(ra, rb); r++) for (let c = Math.min(ca, cb); c <= Math.max(ca, cb); c++) list.push(ts * NC + r * COLS + c);
+          }
+        } else if (t.k === 'name') {
+          const d = findName(t.text);
+          if (!d || d.target.removed) continue;
+          const ts = sheetIndexById(d.target.sid);
+          if (ts < 0) continue;
+          for (let r = d.target.r1; r <= d.target.r2; r++) for (let c = d.target.c1; c <= d.target.c2; c++) list.push(ts * NC + r * COLS + c);
+        }
+      }
+    }
+  }
+  // Tarjan (iterative)
+  const index = Array(total).fill(-1), low = Array(total).fill(0), onS = Array(total).fill(false);
+  const stack = []; let idx = 0;
+  for (let v0 = 0; v0 < total; v0++) {
+    if (index[v0] >= 0 || adj[v0].length === 0) continue;
+    const work = [[v0, 0]];
+    index[v0] = low[v0] = idx++; stack.push(v0); onS[v0] = true;
+    while (work.length) {
+      const top = work[work.length - 1];
+      const v = top[0];
+      if (top[1] < adj[v].length) {
+        const w = adj[v][top[1]++];
+        if (index[w] < 0) { index[w] = low[w] = idx++; stack.push(w); onS[w] = true; work.push([w, 0]); }
+        else if (onS[w]) low[v] = Math.min(low[v], index[w]);
+      } else {
+        work.pop();
+        if (work.length) { const u = work[work.length - 1][0]; low[u] = Math.min(low[u], low[v]); }
+        if (low[v] === index[v]) {
+          const comp = [];
+          let w;
+          do { w = stack.pop(); onS[w] = false; comp.push(w); } while (w !== v);
+          if (comp.length > 1 || adj[v].includes(v)) for (const x of comp) circ[Math.floor(x / NC)][x % NC] = true;
+        }
+      }
+    }
+  }
+  for (let s = 0; s < S; s++) for (let i = 0; i < NC; i++) getVal(s, i);
+}
+function getVal(s, i) {
+  if (done[s][i]) return vals[s][i];
+  if (circ[s][i]) { vals[s][i] = E.CYCLE; done[s][i] = true; return E.CYCLE; }
+  const raw = wb.sheets[s].raw[i];
+  let v;
+  if (raw === '') v = null;
+  else if (raw[0] === '=') {
+    const pf = parseFormula(raw);
+    if (!pf.ok) v = E.SYNTAX;
+    else {
+      try { v = evalNode(pf.ast, s); } catch (e) { v = E.NUM; }
+      if (v === null || v === undefined) v = 0;
+    }
+  } else v = literalValue(raw);
+  vals[s][i] = v; done[s][i] = true;
+  return v;
+}
+
+const typeKey = v => typeof v === 'number' ? 0 : typeof v === 'string' ? 1 : typeof v === 'boolean' ? 2 : -1;
+function toNum(v) { if (typeof v === 'number') return v; if (typeof v === 'boolean') return v ? 1 : 0; if (v === null) return 0; if (isErr(v)) return v; return E.VALUE; }
+function toText(v) { if (typeof v === 'number') return G(v); if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE'; if (v === null) return ''; return v; }
+function toLog(v) { if (typeof v === 'boolean') return v; if (typeof v === 'number') return v !== 0; if (v === null) return false; if (isErr(v)) return v; return E.VALUE; }
+function toInt(v) { const x = toNum(v); return isErr(x) ? x : Math.trunc(x); }
+function textCmp(a, b) { const A = a.toUpperCase(), B = b.toUpperCase(); return A < B ? -1 : A > B ? 1 : 0; }
+function cmpSame(a, b) {
+  if (typeof a === 'number') return a < b ? -1 : a > b ? 1 : 0;
+  if (typeof a === 'string') return textCmp(a, b);
+  return (a ? 1 : 0) - (b ? 1 : 0);
+}
+function compareVals(a, b) {
+  if (a === null && b === null) { a = 0; b = 0; }
+  else if (a === null) a = typeof b === 'number' ? 0 : typeof b === 'string' ? '' : false;
+  else if (b === null) b = typeof a === 'number' ? 0 : typeof a === 'string' ? '' : false;
+  const ta = typeKey(a), tb = typeKey(b);
+  if (ta !== tb) return ta - tb;
+  return cmpSame(a, b);
+}
+
+function refValue(u, si) {
+  let s = si;
+  if (u.pre !== null) { s = findSheet(u.pre); if (s < 0) return E.REF; }
+  if (!refIn(u.a)) return E.REF;
+  return getVal(s, (rowNum(u.a.rs) - 1) * COLS + colNum(u.a.cs) - 1);
+}
+function evalNode(n, si) {
+  switch (n.t) {
+    case 'num': case 'str': case 'bool': return n.v;
+    case 'referr': return E.REF;
+    case 'paren': return evalNode(n.e, si);
+    case 'unit': return n.u.b ? E.VALUE : refValue(n.u, si);
+    case 'name': {
+      const d = findName(n.name);
+      if (!d) return E.NAME;
+      if (d.target.removed) return E.REF;
+      if (d.target.range) return E.VALUE;
+      const s = sheetIndexById(d.target.sid);
+      if (s < 0) return E.REF;
+      return getVal(s, d.target.r1 * COLS + d.target.c1);
+    }
+    case 'un': {
+      const v = evalNode(n.e, si); if (isErr(v)) return v;
+      const x = toNum(v); if (isErr(x)) return x;
+      return N(n.op === '-' ? -x : x);
+    }
+    case 'pct': {
+      const v = evalNode(n.e, si); if (isErr(v)) return v;
+      const x = toNum(v); if (isErr(x)) return x;
+      return N(x / 100);
+    }
+    case 'bin': {
+      const l = evalNode(n.l, si), r = evalNode(n.r, si);
+      if (isErr(l)) return l;
+      if (isErr(r)) return r;
+      const op = n.op;
+      if (op === '&') return toText(l) + toText(r);
+      if (CMP_OPS.includes(op)) {
+        const c = compareVals(l, r);
+        switch (op) { case '=': return c === 0; case '<>': return c !== 0; case '<': return c < 0; case '<=': return c <= 0; case '>': return c > 0; default: return c >= 0; }
+      }
+      const a = toNum(l); if (isErr(a)) return a;
+      const b = toNum(r); if (isErr(b)) return b;
+      switch (op) {
+        case '+': return N(a + b);
+        case '-': return N(a - b);
+        case '*': return N(a * b);
+        case '/': return b === 0 ? E.DIV : N(a / b);
+        case '^':
+          if (a === 0 && b === 0) return E.NUM;
+          if (a === 0 && b < 0) return E.DIV;
+          if (a < 0 && !Number.isInteger(b)) return E.NUM;
+          return N(Math.pow(a, b));
+      }
+      return E.VALUE;
+    }
+    case 'call': return callFn(n, si);
+  }
+  return E.VALUE;
+}
+
+const isRA = n => n.t === 'unit' || n.t === 'referr' || n.t === 'name';
+function resolveRange(n, si) {
+  if (n.t === 'referr') return { e: E.REF };
+  if (n.t === 'name') {
+    const d = findName(n.name);
+    if (!d) return { e: E.NAME };
+    if (d.target.removed) return { e: E.REF };
+    const s = sheetIndexById(d.target.sid);
+    if (s < 0) return { e: E.REF };
+    const t = d.target;
+    return { s, r1: t.r1, c1: t.c1, r2: t.r2, c2: t.c2, multi: !!t.range };
+  }
+  const u = n.u;
+  let s = si;
+  if (u.pre !== null) { s = findSheet(u.pre); if (s < 0) return { e: E.REF }; }
+  if (!refIn(u.a) || (u.b && !refIn(u.b))) return { e: E.REF };
+  const ra = rowNum(u.a.rs) - 1, ca = colNum(u.a.cs) - 1;
+  const rb = u.b ? rowNum(u.b.rs) - 1 : ra, cb = u.b ? colNum(u.b.cs) - 1 : ca;
+  return { s, r1: Math.min(ra, rb), c1: Math.min(ca, cb), r2: Math.max(ra, rb), c2: Math.max(ca, cb), multi: !!u.b };
+}
+function cellsOf(R) { const out = []; for (let r = R.r1; r <= R.r2; r++) for (let c = R.c1; c <= R.c2; c++) out.push(getVal(R.s, r * COLS + c)); return out; }
+const rRows = R => R.r2 - R.r1 + 1, rCols = R => R.c2 - R.c1 + 1;
+
+const ARITY = {
+  SUM: n => n >= 1, AVERAGE: n => n >= 1, MIN: n => n >= 1, MAX: n => n >= 1, COUNT: n => n >= 1, COUNTA: n => n >= 1,
+  ROUND: n => n === 2, ROUNDUP: n => n === 2, ROUNDDOWN: n => n === 2, ABS: n => n === 1, INT: n => n === 1, MOD: n => n === 2,
+  IF: n => n === 3, AND: n => n >= 1, OR: n => n >= 1, NOT: n => n === 1, IFERROR: n => n === 2, ISERROR: n => n === 1, ISBLANK: n => n === 1,
+  CHOOSE: n => n >= 2, LEN: n => n === 1, UPPER: n => n === 1, LOWER: n => n === 1, TRIM: n => n === 1, LEFT: n => n === 2, RIGHT: n => n === 2,
+  MID: n => n === 3, CONCAT: n => n >= 1, REPT: n => n === 2, FIND: n => n === 2 || n === 3, SUBSTITUTE: n => n === 3 || n === 4, TEXT: n => n === 2,
+  MATCH: n => n === 2 || n === 3, INDEX: n => n === 2 || n === 3, VLOOKUP: n => n === 3 || n === 4,
+  COUNTIF: n => n === 2, COUNTIFS: n => n >= 2 && n % 2 === 0, SUMIF: n => n === 3, SUMIFS: n => n >= 3 && n % 2 === 1, AVERAGEIF: n => n === 2 || n === 3,
+  DATE: n => n === 3, YEAR: n => n === 1, MONTH: n => n === 1, DAY: n => n === 1, WEEKDAY: n => n === 1 || n === 2, EDATE: n => n === 2, DAYS: n => n === 2
+};
+/* converted-argument functions: types n number, t text, l logical, i integer, s serial */
+function conv(args, types, si) {
+  const out = [];
+  for (let i = 0; i < args.length; i++) {
+    const v = evalNode(args[i], si);
+    if (isErr(v)) return v;
+    const ty = types[i];
+    const x = ty === 't' ? toText(v) : ty === 'l' ? toLog(v) : ty === 'i' ? toInt(v) : toNum(v);
+    if (isErr(x)) return x;
+    out.push(x);
+  }
+  for (let i = 0; i < out.length; i++) if (types[i] === 's') { const f = Math.floor(out[i]); if (!isSerial(f)) return E.NUM; out[i] = f; }
+  return out;
+}
+const SIMPLE = {
+  ROUND: ['ni', (x, d) => d < -9 || d > 9 ? E.NUM : N(partsNum(roundParts(decParts(x), d, 'h')))],
+  ROUNDUP: ['ni', (x, d) => d < -9 || d > 9 ? E.NUM : N(partsNum(roundParts(decParts(x), d, 'u')))],
+  ROUNDDOWN: ['ni', (x, d) => d < -9 || d > 9 ? E.NUM : N(partsNum(roundParts(decParts(x), d, 'd')))],
+  ABS: ['n', x => N(Math.abs(x))],
+  INT: ['n', x => N(Math.floor(x))],
+  MOD: ['nn', (a, b) => b === 0 ? E.DIV : N(a - b * Math.floor(a / b))],
+  NOT: ['l', a => !a],
+  LEN: ['t', t => t.length],
+  UPPER: ['t', t => t.toUpperCase()],
+  LOWER: ['t', t => t.toLowerCase()],
+  TRIM: ['t', t => trimSp(t).replace(/ {2,}/g, ' ')],
+  LEFT: ['ti', (t, n) => n < 0 ? E.VALUE : t.slice(0, n)],
+  RIGHT: ['ti', (t, n) => n < 0 ? E.VALUE : n >= t.length ? t : t.slice(t.length - n)],
+  MID: ['tii', (t, s, n) => s < 1 || n < 0 ? E.VALUE : s > t.length ? '' : t.substr(s - 1, n)],
+  REPT: ['ti', (t, n) => n < 0 ? E.VALUE : t.length * n > 255 ? E.VALUE : t.repeat(n)],
+  FIND: ['tti', (s, t, st) => {
+    if (st === undefined) st = 1;
+    if (st < 1 || st > t.length + 1) return E.VALUE;
+    const i = t.indexOf(s, st - 1);
+    return i < 0 ? E.VALUE : i + 1;
+  }],
+  SUBSTITUTE: ['ttti', (t, o, nw, k) => {
+    if (k !== undefined && k < 1) return E.VALUE;
+    if (o === '') return t;
+    let out = '', pos = 0, cnt = 0;
+    for (;;) {
+      const i = t.indexOf(o, pos);
+      if (i < 0) break;
+      cnt++;
+      if (k === undefined || cnt === k) { out += t.slice(pos, i) + nw; }
+      else out += t.slice(pos, i + o.length);
+      pos = i + o.length;
+      if (k !== undefined && cnt === k) break;
+    }
+    return out + t.slice(pos);
+  }],
+  TEXT: ['nt', (x, p) => {
+    if (p === 'yyyy-mm-dd') { const d = Math.floor(x); return isSerial(d) ? dateText(d) : E.NUM; }
+    const m = /^(#,##)?0(\.0{1,6})?(%?)$/.exec(p);
+    if (!m) return E.VALUE;
+    const k = m[2] ? m[2].length - 1 : 0;
+    let y = x;
+    if (m[3]) { y = N(x * 100); if (isErr(y)) return y; }
+    return partsText(roundParts(decParts(y), k, 'h'), !!m[1], false) + (m[3] ? '%' : '');
+  }],
+  DATE: ['iii', (y, m, d) => {
+    if (y < 1900 || y > 9999) return E.NUM;
+    const mm = m - 1;
+    const yy = y + Math.floor(mm / 12), mo = ((mm % 12) + 12) % 12 + 1;
+    const s = serialOf(yy, mo, 1) + d - 1;
+    return isSerial(s) ? s : E.NUM;
+  }],
+  YEAR: ['s', s => ymdOf(s)[0]],
+  MONTH: ['s', s => ymdOf(s)[1]],
+  DAY: ['s', s => ymdOf(s)[2]],
+  WEEKDAY: ['si', (s, t) => {
+    if (t === undefined) t = 1;
+    if (t !== 1 && t !== 2 && t !== 3) return E.NUM;
+    const d0 = (s - 1) % 7; // 0 Monday
+    return t === 1 ? ((d0 + 1) % 7) + 1 : t === 2 ? d0 + 1 : d0;
+  }],
+  EDATE: ['si', (s, n) => {
+    const [y, m, d] = ymdOf(s);
+    const tot = m - 1 + n;
+    const ny = y + Math.floor(tot / 12), nm = ((tot % 12) + 12) % 12 + 1;
+    if (ny < 1900 || ny > 9999) return E.NUM;
+    return serialOf(ny, nm, Math.min(d, dim(ny, nm)));
+  }],
+  DAYS: ['ss', (a, b) => N(a - b)]
+};
+
+function aggregate(name, args, si) {
+  let sum = 0, cnt = 0, mn = Infinity, mx = -Infinity;
+  const add = x => { sum += x; cnt++; if (x < mn) mn = x; if (x > mx) mx = x; };
+  for (const a of args) {
+    if (isRA(a)) {
+      const R = resolveRange(a, si);
+      if (R.e) return R.e;
+      for (const v of cellsOf(R)) {
+        if (isErr(v)) return v;
+        if (name === 'COUNTA') { if (v !== null) cnt++; }
+        else if (typeof v === 'number') add(v);
+      }
+    } else {
+      const v = evalNode(a, si);
+      if (isErr(v)) return v;
+      if (name === 'COUNTA') cnt++;
+      else if (name === 'COUNT') { if (typeof v === 'number') cnt++; }
+      else { const x = toNum(v); if (isErr(x)) return x; add(x); }
+    }
+  }
+  switch (name) {
+    case 'SUM': return N(sum);
+    case 'AVERAGE': return cnt ? N(sum / cnt) : E.DIV;
+    case 'MIN': return cnt ? N(mn) : 0;
+    case 'MAX': return cnt ? N(mx) : 0;
+    default: return cnt;
+  }
+}
+function search(cells, key, kind) {
+  const tk = typeKey(key);
+  if (kind === 0) {
+    for (let i = 0; i < cells.length; i++) {
+      const v = cells[i];
+      if (isErr(v)) return v;
+      if (v !== null && typeKey(v) === tk && cmpSame(v, key) === 0) return i;
+    }
+    return -1;
+  }
+  let best = -1, bv = null;
+  for (let i = 0; i < cells.length; i++) {
+    const v = cells[i];
+    if (isErr(v)) return v;
+    if (v === null || typeKey(v) !== tk) continue;
+    const c = cmpSame(v, key);
+    if (kind === 1 ? c <= 0 : c >= 0) {
+      if (best < 0 || (kind === 1 ? cmpSame(v, bv) >= 0 : cmpSame(v, bv) <= 0)) { best = i; bv = v; }
+    }
+  }
+  return best;
+}
+function parseCrit(v) {
+  if (typeof v === 'number' || typeof v === 'boolean') return { op: '=', v };
+  if (v === null) return { op: '=', v: '' };
+  const m = /^(>=|<=|<>|>|<|=)/.exec(v);
+  if (!m) return { op: '=', v };
+  const rest = v.slice(m[0].length);
+  let o = entryNumber(rest);
+  if (o === null) { const u = rest.toUpperCase(); o = u === 'TRUE' ? true : u === 'FALSE' ? false : rest; }
+  return { op: m[0], v: o };
+}
+function meets(cell, cr) {
+  const same = typeKey(cell) === typeKey(cr.v);
+  if (cr.op === '=') return same && cmpSame(cell, cr.v) === 0;
+  if (cr.op === '<>') return !(same && cmpSame(cell, cr.v) === 0);
+  if (!same) return false;
+  const c = cmpSame(cell, cr.v);
+  switch (cr.op) { case '<': return c < 0; case '<=': return c <= 0; case '>': return c > 0; default: return c >= 0; }
+}
+function condAgg(mode, args, si, rangeIdx, pairs, sumIdx) {
+  for (const i of rangeIdx) if (!isRA(args[i])) return E.VALUE;
+  const R = {};
+  for (const i of rangeIdx) { const r = resolveRange(args[i], si); if (r.e) return r.e; R[i] = r; }
+  const f = R[rangeIdx[0]];
+  for (const i of rangeIdx) if (rRows(R[i]) !== rRows(f) || rCols(R[i]) !== rCols(f)) return E.VALUE;
+  const crits = [];
+  for (const [, ci] of pairs) { const v = evalNode(args[ci], si); if (isErr(v)) return v; crits.push(parseCrit(v)); }
+  const rows = rRows(f), cols = rCols(f);
+  let cnt = 0, sum = 0, n = 0;
+  const at = (Rg, p) => getVal(Rg.s, (Rg.r1 + Math.floor(p / cols)) * COLS + Rg.c1 + (p % cols));
+  for (let p = 0; p < rows * cols; p++) {
+    let ok = true;
+    for (let k = 0; k < pairs.length; k++) {
+      const cell = at(R[pairs[k][0]], p);
+      if (isErr(cell)) return cell;
+      if (cell === null || !meets(cell, crits[k])) { ok = false; break; }
+    }
+    if (!ok) continue;
+    if (mode === 'count') { cnt++; continue; }
+    const cv = at(R[sumIdx], p);
+    if (isErr(cv)) return cv;
+    if (typeof cv === 'number') { sum += cv; n++; }
+  }
+  if (mode === 'count') return cnt;
+  if (mode === 'sum') return N(sum);
+  return n ? N(sum / n) : E.DIV;
+}
+function callFn(node, si) {
+  const name = node.name, a = node.args;
+  const ar = ARITY[name];
+  if (!ar) return E.NAME;
+  if (!ar(a.length)) return E.ARGS;
+  const ev = x => evalNode(x, si);
+  const sp = SIMPLE[name];
+  if (sp) {
+    const v = conv(a, sp[0], si);
+    if (isErr(v)) return v;
+    return sp[1](...v);
+  }
+  switch (name) {
+    case 'SUM': case 'AVERAGE': case 'MIN': case 'MAX': case 'COUNT': case 'COUNTA': return aggregate(name, a, si);
+    case 'IF': {
+      const c = toLog(ev(a[0])); if (isErr(c)) return c;
+      return ev(c ? a[1] : a[2]);
+    }
+    case 'AND': case 'OR': {
+      let all = true, any = false;
+      for (const x of a) { const v = toLog(ev(x)); if (isErr(v)) return v; if (v) any = true; else all = false; }
+      return name === 'AND' ? all : any;
+    }
+    case 'IFERROR': { const v = ev(a[0]); return isErr(v) ? ev(a[1]) : v; }
+    case 'ISERROR': return isErr(ev(a[0]));
+    case 'ISBLANK': {
+      if (isRA(a[0])) {
+        const R = resolveRange(a[0], si);
+        if (R.e) return R.e;
+        if (R.multi) return E.VALUE;
+        return wb.sheets[R.s].raw[R.r1 * COLS + R.c1] === '';
+      }
+      const v = ev(a[0]); return isErr(v) ? v : false;
+    }
+    case 'CHOOSE': {
+      const i = toInt(ev(a[0])); if (isErr(i)) return i;
+      if (i < 1 || i > a.length - 1) return E.VALUE;
+      return ev(a[i]);
+    }
+    case 'CONCAT': {
+      let out = '';
+      for (const x of a) {
+        if (isRA(x)) {
+          const R = resolveRange(x, si); if (R.e) return R.e;
+          for (const v of cellsOf(R)) { if (isErr(v)) return v; out += toText(v); }
+        } else { const v = ev(x); if (isErr(v)) return v; out += toText(v); }
+      }
+      return out;
+    }
+    case 'MATCH': {
+      if (!isRA(a[1])) return E.VALUE;
+      const R = resolveRange(a[1], si); if (R.e) return R.e;
+      if (rRows(R) > 1 && rCols(R) > 1) return E.VALUE;
+      let key = ev(a[0]); if (isErr(key)) return key;
+      if (key === null) key = 0;
+      let ty = 1;
+      if (a.length > 2) { ty = toInt(ev(a[2])); if (isErr(ty)) return ty; if (ty !== -1 && ty !== 0 && ty !== 1) return E.VALUE; }
+      const r = search(cellsOf(R), key, ty === 0 ? 0 : ty === 1 ? 1 : -1);
+      if (isErr(r)) return r;
+      return r < 0 ? E.NA : r + 1;
+    }
+    case 'VLOOKUP': {
+      if (!isRA(a[1])) return E.VALUE;
+      const R = resolveRange(a[1], si); if (R.e) return R.e;
+      let key = ev(a[0]); if (isErr(key)) return key;
+      if (key === null) key = 0;
+      const col = toInt(ev(a[2])); if (isErr(col)) return col;
+      if (col < 1) return E.VALUE;
+      if (col > rCols(R)) return E.REF;
+      let approx = false;
+      if (a.length > 3) { approx = toLog(ev(a[3])); if (isErr(approx)) return approx; }
+      const first = [];
+      for (let r = R.r1; r <= R.r2; r++) first.push(getVal(R.s, r * COLS + R.c1));
+      const f = search(first, key, approx ? 1 : 0);
+      if (isErr(f)) return f;
+      if (f < 0) return E.NA;
+      return getVal(R.s, (R.r1 + f) * COLS + R.c1 + col - 1);
+    }
+    case 'INDEX': {
+      if (!isRA(a[0])) return E.VALUE;
+      const R = resolveRange(a[0], si); if (R.e) return R.e;
+      const n = toInt(ev(a[1])); if (isErr(n)) return n;
+      let m;
+      if (a.length > 2) { m = toInt(ev(a[2])); if (isErr(m)) return m; }
+      let r, c;
+      if (a.length === 2) {
+        if (n < 1) return E.VALUE;
+        if (n > rRows(R) * rCols(R)) return E.REF;
+        r = R.r1 + Math.floor((n - 1) / rCols(R)); c = R.c1 + (n - 1) % rCols(R);
+      } else {
+        if (n < 1 || m < 1) return E.VALUE;
+        if (n > rRows(R) || m > rCols(R)) return E.REF;
+        r = R.r1 + n - 1; c = R.c1 + m - 1;
+      }
+      return getVal(R.s, r * COLS + c);
+    }
+    case 'COUNTIF': return condAgg('count', a, si, [0], [[0, 1]], -1);
+    case 'COUNTIFS': {
+      const ri = [], pr = [];
+      for (let i = 0; i < a.length; i += 2) { ri.push(i); pr.push([i, i + 1]); }
+      return condAgg('count', a, si, ri, pr, -1);
+    }
+    case 'SUMIF': return condAgg('sum', a, si, [0, 2], [[0, 1]], 2);
+    case 'SUMIFS': {
+      const ri = [0], pr = [];
+      for (let i = 1; i < a.length; i += 2) { ri.push(i); pr.push([i, i + 1]); }
+      return condAgg('sum', a, si, ri, pr, 0);
+    }
+    case 'AVERAGEIF': return a.length === 3 ? condAgg('avg', a, si, [0, 2], [[0, 1]], 2) : condAgg('avg', a, si, [0], [[0, 1]], 0);
+  }
+  return E.NAME;
+}
+
+/* display */
+function display(v, fmt) {
+  if (v === null || v === undefined) return '';
+  if (isErr(v)) return v.c;
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  if (typeof v === 'string') return v;
+  switch (fmt) {
+    case 'fixed2': return fixed2(v);
+    case 'percent1': return percent1(v);
+    case 'date': { const d = Math.floor(v); return isSerial(d) ? dateText(d) : G(v); }
+    default: return G(v);
+  }
+}
+const kindOf = (raw, v) => raw === '' ? 'empty' : isErr(v) ? 'error' : typeof v === 'number' ? 'number' : typeof v === 'boolean' ? 'logical' : 'text';
+
+/* commit under 02 section 2.2; returns true if changed */
+function commitString(sh, i, s) {
+  let raw = s;
+  if (s[0] === '=') { const pf = parseFormula(s); if (pf.ok) raw = serialize(pf.toks, true); }
+  if (raw === sh.raw[i]) return false;
+  sh.raw[i] = raw;
+  if (s[0] !== '=' && s[0] !== "'" && dateEntry(trimSp(s)) !== null && sh.fmt[i] === 'general') sh.fmt[i] = 'date';
+  return true;
+}
+
+/* ================= Structure rewriting ================= */
+const pointsTo = (u, hold, S) => u.pre !== null ? findSheet(u.pre) === S : hold === S;
+function partNum(r, axis) { return axis === 'r' ? rowNum(r.rs) : colNum(r.cs); }
+function setPart(r, axis, v) { const n = { ...r }; if (axis === 'r') n.rs = String(v); else n.cs = L[v - 1]; return n; }
+function insUnit(u, axis, k, lim) {
+  if (!refIn(u.a) || (u.b && !refIn(u.b))) return u;
+  const f = n => n < k ? n : n + 1;
+  if (!u.b) { const n = f(partNum(u.a, axis)); if (n > lim) return null; return n === partNum(u.a, axis) ? u : { ...u, a: setPart(u.a, axis, n) }; }
+  const v = normUnit(u);
+  const t = f(partNum(v.a, axis)); let b = f(partNum(v.b, axis));
+  if (t > lim) return null;
+  b = Math.min(b, lim);
+  return { ...v, a: setPart(v.a, axis, t), b: setPart(v.b, axis, b) };
+}
+function delUnit(u, axis, k) {
+  if (!refIn(u.a) || (u.b && !refIn(u.b))) return u;
+  if (!u.b) { const n = partNum(u.a, axis); if (n === k) return null; return n > k ? { ...u, a: setPart(u.a, axis, n - 1) } : u; }
+  const v = normUnit(u);
+  const t = partNum(v.a, axis), b = partNum(v.b, axis);
+  if (k > b) return u;
+  if (k < t) return { ...v, a: setPart(v.a, axis, t - 1), b: setPart(v.b, axis, b - 1) };
+  if (t === b) return null;
+  return { ...v, b: setPart(v.b, axis, b - 1) };
+}
+function shiftUnit(u, dc, dr) {
+  const sh = r => {
+    let c = colNum(r.cs), w = rowNum(r.rs);
+    if (!r.ca) c += dc;
+    if (!r.ra) w += dr;
+    if (!(c >= 1 && c <= COLS && w >= 1 && w <= ROWS)) return null;
+    return { ca: r.ca, cs: L[c - 1], ra: r.ra, rs: String(w) };
+  };
+  const a = sh(u.a); if (!a) return null;
+  if (!u.b) return { ...u, a };
+  const b = sh(u.b); if (!b) return null;
+  return { ...u, a, b };
+}
+function adjustRaw(raw, dc, dr) {
+  if (raw[0] !== '=' || !parseFormula(raw).ok) return raw;
+  const pf = parseFormula(raw);
+  const toks = pf.toks.map(t => { if (t.k !== 'unit') return t; const r = shiftUnit(t, dc, dr); return r === null ? { k: 'referr' } : r; });
+  return serialize(toks, false);
+}
+/* name target movement: axis 'r'/'c', 0-based coords */
+function moveTarget(t, axis, k1, ins) {
+  if (t.removed) return t;
+  const lim = axis === 'r' ? ROWS : COLS;
+  const lo = axis === 'r' ? 'r1' : 'c1', hi = axis === 'r' ? 'r2' : 'c2';
+  const a = t[lo] + 1, b = t[hi] + 1;
+  let na, nb;
+  if (ins) {
+    const f = n => n < k1 ? n : n + 1;
+    if (!t.range) { na = f(a); if (na > lim) return { removed: true }; nb = na; }
+    else { na = f(a); nb = f(b); if (na > lim) return { removed: true }; nb = Math.min(nb, lim); }
+  } else {
+    if (!t.range) { if (a === k1) return { removed: true }; na = nb = a > k1 ? a - 1 : a; }
+    else {
+      if (k1 > b) { na = a; nb = b; }
+      else if (k1 < a) { na = a - 1; nb = b - 1; }
+      else if (a === b) return { removed: true };
+      else { na = a; nb = b - 1; }
+    }
+  }
+  const n = { ...t }; n[lo] = na - 1; n[hi] = nb - 1;
+  return n;
+}
+function structChange(axis, ins) {
+  const S = wb.active, sh = wb.sheets[S];
+  const k = (axis === 'r' ? sh.act[0] : sh.act[1]) + 1;
+  const lim = axis === 'r' ? ROWS : COLS;
+  wb.sheets.forEach((s2, si) => {
+    for (let i = 0; i < NC; i++) {
+      s2.raw[i] = rewriteRaw(s2.raw[i], u => pointsTo(u, si, S) ? (ins ? insUnit(u, axis, k, lim) : delUnit(u, axis, k)) : u);
+    }
+  });
+  for (const nm of wb.names) if (!nm.target.removed && nm.target.sid === sh.id) nm.target = moveTarget(nm.target, axis, k, ins);
+  const oldR = sh.raw.slice(), oldF = sh.fmt.slice();
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const p = axis === 'r' ? r + 1 : c + 1;
+    let src;
+    if (ins) src = p < k ? p : p === k ? 0 : p - 1;
+    else src = p < k ? p : p === lim ? 0 : p + 1;
+    const i = r * COLS + c;
+    if (src === 0) { sh.raw[i] = ''; sh.fmt[i] = 'general'; }
+    else { const j = axis === 'r' ? (src - 1) * COLS + c : r * COLS + src - 1; sh.raw[i] = oldR[j]; sh.fmt[i] = oldF[j]; }
+  }
+}
+
+/* ================= CSV ================= */
+function csvField(f) { return /[",\r\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f; }
+function parseCSV(text) {
+  const recs = []; let rec = []; let i = 0; const n = text.length;
+  for (;;) {
+    let f = '';
+    if (text[i] === '"') {
+      i++;
+      for (;;) {
+        if (i >= n) return null;
+        const ch = text[i];
+        if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i += 2; continue; } i++; break; }
+        if (ch === '\r') { f += ' '; i += text[i + 1] === '\n' ? 2 : 1; continue; }
+        if (ch === '\n') { f += ' '; i++; continue; }
+        f += ch; i++;
+      }
+      if (i < n && text[i] !== ',' && text[i] !== '\r' && text[i] !== '\n') return null;
+    } else {
+      while (i < n && text[i] !== ',' && text[i] !== '\r' && text[i] !== '\n') f += text[i++];
+    }
+    rec.push(f);
+    if (i >= n) { recs.push(rec); break; }
+    if (text[i] === ',') { i++; continue; }
+    i += (text[i] === '\r' && text[i + 1] === '\n') ? 2 : 1;
+    recs.push(rec); rec = [];
+    if (i >= n) break;
+  }
+  return recs;
+}
+
+/* ================= Persistence ================= */
+const KEY = 'tally-book';
+function saveState() {
+  try {
+    const data = {
+      app: 'tally-book', v: 1, active: wb.active,
+      sheets: wb.sheets.map(s => ({ name: s.name, raw: s.raw, fmt: s.fmt, anchor: s.anchor, act: s.act })),
+      names: wb.names.map(n => ({ name: n.name, t: n.target.removed ? null : { s: sheetIndexById(n.target.sid), r1: n.target.r1, c1: n.target.c1, r2: n.target.r2, c2: n.target.c2, range: !!n.target.range } }))
+    };
+    localStorage.setItem(KEY, JSON.stringify(data));
+  } catch (e) { /* storage unavailable */ }
+}
+function loadState() {
+  let txt = null;
+  try { txt = localStorage.getItem(KEY); } catch (e) { return null; }
+  if (typeof txt !== 'string' || !txt) return null;
+  try {
+    const d = JSON.parse(txt);
+    if (!d || typeof d !== 'object' || Array.isArray(d) || d.app !== 'tally-book' || d.v !== 1) return null;
+    if (!Array.isArray(d.sheets) || d.sheets.length < 1 || d.sheets.length > 5) return null;
+    const isCoord = (p) => Array.isArray(p) && p.length === 2 && Number.isInteger(p[0]) && Number.isInteger(p[1]) && p[0] >= 0 && p[0] < ROWS && p[1] >= 0 && p[1] < COLS;
+    const sheets = [];
+    const seen = new Set();
+    for (const s of d.sheets) {
+      if (!s || typeof s.name !== 'string' || !validSheetName(s.name) || seen.has(s.name.toUpperCase())) return null;
+      seen.add(s.name.toUpperCase());
+      if (!Array.isArray(s.raw) || s.raw.length !== NC || !s.raw.every(x => typeof x === 'string')) return null;
+      if (!Array.isArray(s.fmt) || s.fmt.length !== NC || !s.fmt.every(x => FORMATS.includes(x))) return null;
+      if (!isCoord(s.anchor) || !isCoord(s.act)) return null;
+      const ns = newSheet(s.name);
+      ns.raw = s.raw.slice(); ns.fmt = s.fmt.slice(); ns.anchor = s.anchor.slice(); ns.act = s.act.slice();
+      sheets.push(ns);
+    }
+    if (!Number.isInteger(d.active) || d.active < 0 || d.active >= sheets.length) return null;
+    if (!Array.isArray(d.names) || d.names.length > 10) return null;
+    const names = []; const nseen = new Set();
+    for (const n of d.names) {
+      if (!n || typeof n.name !== 'string' || !validName(n.name) || nseen.has(n.name.toUpperCase())) return null;
+      nseen.add(n.name.toUpperCase());
+      let target;
+      if (n.t === null) target = { removed: true };
+      else {
+        const t = n.t;
+        if (!t || typeof t !== 'object' || !Number.isInteger(t.s) || t.s < 0 || t.s >= sheets.length) return null;
+        if (!isCoord([t.r1, t.c1]) || !isCoord([t.r2, t.c2]) || t.r1 > t.r2 || t.c1 > t.c2 || typeof t.range !== 'boolean') return null;
+        if (!t.range && (t.r1 !== t.r2 || t.c1 !== t.c2)) return null;
+        target = { sid: sheets[t.s].id, r1: t.r1, c1: t.c1, r2: t.r2, c2: t.c2, range: t.range };
+      }
+      names.push({ name: n.name, target });
+    }
+    return { sheets, names, active: d.active };
+  } catch (e) { return null; }
+}
+
+/* ================= History ================= */
+let undoS = [], redoS = [], clip = null, editing = false;
+const snap = () => JSON.stringify({ sheets: wb.sheets, names: wb.names, active: wb.active });
+function restore(s) { wb = JSON.parse(s); }
+function step(fn) {
+  const before = snap();
+  const changed = fn();
+  if (changed) {
+    undoS.push({ before, after: snap() });
+    if (undoS.length > 20) undoS.shift();
+    redoS = [];
+  }
+  refresh();
+  return changed;
+}
+
+/* ================= UI ================= */
+const $ = id => document.querySelector('[data-testid="' + id + '"]');
+const fi = $('formula-input'), nameBox = $('name-box'), fmtSel = $('format-select'), summary = $('selection-summary');
+const tabsEl = $('sheet-tabs'), sni = $('sheet-name-input'), nameInput = $('name-input'), nameList = $('name-list');
+const findInput = $('find-input'), replInput = $('replace-input'), findCase = $('find-case'), findWhole = $('find-whole');
+const csvRaw = $('csv-raw'), csvText = $('csv-text');
+const MSG = { sheet: $('sheet-message'), name: $('name-message'), find: $('find-status'), csv: $('csv-message') };
+let grid, cellEls = [];
+
+function buildGrid() {
+  const t = document.createElement('table');
+  t.className = 'grid'; t.setAttribute('role', 'grid'); t.setAttribute('aria-label', 'Sheet'); t.tabIndex = 0; t.dataset.testid = 'grid';
+  const cg = document.createElement('colgroup');
+  cg.innerHTML = '<col style="width:40px">' + '<col style="width:104px">'.repeat(COLS);
+  t.appendChild(cg);
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr'); hr.setAttribute('role', 'row');
+  const corner = document.createElement('td'); corner.className = 'corner'; corner.setAttribute('role', 'presentation'); hr.appendChild(corner);
+  for (let c = 0; c < COLS; c++) { const th = document.createElement('th'); th.setAttribute('role', 'columnheader'); th.dataset.testid = 'col-header-' + L[c]; th.textContent = L[c]; hr.appendChild(th); }
+  thead.appendChild(hr); t.appendChild(thead);
+  const tb = document.createElement('tbody');
+  for (let r = 0; r < ROWS; r++) {
+    const tr = document.createElement('tr'); tr.setAttribute('role', 'row');
+    const th = document.createElement('th'); th.className = 'rh'; th.setAttribute('role', 'rowheader'); th.dataset.testid = 'row-header-' + (r + 1); th.textContent = r + 1; tr.appendChild(th);
+    for (let c = 0; c < COLS; c++) {
+      const td = document.createElement('td'); td.className = 'c'; td.setAttribute('role', 'gridcell'); td.dataset.testid = 'cell-' + addr(r, c);
+      td.dataset.r = r; td.dataset.c = c;
+      tr.appendChild(td); cellEls.push(td);
+    }
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  document.getElementById('gridwrap').appendChild(t);
+  grid = t;
+}
+
+const cur = () => wb.sheets[wb.active];
+function selRect(sh) { return { r1: Math.min(sh.anchor[0], sh.act[0]), r2: Math.max(sh.anchor[0], sh.act[0]), c1: Math.min(sh.anchor[1], sh.act[1]), c2: Math.max(sh.anchor[1], sh.act[1]) }; }
+function setMsg(k, text) { const el = MSG[k]; el.textContent = text; el.hidden = !text; }
+
+let tabBtns = [];
+function render() {
+  const S = wb.active, sh = cur(), sel = selRect(sh);
+  for (let i = 0; i < NC; i++) {
+    const el = cellEls[i], r = Math.floor(i / COLS), c = i % COLS;
+    const v = vals[S][i];
+    const txt = display(v, sh.fmt[i]);
+    if (el.textContent !== txt) el.textContent = txt;
+    el.setAttribute('data-kind', kindOf(sh.raw[i], v));
+    el.setAttribute('aria-selected', r === sh.act[0] && c === sh.act[1] ? 'true' : 'false');
+    el.setAttribute('data-in-selection', r >= sel.r1 && r <= sel.r2 && c >= sel.c1 && c <= sel.c2 ? 'true' : 'false');
+  }
+  nameBox.textContent = sel.r1 === sel.r2 && sel.c1 === sel.c2 ? addr(sh.act[0], sh.act[1]) : addr(sel.r1, sel.c1) + ':' + addr(sel.r2, sel.c2);
+  const ai = sh.act[0] * COLS + sh.act[1];
+  if (!editing) { fi.value = sh.raw[ai]; fmtSel.value = sh.fmt[ai]; }
+  fi.setAttribute('data-editing', editing ? 'true' : 'false');
+  // summary
+  let sum = 0, n = 0;
+  for (let r = sel.r1; r <= sel.r2; r++) for (let c = sel.c1; c <= sel.c2; c++) { const v = vals[S][r * COLS + c]; if (typeof v === 'number') { sum += v; n++; } }
+  if (n) {
+    const s = N(sum), a = N(sum / n);
+    summary.textContent = 'Sum: ' + (isErr(s) ? '#NUM!' : G(s)) + ' | Average: ' + (isErr(a) ? '#NUM!' : G(a)) + ' | Count: ' + n;
+    summary.hidden = false;
+  } else { summary.hidden = true; summary.textContent = ''; }
+  // tabs
+  while (tabBtns.length < wb.sheets.length) {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab');
+    const idx = tabBtns.length;
+    b.addEventListener('click', guard(() => onTab(idx)));
+    tabsEl.appendChild(b); tabBtns.push(b);
+  }
+  while (tabBtns.length > wb.sheets.length) tabBtns.pop().remove();
+  tabBtns.forEach((b, i) => {
+    b.dataset.testid = 'sheet-tab-' + (i + 1);
+    if (b.textContent !== wb.sheets[i].name) b.textContent = wb.sheets[i].name;
+    b.setAttribute('aria-selected', i === S ? 'true' : 'false');
+  });
+  // names
+  const sorted = wb.names.slice().sort((x, y) => { const a = x.name.toUpperCase(), b = y.name.toUpperCase(); return a < b ? -1 : a > b ? 1 : 0; });
+  const items = sorted.map(nm => nm.name + ' = ' + targetText(nm.target));
+  const lis = nameList.children;
+  while (lis.length > items.length) nameList.lastChild.remove();
+  while (lis.length < items.length) { const li = document.createElement('li'); li.setAttribute('role', 'listitem'); nameList.appendChild(li); }
+  items.forEach((t, i) => { const li = lis[i]; li.dataset.testid = 'name-item-' + (i + 1); if (li.textContent !== t) li.textContent = t; });
+  // disabled
+  const dis = (el, d) => { el.disabled = !!d; };
+  document.querySelectorAll('button, select, input, textarea').forEach(el => { if (el !== fi) dis(el, editing); });
+  if (!editing) {
+    dis($('undo-button'), !undoS.length);
+    dis($('redo-button'), !redoS.length);
+    dis($('paste-button'), !clip);
+    dis($('add-sheet'), wb.sheets.length >= 5);
+    dis($('delete-sheet'), wb.sheets.length <= 1);
+  }
+}
+function refresh() { recalc(); render(); saveState(); }
+function guard(fn) { return function (e) { try { fn.call(this, e); } catch (err) { console.error(err); } }; }
+
+/* ---------- actions ---------- */
+function clampMove(sh, dr, dc) { sh.act = [Math.max(0, Math.min(ROWS - 1, sh.act[0] + dr)), Math.max(0, Math.min(COLS - 1, sh.act[1] + dc))]; }
+function commitIfEditing() {
+  if (!editing) return false;
+  editing = false;
+  const sh = cur();
+  return commitString(sh, sh.act[0] * COLS + sh.act[1], fi.value);
+}
+function selectCell(r, c, shift) {
+  const sh = cur();
+  sh.act = [r, c];
+  if (!shift) sh.anchor = [r, c];
+}
+function onCellClick(e) {
+  const td = e.target.closest('td.c');
+  if (!td) return;
+  const r = +td.dataset.r, c = +td.dataset.c;
+  if (editing) step(() => { const ch = commitIfEditing(); selectCell(r, c, e.shiftKey); return ch; });
+  else { selectCell(r, c, e.shiftKey); refresh(); }
+  grid.focus();
+}
+function undo() { if (!undoS.length) return; const s = undoS.pop(); restore(s.before); redoS.push(s); refresh(); sni.value = cur().name; }
+function redo() { if (!redoS.length) return; const s = redoS.pop(); restore(s.after); undoS.push(s); refresh(); sni.value = cur().name; }
+function clearSel() {
+  step(() => {
+    const sh = cur(), s = selRect(sh); let ch = false;
+    for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) { const i = r * COLS + c; if (sh.raw[i] !== '') { sh.raw[i] = ''; ch = true; } }
+    return ch;
+  });
+}
+function onGridKey(e) {
+  const k = e.key, kl = k.length === 1 ? k.toLowerCase() : k;
+  const ctrl = e.ctrlKey || e.metaKey;
+  const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  let handled = true;
+  if (arrows[k]) {
+    if (!editing) { const sh = cur(); clampMove(sh, ...arrows[k]); if (!e.shiftKey) sh.anchor = sh.act.slice(); refresh(); }
+  } else if (k === 'Delete' || k === 'Backspace') { if (!editing) clearSel(); }
+  else if (k === 'Enter') { fi.focus(); }
+  else if (ctrl && kl === 'z') { if (!editing) undo(); }
+  else if (ctrl && kl === 'y') { if (!editing) redo(); }
+  else handled = false;
+  if (handled) e.preventDefault();
+}
+function onFormulaKey(e) {
+  if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+    e.preventDefault();
+    const tab = e.key === 'Tab';
+    step(() => { const ch = commitIfEditing(); const sh = cur(); clampMove(sh, tab ? 0 : 1, tab ? 1 : 0); sh.anchor = sh.act.slice(); return ch; });
+    fi.focus();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    editing = false; render(); grid.focus();
+  }
+}
+function setFormat(f) {
+  if (editing || !FORMATS.includes(f)) return;
+  step(() => {
+    const sh = cur(), s = selRect(sh); let ch = false;
+    for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) { const i = r * COLS + c; if (sh.fmt[i] !== f) { sh.fmt[i] = f; ch = true; } }
+    return ch;
+  });
+}
+function takeClip(mode) {
+  const sh = cur(), s = selRect(sh);
+  const raw = [], fmt = [];
+  for (let r = s.r1; r <= s.r2; r++) { const rr = [], ff = []; for (let c = s.c1; c <= s.c2; c++) { rr.push(sh.raw[r * COLS + c]); ff.push(sh.fmt[r * COLS + c]); } raw.push(rr); fmt.push(ff); }
+  clip = { mode, sheet: sh.name, r1: s.r1, c1: s.c1, raw, fmt };
+  render();
+}
+function paste() {
+  if (!clip) return;
+  step(() => {
+    const b = clip;
+    if (b.mode === 'cut') {
+      const si = findSheet(b.sheet);
+      if (si >= 0) {
+        const src = wb.sheets[si];
+        for (let i = 0; i < b.raw.length; i++) for (let j = 0; j < b.raw[0].length; j++) { const x = (b.r1 + i) * COLS + b.c1 + j; src.raw[x] = ''; src.fmt[x] = 'general'; }
+      }
+    }
+    const sh = cur(), s = selRect(sh);
+    const tr = s.r1, tc = s.c1;
+    for (let i = 0; i < b.raw.length; i++) for (let j = 0; j < b.raw[0].length; j++) {
+      const r = tr + i, c = tc + j;
+      if (r >= ROWS || c >= COLS) continue;
+      const x = r * COLS + c;
+      sh.raw[x] = b.mode === 'copy' ? adjustRaw(b.raw[i][j], tc - b.c1, tr - b.r1) : b.raw[i][j];
+      sh.fmt[x] = b.fmt[i][j];
+    }
+    sh.anchor = [tr, tc]; sh.act = [tr, tc];
+    if (b.mode === 'cut') clip = null;
+    return true;
+  });
+}
+function sortKeyRank(raw, v) { if (raw === '') return 4; if (isErr(v)) return 3; return typeof v === 'number' ? 0 : typeof v === 'string' ? 1 : 2; }
+function sortRows(desc) {
+  step(() => {
+    const S = wb.active, sh = cur(), s = selRect(sh), kc = sh.act[1];
+    const rows = [];
+    for (let r = s.r1; r <= s.r2; r++) { const i = r * COLS + kc; rows.push({ r, rank: sortKeyRank(sh.raw[i], vals[S][i]), v: vals[S][i] }); }
+    const asc = (a, b) => a.rank - b.rank || (a.rank <= 2 ? cmpSame(a.v, b.v) : 0);
+    rows.sort((a, b) => {
+      if (!desc) return asc(a, b);
+      const ae = a.rank === 4, be = b.rank === 4;
+      if (ae || be) return (ae ? 1 : 0) - (be ? 1 : 0);
+      return -asc(a, b);
+    });
+    if (rows.every((x, k) => x.r === s.r1 + k)) return false;
+    const oldR = sh.raw.slice(), oldF = sh.fmt.slice();
+    rows.forEach((x, k) => { for (let c = s.c1; c <= s.c2; c++) { sh.raw[(s.r1 + k) * COLS + c] = oldR[x.r * COLS + c]; sh.fmt[(s.r1 + k) * COLS + c] = oldF[x.r * COLS + c]; } });
+    return true;
+  });
+}
+function fill(down) {
+  step(() => {
+    const sh = cur(), s = selRect(sh);
+    if (down ? s.r2 === s.r1 : s.c2 === s.c1) return false;
+    for (let r = s.r1; r <= s.r2; r++) for (let c = s.c1; c <= s.c2; c++) {
+      if (down ? r === s.r1 : c === s.c1) continue;
+      const src = down ? s.r1 * COLS + c : r * COLS + s.c1;
+      sh.raw[r * COLS + c] = adjustRaw(sh.raw[src], down ? 0 : c - s.c1, down ? r - s.r1 : 0);
+      sh.fmt[r * COLS + c] = sh.fmt[src];
+    }
+    return true;
+  });
+}
+function fillSeries() {
+  step(() => {
+    const sh = cur(), s = selRect(sh);
+    const lines = [];
+    if (s.r1 === s.r2) { const l = []; for (let c = s.c1; c <= s.c2; c++) l.push(s.r1 * COLS + c); lines.push(l); }
+    else for (let c = s.c1; c <= s.c2; c++) { const l = []; for (let r = s.r1; r <= s.r2; r++) l.push(r * COLS + c); lines.push(l); }
+    let any = false;
+    for (const l of lines) {
+      if (l.length < 3) continue;
+      if (!isNumberKind(sh.raw[l[0]]) || !isNumberKind(sh.raw[l[1]])) continue;
+      const a = literalValue(sh.raw[l[0]]), b = literalValue(sh.raw[l[1]]);
+      const st = N(b - a); if (isErr(st)) continue;
+      const out = [];
+      let ok = true;
+      for (let k = 3; k <= l.length; k++) { const v = N(a + (k - 1) * st); if (isErr(v)) { ok = false; break; } out.push(v); }
+      if (!ok) continue;
+      out.forEach((v, j) => { sh.raw[l[j + 2]] = P(v); sh.fmt[l[j + 2]] = sh.fmt[l[0]]; });
+      any = true;
+    }
+    return any;
+  });
+}
+function onTab(i) {
+  if (editing || i >= wb.sheets.length) return;
+  wb.active = i;
+  refresh();
+  sni.value = cur().name;
+}
+function defaultSheetName() { for (let n = 1; ; n++) if (findSheet('Sheet' + n) < 0) return 'Sheet' + n; }
+function addSheet() {
+  setMsg('sheet', '');
+  if (wb.sheets.length >= 5) return;
+  step(() => { wb.sheets.push(newSheet(defaultSheetName())); wb.active = wb.sheets.length - 1; return true; });
+  sni.value = cur().name;
+}
+function renameSheet() {
+  setMsg('sheet', '');
+  const v = sni.value, sh = cur();
+  if (!validSheetName(v)) { setMsg('sheet', 'Invalid sheet name'); return; }
+  const o = findSheet(v);
+  if (o >= 0 && o !== wb.active) { setMsg('sheet', 'Sheet name already used'); return; }
+  if (v === sh.name) return;
+  step(() => {
+    const old = sh.name.toUpperCase();
+    wb.sheets.forEach(s2 => { for (let i = 0; i < NC; i++) s2.raw[i] = rewriteRaw(s2.raw[i], u => u.pre !== null && u.pre.toUpperCase() === old ? { ...u, pre: v } : u); });
+    sh.name = v;
+    return true;
+  });
+  sni.value = cur().name;
+}
+function deleteSheet() {
+  setMsg('sheet', '');
+  if (wb.sheets.length <= 1) return;
+  step(() => {
+    const S = wb.active, sh = wb.sheets[S], up = sh.name.toUpperCase();
+    wb.sheets.forEach((s2, si) => { if (si === S) return; for (let i = 0; i < NC; i++) s2.raw[i] = rewriteRaw(s2.raw[i], u => u.pre !== null && u.pre.toUpperCase() === up ? null : u); });
+    for (const nm of wb.names) if (!nm.target.removed && nm.target.sid === sh.id) nm.target = { removed: true };
+    wb.sheets.splice(S, 1);
+    wb.active = Math.min(S, wb.sheets.length - 1);
+    return true;
+  });
+  sni.value = cur().name;
+}
+function defineName() {
+  setMsg('name', '');
+  const v = nameInput.value;
+  if (!validName(v)) { setMsg('name', 'Invalid name'); return; }
+  if (findName(v)) { setMsg('name', 'Name already used'); return; }
+  if (wb.names.length >= 10) { setMsg('name', 'Too many names'); return; }
+  step(() => {
+    const sh = cur(), s = selRect(sh);
+    const range = !(s.r1 === s.r2 && s.c1 === s.c2);
+    wb.names.push({ name: v, target: { sid: sh.id, r1: s.r1, c1: s.c1, r2: s.r2, c2: s.c2, range } });
+    return true;
+  });
+  nameInput.value = '';
+}
+function deleteName() {
+  setMsg('name', '');
+  const d = findName(nameInput.value);
+  if (!d) { setMsg('name', 'Unknown name'); return; }
+  step(() => { wb.names.splice(wb.names.indexOf(d), 1); return true; });
+  nameInput.value = '';
+}
+function asciiUp(s) { return s.replace(/[a-z]/g, ch => ch.toUpperCase()); }
+function matcher() {
+  const needle = findInput.value, mc = findCase.checked, whole = findWhole.checked;
+  const norm = mc ? (s => s) : asciiUp;
+  const nn = norm(needle);
+  return {
+    needle,
+    test(raw) { if (!needle || raw === '') return false; const h = norm(raw); return whole ? h === nn : h.includes(nn); },
+    replace(raw, rep) {
+      if (whole) return rep;
+      const h = norm(raw); let out = '', pos = 0;
+      for (;;) { const i = h.indexOf(nn, pos); if (i < 0) break; out += raw.slice(pos, i) + rep; pos = i + nn.length; }
+      return out + raw.slice(pos);
+    }
+  };
+}
+function findNext() {
+  setMsg('find', '');
+  const m = matcher(), sh = cur();
+  let count = 0;
+  for (let i = 0; i < NC; i++) if (m.test(sh.raw[i])) count++;
+  setMsg('find', 'Matches: ' + count);
+  if (count) {
+    const start = sh.act[0] * COLS + sh.act[1];
+    for (let k = 1; k <= NC; k++) { const i = (start + k) % NC; if (m.test(sh.raw[i])) { sh.act = [Math.floor(i / COLS), i % COLS]; sh.anchor = sh.act.slice(); break; } }
+  }
+  refresh();
+}
+function replaceAll() {
+  setMsg('find', '');
+  const m = matcher(), rep = replInput.value;
+  let count = 0;
+  step(() => {
+    const sh = cur(); let ch = false;
+    const hits = [];
+    for (let i = 0; i < NC; i++) if (m.test(sh.raw[i])) hits.push(i);
+    count = hits.length;
+    for (const i of hits) { if (commitString(sh, i, m.replace(sh.raw[i], rep))) ch = true; }
+    return ch;
+  });
+  setMsg('find', 'Replaced: ' + count);
+}
+function exportCSV() {
+  setMsg('csv', '');
+  const sh = cur(), S = wb.active, raw = csvRaw.checked;
+  let R = -1, C = -1;
+  for (let i = 0; i < NC; i++) if (sh.raw[i] !== '') { R = Math.max(R, Math.floor(i / COLS)); C = Math.max(C, i % COLS); }
+  const lines = [];
+  for (let r = 0; r <= R; r++) {
+    const f = [];
+    for (let c = 0; c <= C; c++) { const i = r * COLS + c; f.push(csvField(raw ? sh.raw[i] : display(vals[S][i], sh.fmt[i]))); }
+    lines.push(f.join(','));
+  }
+  csvText.value = lines.join('\n');
+}
+function importCSV() {
+  setMsg('csv', '');
+  const text = csvText.value;
+  if (text === '') { setMsg('csv', 'Nothing to import'); return; }
+  const recs = parseCSV(text);
+  if (!recs) { setMsg('csv', 'Invalid CSV'); return; }
+  let k = 0, d = 0;
+  step(() => {
+    const sh = cur();
+    for (let i = 0; i < NC; i++) sh.raw[i] = '';
+    recs.forEach((rec, i) => rec.forEach((f, j) => {
+      if (f === '') return;
+      if (i < ROWS && j < COLS) { commitString(sh, i * COLS + j, f); k++; } else d++;
+    }));
+    return true;
+  });
+  setMsg('csv', 'Imported: ' + k + ' | Dropped: ' + d);
+}
+
+/* ---------- wiring ---------- */
+function init() {
+  buildGrid();
+  let loaded = null;
+  try { loaded = loadState(); } catch (e) { loaded = null; }
+  wb = loaded || newWorkbook();
+  // fields start empty on every load
+  sni.value = cur().name; nameInput.value = ''; findInput.value = ''; replInput.value = ''; csvText.value = '';
+  findCase.checked = false; findWhole.checked = false; csvRaw.checked = false;
+  recalc(); render();
+  grid.addEventListener('click', guard(onCellClick));
+  grid.addEventListener('mousedown', e => { if (e.shiftKey) e.preventDefault(); });
+  grid.addEventListener('keydown', guard(onGridKey));
+  fi.addEventListener('input', guard(() => { if (!editing) { editing = true; render(); } }));
+  fi.addEventListener('keydown', guard(onFormulaKey));
+  fmtSel.addEventListener('change', guard(() => setFormat(fmtSel.value)));
+  const on = (id, fn) => $(id).addEventListener('click', guard(fn));
+  on('undo-button', undo); on('redo-button', redo);
+  on('copy-button', () => takeClip('copy')); on('cut-button', () => takeClip('cut')); on('paste-button', paste);
+  on('clear-button', clearSel);
+  on('insert-row', () => step(() => { structChange('r', true); return true; }));
+  on('delete-row', () => step(() => { structChange('r', false); return true; }));
+  on('insert-col', () => step(() => { structChange('c', true); return true; }));
+  on('delete-col', () => step(() => { structChange('c', false); return true; }));
+  on('sort-asc', () => sortRows(false)); on('sort-desc', () => sortRows(true));
+  on('fill-down', () => fill(true)); on('fill-right', () => fill(false)); on('fill-series', fillSeries);
+  on('add-sheet', addSheet); on('rename-sheet', renameSheet); on('delete-sheet', deleteSheet);
+  on('define-name', defineName); on('delete-name', deleteName);
+  on('find-next', findNext); on('replace-all', replaceAll);
+  on('csv-export', exportCSV); on('csv-import', importCSV);
+}
+init();
+</script>
+</body>
+</html>

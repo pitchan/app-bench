@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 06-fr-pricing</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-configurator.html">04-fr-configurator</a> · <a href="05-fr-order-lines.html">05-fr-order-lines</a> · <strong>06-fr-pricing</strong> · <a href="07-fr-checkout.html">07-fr-checkout</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="6-functional-requirements--promo-code-order-amounts-delivery">6. Functional requirements — Promo code, order amounts, delivery</h1>
+<h2 id="61-promo-code">6.1 Promo code</h2>
+<h3 id="FR-PRM-01">FR-PRM-01 Applying a code</h3>
+<ul>
+<li><strong>Statement:</strong> While the content of <code>promo-input</code> is empty after removing leading and trailing whitespace, the system shall disable <code>promo-apply</code>. When the user activates <code>promo-apply</code>, or presses Enter in <code>promo-input</code> while <code>promo-apply</code> is enabled, the system shall compare the content with the catalog codes after removing leading and trailing whitespace and ignoring letter case. If it is a catalog code, the system shall make it the applied code, replacing any previous one, clear <code>promo-input</code> and hide <code>promo-error</code>. If it is not, the system shall show <code>promo-error</code> with MSG-20, keep the content of <code>promo-input</code> and keep the applied code, if any; <code>promo-error</code> shall be hidden at the next <code>input</code> event of <code>promo-input</code>.</li>
+<li><strong>Rationale:</strong> One code at a time, typed without worrying about case or stray spaces.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Code typed in lower case
+  When the user applies &quot; team15 &quot;
+  Then promo-status is visible
+  And promo-input has the value &quot;&quot;
+
+Scenario: Unknown code keeps the applied one
+  When the user applies &quot;FREESHIP&quot;
+  And the user applies &quot;NOPE&quot;
+  Then promo-error reads &quot;This code is not valid.&quot;
+  And promo-input has the value &quot;NOPE&quot;
+  And promo-status reads &quot;FREESHIP applies once the order holds a bike.&quot;
+</code></pre>
+<h3 id="FR-PRM-02">FR-PRM-02 Code status</h3>
+<ul>
+<li><strong>Statement:</strong> While a code is applied, the system shall show <code>promo-remove</code> and show in <code>promo-status</code>: for <code>SPRING10</code> not active, MSG-22; for <code>WELCOME50</code> not active, MSG-23; for <code>FREESHIP</code> not active, MSG-24; for <code>TEAM15</code> not active, MSG-25; for <code>TEAM15</code> active while the volume discount is used (02-catalog-and-rules, section 2.5, step 6), MSG-26; in every other case, MSG-21. The status shall follow every change of the order.</li>
+<li><strong>Rationale:</strong> The customer knows whether the code counts and, when it does not, why.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: WELCOME50 stops with a second bike
+  When the user applies &quot;WELCOME50&quot;
+  And the user adds a bike &quot;Frame M&quot;
+  Then promo-status reads &quot;Code WELCOME50 applied.&quot;
+  When the user adds a bike &quot;Frame L&quot;
+  Then promo-status reads &quot;WELCOME50 applies to an order of one bike only.&quot;
+</code></pre>
+<h3 id="FR-PRM-03">FR-PRM-03 Removing a code</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>promo-remove</code>, the system shall remove the applied code and hide <code>promo-status</code> and <code>promo-remove</code>.</li>
+<li><strong>Rationale:</strong> A code can be taken back.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Remove
+  When the user applies &quot;SPRING10&quot;
+  And the user clicks promo-remove
+  Then promo-status is not visible
+  And promo-remove is not visible
+</code></pre>
+<h2 id="62-order-amounts">6.2 Order amounts</h2>
+<h3 id="FR-AMT-01">FR-AMT-01 Order amounts</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall compute every amount of the order with the steps, rounding and rules of 02-catalog-and-rules, section 2.5, for any order the user can build, with any applied code.</li>
+<li><strong>Rationale:</strong> The amounts are the contract with the customer.</li>
+<li><strong>Verification:</strong> Test, on orders and codes that are not given in this specification.</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: One bike with the commuter pack
+  When the user adds a bike &quot;Frame M, Mudguards, Rear rack, Lights&quot;
+  Then summary-line-bikes has the value &quot;€1,313.90&quot;
+  And summary-line-shipping has the value &quot;€49.00&quot;
+  And summary-line-total has the value &quot;€1,362.90&quot;
+</code></pre>
+<h3 id="FR-AMT-02">FR-AMT-02 Order summary lines</h3>
+<ul>
+<li><strong>Statement:</strong> While the order has at least one line, the system shall show the summary lines below, in the order of 03-ui-contract, with the given label in <code>[data-role=&quot;label&quot;]</code> and value in <code>[data-role=&quot;value&quot;]</code>; while it has none, no summary line shall be visible.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Label</th>
+<th>Value</th>
+<th>Shown while</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bikes</code></td>
+<td><code>Bikes</code></td>
+<td>bikes amount (step 3), amount format</td>
+<td>always</td>
+</tr>
+<tr>
+<td><code>pack</code></td>
+<td><code>Commuter pack</code></td>
+<td>sum of the commuter pack amounts (step 2), discount format</td>
+<td>that sum is greater than 0</td>
+</tr>
+<tr>
+<td><code>volume</code></td>
+<td><code>Volume discount</code></td>
+<td>the volume discount used (step 6), discount format</td>
+<td>it is greater than 0</td>
+</tr>
+<tr>
+<td><code>promo</code></td>
+<td><code>Promo {code}</code> with the applied code in capitals</td>
+<td>promo discount (step 8), discount format</td>
+<td>it is greater than 0</td>
+</tr>
+<tr>
+<td><code>shipping</code></td>
+<td><code>Shipping</code></td>
+<td><code>Free</code> when shipping is 0, otherwise the shipping amount, amount format</td>
+<td>always</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td><code>Total</code></td>
+<td>total, amount format</td>
+<td>always</td>
+</tr>
+<tr>
+<td><code>vat</code></td>
+<td><code>VAT included</code></td>
+<td>VAT included, amount format</td>
+<td>always</td>
+</tr>
+<tr>
+<td><code>delivery</code></td>
+<td><code>Delivery</code></td>
+<td>delivery date (FR-DLV-01), date format</td>
+<td>always</td>
+</tr>
+</tbody></table>
+<p>The <code>bikes</code> value is the bikes amount, which already includes the commuter pack; the <code>pack</code> line shows how much of it comes from the pack.</p>
+<ul>
+<li><strong>Rationale:</strong> The customer sees each discount that applies, and only those.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Conditional lines
+  When the user adds a bike &quot;Frame M&quot;
+  Then summary-line-pack is not visible
+  And summary-line-volume is not visible
+  And summary-line-promo is not visible
+  And summary-line-total is visible
+</code></pre>
+<h3 id="FR-AMT-03">FR-AMT-03 Live recalculation</h3>
+<ul>
+<li><strong>Statement:</strong> When the order or the applied code changes, the system shall update the order lines, the summary lines, <code>promo-status</code> and <code>place-order</code> immediately, without any confirmation button. Changes of the configurator that do not change the order shall not change the summary.</li>
+<li><strong>Rationale:</strong> The order total reflects the order, not the bike being configured.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Configurator changes do not touch the order
+  When the user adds a bike &quot;Frame L&quot;
+  And the user selects card-drivetrain-pro
+  Then summary-line-bikes has the value &quot;€1,240.00&quot;
+</code></pre>
+<h2 id="63-delivery">6.3 Delivery</h2>
+<h3 id="FR-DLV-01">FR-DLV-01 Delivery date</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in <code>summary-line-delivery</code> the delivery date of 02-catalog-and-rules, section 2.6, computed from the lines of the order, today and the time of now, in date format.</li>
+<li><strong>Rationale:</strong> The customer knows when the whole order arrives.</li>
+<li><strong>Verification:</strong> Test, on dates, times and orders that are not given in this specification.</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: One essential bike on a Friday morning
+  Given now is 2026-12-18 10:00
+  When the user adds a bike &quot;Frame M&quot;
+  Then summary-line-delivery has the value &quot;Tuesday, 29 December 2026&quot;
+</code></pre>
+<p>&quot;X has the value v&quot; means that the <code>[data-role=&quot;value&quot;]</code> element of summary line X reads v.</p>
+
+</main>
+</body>
+</html>

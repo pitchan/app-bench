@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Grid — 06-fr-structure-and-clipboard</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-grid">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <strong>06-fr-structure-and-clipboard</strong> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="6-functional-requirements--rows-columns-and-clipboard">6. Functional requirements — Rows, columns and clipboard</h1>
+<h2 id="61-rows-and-columns">6.1 Rows and columns</h2>
+<p>The four actions below act on the row or the column of the <strong>active cell</strong>, whatever the selection. They never change the selection: the anchor and the active cell keep their addresses.</p>
+<h3 id="FR-STR-01">FR-STR-01 Inserting a row or a column</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>insert-row</code>, the system shall, without changing the selection, for <em>r</em> the row of the active cell: move the raw content and the format of every cell of rows <em>r</em> to 11 one row down, drop the contents and formats of row 12, and make every cell of row <em>r</em> empty with the format <code>general</code>. When the user clicks <code>insert-col</code>, the system shall do the same with columns: for <em>c</em> the column of the active cell, the cells of columns <em>c</em> to <code>G</code> move one column right, column <code>H</code> is dropped and column <em>c</em> becomes empty with the format <code>general</code>.</li>
+<li><strong>Rationale:</strong> Room is made inside a sheet of fixed size; what is pushed out is lost.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Insert a row
+  Given the user enters &quot;top&quot; in A1
+  And the user enters &quot;mid&quot; in A2
+  And the user enters &quot;last&quot; in A12
+  And the user clicks cell A2
+  And the user sets the format to &quot;fixed2&quot;
+  When the user clicks button insert-row
+  Then cell-A1 reads &quot;top&quot;
+  And cell-A2 shows nothing
+  And cell-A3 reads &quot;mid&quot;
+  And cell-A12 shows nothing
+  And the selection is &quot;A2&quot;
+  And format-select has the value &quot;general&quot;
+  When the user clicks cell A3
+  Then format-select has the value &quot;fixed2&quot;
+</code></pre>
+<h3 id="FR-STR-02">FR-STR-02 Deleting a row or a column</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>delete-row</code>, the system shall, without changing the selection, for <em>r</em> the row of the active cell: drop the contents and formats of row <em>r</em>, move the raw content and the format of every cell of rows <em>r</em> + 1 to 12 one row up, and make every cell of row 12 empty with the format <code>general</code>. When the user clicks <code>delete-col</code>, the system shall do the same with columns: column <em>c</em> is dropped, the cells of the columns after <em>c</em> move one column left, and column <code>H</code> becomes empty with the format <code>general</code>.</li>
+<li><strong>Rationale:</strong> A row or a column is removed without leaving a hole.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Delete a column
+  Given the user enters &quot;a&quot; in A1
+  And the user enters &quot;b&quot; in B1
+  And the user enters &quot;c&quot; in C1
+  And the user enters &quot;h&quot; in H1
+  And the user clicks cell B5
+  When the user clicks button delete-col
+  Then cell-A1 reads &quot;a&quot;
+  And cell-B1 reads &quot;c&quot;
+  And cell-G1 reads &quot;h&quot;
+  And cell-H1 shows nothing
+  And the selection is &quot;B5&quot;
+</code></pre>
+<h3 id="FR-STR-03">FR-STR-03 References after an insertion</h3>
+<ul>
+<li><strong>Statement:</strong> When a row or a column is inserted, the system shall rewrite every valid formula of the sheet as 02, section 2.10.1 states, and store it in canonical form: references to the cells that moved follow them, <code>$</code> signs included; a reference pushed out of the grid becomes <code>#REF!</code>; a range grows when the insertion is inside it and is cut at the edge of the grid.</li>
+<li><strong>Rationale:</strong> A formula keeps pointing at the same data after the data moved.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Row inserted at row 3
+  Given the user enters &quot;=A2+A3&quot; in C1
+  And the user enters &quot;=$A$12&quot; in C2
+  And the user enters &quot;=SUM(A1:A12)&quot; in D1
+  And the user enters &quot;=SUM(A3:B12)&quot; in D2
+  And the user enters &quot;=SUM(A12:B12)&quot; in E1
+  And the user enters &quot;=C1+1&quot; in E5
+  And the user enters &quot;=Z9+A40&quot; in F1
+  And the user clicks cell H3
+  When the user clicks button insert-row
+  Then the raw content of C1 is &quot;=A2+A4&quot;
+  And the raw content of C2 is &quot;=#REF!&quot;
+  And cell-C2 reads &quot;#REF!&quot;
+  And the raw content of D1 is &quot;=SUM(A1:A12)&quot;
+  And the raw content of D2 is &quot;=SUM(A4:B12)&quot;
+  And the raw content of E1 is &quot;=SUM(#REF!)&quot;
+  And the raw content of E6 is &quot;=C1+1&quot;
+  And the raw content of F1 is &quot;=Z9+A40&quot;
+
+Scenario: Column inserted at column B
+  Given the user enters &quot;=B1+$G$1+H1&quot; in A2
+  And the user enters &quot;=SUM(A1:H1)&quot; in A3
+  And the user clicks cell B7
+  When the user clicks button insert-col
+  Then the raw content of A2 is &quot;=C1+$H$1+#REF!&quot;
+  And the raw content of A3 is &quot;=SUM(A1:H1)&quot;
+</code></pre>
+<h3 id="FR-STR-04">FR-STR-04 References after a deletion</h3>
+<ul>
+<li><strong>Statement:</strong> When a row or a column is deleted, the system shall rewrite every valid formula of the sheet as 02, section 2.10.2 states, and store it in canonical form: a reference to a deleted cell becomes <code>#REF!</code>; references to the cells that moved follow them; a range shrinks when the deletion is inside it and becomes <code>#REF!</code> when nothing of it remains.</li>
+<li><strong>Rationale:</strong> A formula that lost its data says so; the others keep pointing at theirs.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Row 3 deleted
+  Given the user enters &quot;=A2+A4&quot; in C1
+  And the user enters &quot;=A3*2&quot; in C2
+  And the user enters &quot;=SUM(A1:A5)&quot; in D1
+  And the user enters &quot;=SUM(A3:B3)&quot; in D2
+  And the user enters &quot;=SUM(A3:A4)&quot; in E1
+  And the user enters &quot;=SUM($A$4:A$6)&quot; in E2
+  And the user clicks cell B3
+  When the user clicks button delete-row
+  Then the raw content of C1 is &quot;=A2+A3&quot;
+  And the raw content of C2 is &quot;=#REF!*2&quot;
+  And cell-C2 reads &quot;#REF!&quot;
+  And the raw content of D1 is &quot;=SUM(A1:A4)&quot;
+  And the raw content of D2 is &quot;=SUM(#REF!)&quot;
+  And the raw content of E1 is &quot;=SUM(A3:A3)&quot;
+  And the raw content of E2 is &quot;=SUM($A$3:A$5)&quot;
+</code></pre>
+<h2 id="62-clipboard">6.2 Clipboard</h2>
+<p>The clipboard is internal to the page. It is empty on a new sheet. It holds one <strong>block</strong>: the raw contents and the formats of the cells of a rectangle, as they were when the block was taken, the address of that rectangle, and a mode, <code>copy</code> or <code>cut</code>. Later changes of the sheet do not change the block. The history (file 07) does not change the clipboard.</p>
+<h3 id="FR-CLP-01">FR-CLP-01 Copy and paste</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>copy-button</code>, the system shall put in the clipboard the block of the selection, in mode <code>copy</code>, and shall change nothing in the sheet. When the user clicks <code>paste-button</code> with a block in mode <code>copy</code>, the system shall write the block with its top-left cell on the top-left cell of the selection: each cell of the block gives its raw content (adjusted for valid formulas, FR-CLP-02) and its format to the cell at the same offset; the cells of the block that fall outside the grid are dropped; an empty cell of the block makes its destination empty. The system shall then make the top-left cell of the destination both the anchor and the active cell. The clipboard shall keep its block, which can be pasted again. While the clipboard is empty, the system shall disable <code>paste-button</code>.</li>
+<li><strong>Rationale:</strong> A block of cells is repeated elsewhere, any number of times.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Copy a block twice
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;x&quot; in B1
+  And the user enters &quot;0.5&quot; in A2
+  And the user clicks cell A2
+  And the user sets the format to &quot;percent1&quot;
+  And the user enters &quot;old&quot; in D2
+  When the user clicks cell A1
+  And the user shift-clicks cell B2
+  And the user clicks button copy-button
+  And the user enters &quot;9&quot; in A1
+  And the user clicks cell C1
+  And the user clicks button paste-button
+  Then cell-C1 reads &quot;1&quot;
+  And cell-D1 reads &quot;x&quot;
+  And cell-C2 reads &quot;50.0%&quot;
+  And cell-D2 shows nothing
+  And the selection is &quot;C1&quot;
+  When the user clicks cell H12
+  And the user clicks button paste-button
+  Then cell-H12 reads &quot;1&quot;
+  And cell-A1 reads &quot;9&quot;
+</code></pre>
+<h3 id="FR-CLP-02">FR-CLP-02 Reference adjustment on paste</h3>
+<ul>
+<li><strong>Statement:</strong> When a block in mode <code>copy</code> is pasted, the system shall adjust each valid formula of the block as 02, section 2.10.3 states, by the offset between the cell it was copied from and the cell it is written to, and store it in canonical form: parts without <code>$</code> move, parts with <code>$</code> do not, a reference that leaves the grid becomes <code>#REF!</code>, a range with a corner that leaves the grid becomes <code>#REF!</code> as a whole. Formulas that are not valid and contents that are not formulas shall be written unchanged.</li>
+<li><strong>Rationale:</strong> A copied formula does the same calculation at its new place.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: From B2 to D5 and to A1
+  Given the user enters &quot;=A1+$A1+A$1+$A$1&quot; in B2
+  When the user clicks cell B2
+  And the user clicks button copy-button
+  And the user clicks cell D5
+  And the user clicks button paste-button
+  Then the raw content of D5 is &quot;=C4+$A4+C$1+$A$1&quot;
+  When the user clicks cell A1
+  And the user clicks button paste-button
+  Then the raw content of A1 is &quot;=#REF!+#REF!+#REF!+$A$1&quot;
+
+Scenario: Ranges
+  Given the user enters &quot;=SUM(A1:$B2)&quot; in B2
+  And the user enters &quot;=SUM(A1:G1)&quot; in B3
+  And the user enters &quot;=1+&quot; in B4
+  When the user clicks cell B2
+  And the user shift-clicks cell B4
+  And the user clicks button copy-button
+  And the user clicks cell D5
+  And the user clicks button paste-button
+  Then the raw content of D5 is &quot;=SUM($B4:C5)&quot;
+  And the raw content of D6 is &quot;=SUM(#REF!)&quot;
+  And the raw content of D7 is &quot;=1+&quot;
+</code></pre>
+<h3 id="FR-CLP-03">FR-CLP-03 Cut and paste</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>cut-button</code>, the system shall put in the clipboard the block of the selection, in mode <code>cut</code>, and shall change nothing in the sheet. When the user clicks <code>paste-button</code> with a block in mode <code>cut</code>, the system shall, in this order: (1) make every cell of the rectangle the block was taken from empty, with the format <code>general</code>; (2) write the block as in FR-CLP-01, its formulas <strong>unchanged</strong> (no adjustment); (3) empty the clipboard. The formulas of the other cells of the sheet shall not be rewritten.</li>
+<li><strong>Rationale:</strong> A block of cells is moved as it is.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Move a block
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;=A1*2&quot; in A2
+  And the user enters &quot;=A2+1&quot; in C1
+  When the user clicks cell A1
+  And the user shift-clicks cell A2
+  And the user clicks button cut-button
+  Then cell-A1 reads &quot;5&quot;
+  When the user clicks cell A2
+  And the user clicks button paste-button
+  Then cell-A1 shows nothing
+  And cell-A2 reads &quot;5&quot;
+  And the raw content of A3 is &quot;=A1*2&quot;
+  And cell-A3 reads &quot;0&quot;
+  And the raw content of C1 is &quot;=A2+1&quot;
+  And cell-C1 reads &quot;6&quot;
+  And paste-button is disabled
+</code></pre>
+
+</main>
+</body>
+</html>

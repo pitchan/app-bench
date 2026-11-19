@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f1ec;
+    --surface: #ffffff;
+    --ink: #1d1b19;
+    --muted: #57524c;
+    --line: #d9d3ca;
+    --accent: #0b5d4b;
+    --accent-ink: #ffffff;
+    --accent-soft: #e3f1ec;
+    --warn-bg: #fff4e0;
+    --warn-ink: #7a3e00;
+    --err-bg: #fdecec;
+    --err-ink: #a1121a;
+    --off-bg: #ece9e4;
+    --off-ink: #4d4842;
+    --focus: #1f4fd1;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow-wrap: anywhere;
+  }
+  header {
+    background: var(--ink);
+    color: #ffffff;
+    padding: 14px 16px;
+  }
+  header h1 { margin: 0 auto; max-width: 1200px; font-size: 1.25rem; letter-spacing: .02em; }
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 960px) {
+    main { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 0;
+  }
+  .panel > h2 { margin: 0 0 8px; font-size: 1.15rem; }
+  section.group { padding: 12px 0; border-top: 1px solid var(--line); }
+  section.group:first-of-type { border-top: 0; padding-top: 4px; }
+  section.group h3 { margin: 0 0 8px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .field label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input[type="text"] {
+    font: inherit;
+    width: 100%;
+    max-width: 260px;
+    padding: 8px 10px;
+    border: 1px solid #8a837a;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+  }
+  input[type="text"]:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+  input[aria-invalid="true"] { border-color: var(--err-ink); }
+  .msg { margin: 6px 0 0; padding: 6px 10px; border-radius: 6px; font-size: .92rem; }
+  .msg.err { background: var(--err-bg); color: var(--err-ink); }
+  .msg.info { background: var(--accent-soft); color: #0a4a3c; }
+  .msg.hint { background: var(--off-bg); color: var(--off-ink); }
+  .cards { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    min-width: 0;
+    transition: border-color .12s, background-color .12s;
+  }
+  .card input {
+    position: absolute;
+    opacity: 0;
+    width: 1px; height: 1px;
+    margin: 0;
+    top: 8px; left: 8px;
+    pointer-events: none;
+  }
+  .card [data-role="name"] { font-weight: 600; color: var(--ink); }
+  .card [data-role="price"] { color: var(--muted); font-size: .9rem; }
+  .card [data-role="reason"] { color: var(--warn-ink); font-size: .82rem; }
+  .card [data-role="badge"] {
+    align-self: flex-start;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    margin-top: 2px;
+  }
+  .card:hover { border-color: #9c948a; }
+  .card.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .card.selected [data-role="price"] { color: #22493f; }
+  .card.unavailable { background: var(--off-bg); border-style: dashed; cursor: not-allowed; }
+  .card.unavailable [data-role="name"] { color: var(--off-ink); text-decoration: line-through; }
+  .card.unavailable [data-role="price"] { color: var(--off-ink); }
+  .card:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; box-shadow: 0 0 0 5px #c9d6ff; }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #0003; margin-right: 6px; vertical-align: -1px; }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid #8a837a;
+    background: #ffffff;
+    color: var(--ink);
+    padding: 8px 14px;
+  }
+  button:hover:not(:disabled) { background: #f1ede7; }
+  button:disabled { cursor: not-allowed; color: #6f6a64; background: #eeebe6; border-color: #cfc9c0; }
+  button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: #084a3c; }
+  button.primary:disabled { background: #d7d3cc; color: #4f4a44; border-color: #d7d3cc; }
+  .qty { display: flex; align-items: center; gap: 10px; }
+  .qty button { width: 42px; height: 42px; padding: 0; font-size: 1.3rem; line-height: 1; }
+  .qty [data-testid="qty-value"] { min-width: 2ch; text-align: center; font-size: 1.2rem; font-weight: 700; }
+  .actions { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .price-row .lbl { color: var(--muted); }
+  [data-testid="bike-price"] { font-size: 1.4rem; font-weight: 700; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .lines { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .order-line { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #ffffff; }
+  .order-line.editing { border-color: var(--focus); background: #eef2ff; }
+  .order-line .top { display: flex; gap: 8px; align-items: baseline; }
+  .order-line .num { font-weight: 700; color: var(--muted); }
+  .order-line [data-role="description"] { font-weight: 600; }
+  .order-line [data-role="accessories"] { color: var(--muted); font-size: .9rem; }
+  .order-line .meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .order-line .meta .q { color: var(--muted); }
+  .order-line [data-role="qty"] { color: var(--ink); font-weight: 600; }
+  .order-line [data-role="amount"] { font-weight: 700; }
+  .order-line .btn-row button { padding: 5px 12px; }
+  .empty { color: var(--muted); margin: 0 0 14px; }
+  .promo { border-top: 1px solid var(--line); padding-top: 12px; margin-bottom: 12px; }
+  .promo-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .promo-row input { flex: 1 1 140px; max-width: none; }
+  .status-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .status-row .msg { margin: 0; }
+  .summary { border-top: 1px solid var(--line); padding-top: 8px; margin-bottom: 12px; }
+  .sum { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; }
+  .sum [data-role="label"] { color: var(--muted); }
+  .sum [data-role="value"] { font-weight: 600; text-align: right; }
+  .sum.total { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; font-size: 1.1rem; }
+  .sum.total [data-role="label"] { color: var(--ink); font-weight: 700; }
+  .sum.discount [data-role="value"] { color: #0a5a47; }
+  .place { display: flex; flex-direction: column; gap: 8px; }
+  .place button { width: 100%; padding: 12px; font-size: 1.05rem; }
+  .status-wrap {
+    position: sticky;
+    bottom: 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+    z-index: 5;
+  }
+  [data-testid="notice"] {
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    border: 1px solid #e7c58d;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px #0002;
+  }
+  .confirm {
+    max-width: 640px;
+    margin: 24px auto;
+    padding: 0 16px;
+  }
+  .confirm .panel { text-align: center; }
+  .confirm h2 { margin: 0 0 12px; font-size: 1.6rem; color: #0a4a3c; }
+  .confirm dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; text-align: left; margin: 16px 0; }
+  .confirm dt { color: var(--muted); }
+  .confirm dd { margin: 0; font-weight: 600; color: var(--ink); }
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+
+<main id="main">
+  <div class="panel" data-testid="configurator">
+    <h2>Configure a bike</h2>
+    <section class="group" data-testid="section-rider" aria-labelledby="h-rider">
+      <h3 id="h-rider">Rider</h3>
+      <div class="field">
+        <label for="height">Rider height (cm)</label>
+        <input id="height" type="text" inputmode="numeric" autocomplete="off" data-testid="height-input">
+        <p class="msg err" id="height-error" data-testid="height-error" hidden></p>
+        <p class="msg info" id="height-rec" data-testid="height-recommendation" hidden></p>
+      </div>
+    </section>
+    <section class="group" data-testid="section-frame" aria-labelledby="h-frame"><h3 id="h-frame">Frame</h3><div class="cards" id="cards-frame"></div></section>
+    <section class="group" data-testid="section-wheels" aria-labelledby="h-wheels"><h3 id="h-wheels">Wheels</h3><div class="cards" id="cards-wheels"></div></section>
+    <section class="group" data-testid="section-drivetrain" aria-labelledby="h-drive"><h3 id="h-drive">Drivetrain</h3><div class="cards" id="cards-drivetrain"></div></section>
+    <section class="group" data-testid="section-color" aria-labelledby="h-color"><h3 id="h-color">Color</h3><div class="cards" id="cards-color"></div></section>
+    <section class="group" data-testid="section-accessories" aria-labelledby="h-acc"><h3 id="h-acc">Accessories</h3><div class="cards" id="cards-accessory"></div></section>
+    <section class="group" data-testid="section-quantity" aria-labelledby="h-qty">
+      <h3 id="h-qty">Quantity</h3>
+      <div class="qty">
+        <button type="button" data-testid="qty-decrease" id="qty-dec" aria-label="Decrease quantity">−</button>
+        <span data-testid="qty-value" id="qty-value">1</span>
+        <button type="button" data-testid="qty-increase" id="qty-inc" aria-label="Increase quantity">+</button>
+      </div>
+    </section>
+    <div class="actions">
+      <div class="price-row"><span class="lbl">Bike price</span><span data-testid="bike-price" id="bike-price">—</span></div>
+      <div class="btn-row">
+        <button type="button" data-testid="undo-button" id="undo">Undo</button>
+        <button type="button" class="primary" data-testid="add-to-order" id="add">Add to order</button>
+        <button type="button" data-testid="cancel-edit" id="cancel-edit" hidden>Cancel edit</button>
+      </div>
+      <p class="msg hint" data-testid="add-hint" id="add-hint" hidden></p>
+      <p class="msg err" data-testid="line-error" id="line-error" hidden></p>
+    </div>
+  </div>
+
+  <div class="panel" data-testid="order">
+    <h2>Your order</h2>
+    <p class="empty" data-testid="order-empty" id="order-empty">Your order is empty.</p>
+    <div class="lines" id="lines"></div>
+    <div class="promo">
+      <label for="promo" style="display:block;font-weight:600;margin-bottom:4px">Promo code</label>
+      <div class="promo-row">
+        <input id="promo" type="text" autocomplete="off" data-testid="promo-input">
+        <button type="button" data-testid="promo-apply" id="promo-apply" disabled>Apply</button>
+      </div>
+      <p class="msg err" id="promo-error" data-testid="promo-error" hidden></p>
+      <div class="status-row">
+        <p class="msg info" data-testid="promo-status" id="promo-status" hidden></p>
+        <button type="button" data-testid="promo-remove" id="promo-remove" hidden>Remove code</button>
+      </div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="place">
+      <button type="button" class="primary" data-testid="place-order" id="place" disabled>Place order</button>
+      <p class="msg hint" data-testid="place-hint" id="place-hint" hidden></p>
+    </div>
+  </div>
+</main>
+
+<div class="status-wrap" role="status" id="status"><div data-testid="notice" id="notice" hidden></div></div>
+
+<section class="confirm" data-testid="confirmation" id="confirmation" hidden>
+  <div class="panel">
+    <h2 data-testid="confirmation-title">Order confirmed</h2>
+    <dl>
+      <dt>Reference</dt><dd data-testid="confirmation-reference" id="c-ref"></dd>
+      <dt>Bikes</dt><dd data-testid="confirmation-bikes" id="c-bikes"></dd>
+      <dt>Total</dt><dd data-testid="confirmation-total" id="c-total"></dd>
+      <dt>Delivery</dt><dd data-testid="confirmation-delivery" id="c-delivery"></dd>
+    </dl>
+    <button type="button" class="primary" data-testid="confirmation-new" id="c-new">Start a new order</button>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Catalog ----------
+  var FRAMES = [
+    { id: "S", name: "Frame S", min: 150, max: 164, price: 119000 },
+    { id: "M", name: "Frame M", min: 165, max: 174, price: 119000 },
+    { id: "L", name: "Frame L", min: 175, max: 184, price: 124000 },
+    { id: "XL", name: "Frame XL", min: 185, max: 200, price: 129000 }
+  ];
+  var WHEELS = [
+    { id: "275", name: "27.5\" wheels", price: 0 },
+    { id: "29", name: "29\" wheels", price: 12000 }
+  ];
+  var DRIVES = [
+    { id: "essential", name: "Essential 1×10", price: 0, lead: 5 },
+    { id: "sport", name: "Sport 1×12", price: 24000, lead: 7 },
+    { id: "pro", name: "Pro Electronic 2×12", price: 69000, lead: 12 }
+  ];
+  var COLORS = [
+    { id: "graphite", name: "Graphite", price: 0, hex: "#3b3d40" },
+    { id: "sand", name: "Sand", price: 0, hex: "#d8c39a" },
+    { id: "red", name: "Racing Red", price: 6000, hex: "#c8102e" },
+    { id: "glacier", name: "Glacier", price: 0, hex: "#bfe3ee" }
+  ];
+  var ACCS = [
+    { id: "mudguards", name: "Mudguards", price: 4500 },
+    { id: "rack", name: "Rear rack", price: 6900 },
+    { id: "lights", name: "Lights", price: 3990 },
+    { id: "kickstand", name: "Kickstand", price: 2450 }
+  ];
+  var GROUPS = { frame: FRAMES, wheels: WHEELS, drivetrain: DRIVES, color: COLORS, accessory: ACCS };
+  var CODES = ["SPRING10", "WELCOME50", "FREESHIP", "TEAM15"];
+  var CLOSED = { "2026-12-24": 1, "2026-12-25": 1, "2026-12-31": 1, "2027-01-01": 1, "2027-03-29": 1 };
+
+  var MSG = {
+    m01: "Enter a height between 150 and 200 cm.",
+    m03: "Enter the rider's height to add this bike.",
+    m04: "Not available with frame S",
+    m05: "Available with frames M and L only",
+    m06: "29\" wheels were replaced by 27.5\" wheels: not available with frame S.",
+    m07: "Pro Electronic 2×12 was replaced by Sport 1×12: not available with frame S.",
+    m08: "Glacier was replaced by Graphite: available with frames M and L only.",
+    m09: "29\" wheels were selected: required by Pro Electronic 2×12.",
+    m10: "Pro Electronic 2×12 was replaced by Sport 1×12: it requires 29\" wheels.",
+    m11: "Mudguards were added: required by the rear rack.",
+    m12: "Kickstand was removed: not compatible with the rear rack.",
+    m13: "Rear rack was removed: it requires mudguards.",
+    m14: "Rear rack was removed: not compatible with the kickstand.",
+    m16: "A line cannot hold more than 5 bikes.",
+    m17: "An order cannot hold more than 4 lines.",
+    m18: "An order cannot hold more than 10 bikes.",
+    m20: "This code is not valid.",
+    m22: "SPRING10 requires €3,000.00 or more after the volume discount.",
+    m23: "WELCOME50 applies to an order of one bike only.",
+    m24: "FREESHIP applies once the order holds a bike.",
+    m25: "TEAM15 requires 4 bikes or more.",
+    m26: "The volume discount applies instead of TEAM15.",
+    m31: "Save or cancel the line being edited."
+  };
+
+  function find(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  // ---------- Formatting & integer math ----------
+  // Round half up of num / den, for non-negative integers.
+  function roundDiv(num, den) {
+    var n = 2 * num + den, d = 2 * den;
+    return (n - (n % d)) / d;
+  }
+  function fmt(c) {
+    var cents = c % 100;
+    var euros = String((c - cents) / 100);
+    var out = "";
+    while (euros.length > 3) {
+      out = "," + euros.slice(-3) + out;
+      euros = euros.slice(0, -3);
+    }
+    return "€" + euros + out + "." + (cents < 10 ? "0" : "") + cents;
+  }
+  function signed(c) { return c === 0 ? "Included" : "+" + fmt(c); }
+  function discount(c) { return "−" + fmt(c); }
+  var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function fmtDate(d) {
+    return DAYS[d.getDay()] + ", " + d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
+  }
+  function pad(n, w) { var s = String(n); while (s.length < w) s = "0" + s; return s; }
+  function isoKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1, 2) + "-" + pad(d.getDate(), 2); }
+  function isBusiness(d) {
+    var wd = d.getDay();
+    return wd !== 0 && wd !== 6 && !CLOSED[isoKey(d)];
+  }
+
+  // ---------- Configuration helpers ----------
+  function defaults() {
+    return { frame: null, wheels: "275", drivetrain: "essential", color: "graphite", acc: [] };
+  }
+  function cloneCfg(c) {
+    return { frame: c.frame, wheels: c.wheels, drivetrain: c.drivetrain, color: c.color, acc: c.acc.slice() };
+  }
+  function hasAcc(c, id) { return c.acc.indexOf(id) !== -1; }
+  function setAcc(c, id, on) {
+    var set = {};
+    c.acc.forEach(function (a) { set[a] = true; });
+    if (on) set[id] = true; else delete set[id];
+    c.acc = ACCS.filter(function (a) { return set[a.id]; }).map(function (a) { return a.id; });
+  }
+  function sameCfg(a, b) {
+    return a.frame === b.frame && a.wheels === b.wheels && a.drivetrain === b.drivetrain &&
+      a.color === b.color && a.acc.join("|") === b.acc.join("|");
+  }
+  function colorPrice(c) {
+    if (c.color === "red" && c.drivetrain === "pro") return 0;
+    return find(COLORS, c.color).price;
+  }
+  function unitPrice(c) {
+    var p = find(FRAMES, c.frame).price + find(WHEELS, c.wheels).price + find(DRIVES, c.drivetrain).price + colorPrice(c);
+    c.acc.forEach(function (a) { p += find(ACCS, a).price; });
+    return p;
+  }
+  function description(c) {
+    return [find(FRAMES, c.frame).name, find(WHEELS, c.wheels).name, find(DRIVES, c.drivetrain).name, find(COLORS, c.color).name].join(" · ");
+  }
+  function accList(c) {
+    if (!c.acc.length) return "No accessories";
+    return c.acc.map(function (a) { return find(ACCS, a).name; }).join(", ");
+  }
+  function unavailable(group, id, frame) {
+    if (!frame) return null;
+    if (group === "wheels" && id === "29" && frame === "S") return MSG.m04;
+    if (group === "drivetrain" && id === "pro" && frame === "S") return MSG.m04;
+    if (group === "color" && id === "glacier" && (frame === "S" || frame === "XL")) return MSG.m05;
+    return null;
+  }
+  // Cascades C1-C3, triggered by a frame becoming selected.
+  function frameCascades(c, msgs) {
+    if (c.frame === "S" && c.wheels === "29") { c.wheels = "275"; msgs.push(MSG.m06); }
+    if (c.frame === "S" && c.drivetrain === "pro") { c.drivetrain = "sport"; msgs.push(MSG.m07); }
+    if ((c.frame === "S" || c.frame === "XL") && c.color === "glacier") { c.color = "graphite"; msgs.push(MSG.m08); }
+  }
+
+  // ---------- State ----------
+  var S = {
+    cfg: defaults(),
+    qty: 1,
+    auto: true,
+    history: [],
+    height: null,          // valid height or null
+    editing: -1,           // index of the line being edited
+    lines: [],
+    promo: null,
+    notice: [],
+    lineError: null,
+    promoError: false,
+    seq: 0
+  };
+
+  function parseHeight(raw) {
+    var t = raw.trim();
+    if (!/^[0-9]+$/.test(t)) return null;
+    var v = parseInt(t, 10);
+    return v >= 150 && v <= 200 ? v : null;
+  }
+  function recommended(h) {
+    for (var i = 0; i < FRAMES.length; i++) if (h >= FRAMES[i].min && h <= FRAMES[i].max) return FRAMES[i].id;
+    return null;
+  }
+
+  function resetConfigurator() {
+    S.cfg = defaults();
+    S.qty = 1;
+    S.auto = true;
+    S.history = [];
+    S.notice = [];
+    if (S.height !== null) S.cfg.frame = recommended(S.height);
+  }
+
+  // ---------- Order computation ----------
+  function totalBikes(lines) {
+    var b = 0;
+    lines.forEach(function (l) { b += l.qty; });
+    return b;
+  }
+  function compute(lines, promo) {
+    var B = totalBikes(lines);
+    var r = { B: B, bikes: 0, pack: 0, volume: 0, team: 0, promoDisc: 0, ship: 0, total: 0, vat: 0, active: false, teamUsed: false };
+    var perf = 0;
+    lines.forEach(function (l) {
+      var amount = unitPrice(l.cfg) * l.qty;
+      var pack = (hasAcc(l.cfg, "mudguards") && hasAcc(l.cfg, "rack") && hasAcc(l.cfg, "lights")) ? 3000 * l.qty : 0;
+      r.pack += pack;
+      r.bikes += amount - pack;
+      if (l.cfg.drivetrain === "sport" || l.cfg.drivetrain === "pro") perf += amount - pack;
+    });
+    var volume = 0;
+    if (B >= 6) volume = roundDiv(r.bikes * 8, 100);
+    else if (B >= 3) volume = roundDiv(r.bikes * 5, 100);
+    var team = 0;
+    if (promo === "TEAM15" && B >= 4) team = roundDiv(perf * 15, 100);
+    if (team > volume) { r.team = team; r.volume = 0; r.teamUsed = true; }
+    else { r.volume = volume; r.team = 0; }
+    var after = r.bikes - r.volume;
+    if (promo === "SPRING10") {
+      r.active = after >= 300000;
+      if (r.active) r.promoDisc = roundDiv(after * 10, 100);
+    } else if (promo === "WELCOME50") {
+      r.active = B === 1;
+      if (r.active) r.promoDisc = 5000;
+    } else if (promo === "FREESHIP") {
+      r.active = B >= 1;
+    } else if (promo === "TEAM15") {
+      r.active = B >= 4;
+      r.promoDisc = r.team;
+    }
+    var merch = after - r.promoDisc;
+    r.ship = (promo === "FREESHIP" || merch >= 500000 || B === 0) ? 0 : 4900 + 1500 * (B - 1);
+    r.total = merch + r.ship;
+    r.vat = roundDiv(r.total * 20, 120);
+    return r;
+  }
+  function promoStatus(r, promo) {
+    if (!promo) return null;
+    if (promo === "SPRING10" && !r.active) return MSG.m22;
+    if (promo === "WELCOME50" && !r.active) return MSG.m23;
+    if (promo === "FREESHIP" && !r.active) return MSG.m24;
+    if (promo === "TEAM15" && !r.active) return MSG.m25;
+    if (promo === "TEAM15" && !r.teamUsed) return MSG.m26;
+    return "Code " + promo + " applied.";
+  }
+  function deliveryDate(lines) {
+    var now = new Date();
+    var maxLead = 0;
+    lines.forEach(function (l) {
+      var lead = find(DRIVES, l.cfg.drivetrain).lead + (l.cfg.color === "red" ? 3 : 0) + (l.qty >= 3 ? 2 : 0);
+      if (lead > maxLead) maxLead = lead;
+    });
+    var total = maxLead + Math.max(0, lines.length - 1) + (now.getHours() >= 14 ? 1 : 0);
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var count = 0;
+    while (count < total) {
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      if (isBusiness(d)) count++;
+    }
+    return d;
+  }
+
+  // ---------- DOM ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var el = {
+    main: $("main"), height: $("height"), heightErr: $("height-error"), heightRec: $("height-rec"),
+    qtyDec: $("qty-dec"), qtyInc: $("qty-inc"), qtyVal: $("qty-value"), bikePrice: $("bike-price"),
+    undo: $("undo"), add: $("add"), cancel: $("cancel-edit"), addHint: $("add-hint"), lineErr: $("line-error"),
+    empty: $("order-empty"), lines: $("lines"), promo: $("promo"), promoApply: $("promo-apply"),
+    promoErr: $("promo-error"), promoStatus: $("promo-status"), promoRemove: $("promo-remove"),
+    summary: $("summary"), place: $("place"), placeHint: $("place-hint"), notice: $("notice"),
+    conf: $("confirmation"), cRef: $("c-ref"), cBikes: $("c-bikes"), cTotal: $("c-total"), cDel: $("c-delivery"), cNew: $("c-new")
+  };
+  var inputs = {}; // group -> id -> {input, card, price, reason, badge}
+  var GROUP_KEY = { frame: "frame", wheels: "wheels", drivetrain: "drivetrain", color: "color" };
+
+  function buildCards() {
+    Object.keys(GROUPS).forEach(function (group) {
+      var host = $("cards-" + group);
+      inputs[group] = {};
+      GROUPS[group].forEach(function (opt) {
+        var card = document.createElement("label");
+        card.className = "card";
+        card.setAttribute("data-testid", "card-" + group + "-" + opt.id);
+        var input = document.createElement("input");
+        input.type = group === "accessory" ? "checkbox" : "radio";
+        if (group !== "accessory") input.name = "opt-" + group;
+        input.value = opt.id;
+        input.setAttribute("aria-label", opt.name);
+        var name = document.createElement("span");
+        name.setAttribute("data-role", "name");
+        if (group === "color") {
+          var sw = document.createElement("span");
+          sw.className = "swatch";
+          sw.style.background = opt.hex;
+          sw.setAttribute("aria-hidden", "true");
+          card.appendChild(input);
+          var nameWrap = document.createElement("span");
+          nameWrap.appendChild(sw);
+          name.textContent = opt.name;
+          nameWrap.appendChild(name);
+          card.appendChild(nameWrap);
+        } else {
+          name.textContent = opt.name;
+          card.appendChild(input);
+          card.appendChild(name);
+        }
+        var price = document.createElement("span");
+        price.setAttribute("data-role", "price");
+        card.appendChild(price);
+        var reason = document.createElement("span");
+        reason.setAttribute("data-role", "reason");
+        reason.hidden = true;
+        card.appendChild(reason);
+        var badge = null;
+        if (group === "frame") {
+          badge = document.createElement("span");
+          badge.setAttribute("data-role", "badge");
+          badge.textContent = "Recommended";
+          badge.hidden = true;
+          card.appendChild(badge);
+        }
+        host.appendChild(card);
+        inputs[group][opt.id] = { input: input, card: card, price: price, reason: reason, badge: badge };
+
+        input.addEventListener("click", function () {
+          // A radio already selected: the click is a user action that changes nothing.
+          if (group !== "accessory" && S.cfg[GROUP_KEY[group]] === opt.id) {
+            S.notice = [];
+            S.lineError = null;
+            render();
+          }
+        });
+        input.addEventListener("change", function () {
+          userSelect(group, opt.id, input.checked);
+        });
+      });
+    });
+  }
+
+  function snapshot() {
+    return { cfg: cloneCfg(S.cfg), qty: S.qty, auto: S.auto };
+  }
+
+  function userSelect(group, id, checked) {
+    S.lineError = null;
+    var c = cloneCfg(S.cfg);
+    var msgs = [];
+    var auto = S.auto;
+    if (unavailable(group, id, c.frame)) { render(); return; }
+    if (group === "frame") {
+      if (c.frame === id) { S.notice = []; render(); return; }
+      c.frame = id;
+      auto = false;
+      frameCascades(c, msgs);
+    } else if (group === "wheels") {
+      if (c.wheels === id) { S.notice = []; render(); return; }
+      c.wheels = id;
+      if (id === "275" && c.drivetrain === "pro") { c.drivetrain = "sport"; msgs.push(MSG.m10); }
+    } else if (group === "drivetrain") {
+      if (c.drivetrain === id) { S.notice = []; render(); return; }
+      c.drivetrain = id;
+      if (id === "pro" && c.wheels === "275") { c.wheels = "29"; msgs.push(MSG.m09); }
+    } else if (group === "color") {
+      if (c.color === id) { S.notice = []; render(); return; }
+      c.color = id;
+    } else {
+      if (hasAcc(c, id) === checked) { S.notice = []; render(); return; }
+      setAcc(c, id, checked);
+      if (checked && id === "rack") {
+        if (!hasAcc(c, "mudguards")) { setAcc(c, "mudguards", true); msgs.push(MSG.m11); }
+        if (hasAcc(c, "kickstand")) { setAcc(c, "kickstand", false); msgs.push(MSG.m12); }
+      } else if (!checked && id === "mudguards") {
+        if (hasAcc(c, "rack")) { setAcc(c, "rack", false); msgs.push(MSG.m13); }
+      } else if (checked && id === "kickstand") {
+        if (hasAcc(c, "rack")) { setAcc(c, "rack", false); msgs.push(MSG.m14); }
+      }
+    }
+    S.history.push(snapshot());
+    S.cfg = c;
+    S.auto = auto;
+    S.notice = msgs;
+    render();
+  }
+
+  function changeQty(delta) {
+    S.lineError = null;
+    S.notice = [];
+    var q = S.qty + delta;
+    if (q >= 1 && q <= 5) {
+      S.history.push(snapshot());
+      S.qty = q;
+    }
+    render();
+  }
+
+  function onHeight() {
+    var h = parseHeight(el.height.value);
+    S.height = h;
+    if (h !== null && S.auto && S.editing === -1) {
+      var rec = recommended(h);
+      if (rec !== S.cfg.frame) {
+        var c = cloneCfg(S.cfg);
+        var msgs = [];
+        c.frame = rec;
+        frameCascades(c, msgs);
+        S.cfg = c;
+        S.notice = msgs;
+      }
+    }
+    render();
+  }
+
+  function undo() {
+    if (!S.history.length) return;
+    var st = S.history.pop();
+    S.cfg = cloneCfg(st.cfg);
+    S.qty = st.qty;
+    S.auto = st.auto;
+    S.notice = [];
+    render();
+  }
+
+  function addOrSave() {
+    var c = cloneCfg(S.cfg);
+    var q = S.qty;
+    if (!c.frame) return;
+    var lines = S.lines.map(function (l) { return { cfg: cloneCfg(l.cfg), qty: l.qty }; });
+    var B = totalBikes(lines);
+    var i;
+    if (S.editing === -1) {
+      if (S.height === null) return;
+      var match = -1;
+      for (i = 0; i < lines.length; i++) if (sameCfg(lines[i].cfg, c)) { match = i; break; }
+      if (match !== -1 && lines[match].qty + q > 5) return refuse(MSG.m16);
+      if (match === -1 && q > 5) return refuse(MSG.m16);
+      if (match === -1 && lines.length >= 4) return refuse(MSG.m17);
+      if (B + q > 10) return refuse(MSG.m18);
+      if (match !== -1) lines[match].qty += q;
+      else lines.push({ cfg: c, qty: q });
+    } else {
+      var e = S.editing;
+      var other = -1;
+      for (i = 0; i < lines.length; i++) if (i !== e && sameCfg(lines[i].cfg, c)) { other = i; break; }
+      var newB = B - lines[e].qty + q;
+      if (other !== -1) {
+        if (lines[other].qty + q > 5) return refuse(MSG.m16);
+        if (newB > 10) return refuse(MSG.m18);
+        var keep = Math.min(e, other), drop = Math.max(e, other);
+        lines[keep] = { cfg: c, qty: lines[other].qty + q };
+        lines.splice(drop, 1);
+      } else {
+        if (q > 5) return refuse(MSG.m16);
+        if (newB > 10) return refuse(MSG.m18);
+        lines[e] = { cfg: c, qty: q };
+      }
+      S.editing = -1;
+    }
+    S.lines = lines;
+    S.lineError = null;
+    resetConfigurator();
+    render();
+  }
+  function refuse(msg) {
+    S.lineError = msg;
+    render();
+  }
+
+  function startEdit(idx) {
+    if (S.editing !== -1) {
+      // As if the first edit had been cancelled.
+      S.editing = -1;
+      S.lineError = null;
+      resetConfigurator();
+    }
+    var l = S.lines[idx];
+    S.editing = idx;
+    S.cfg = cloneCfg(l.cfg);
+    S.qty = l.qty;
+    S.auto = false;
+    S.history = [];
+    S.notice = [];
+    render();
+  }
+  function cancelEdit() {
+    S.editing = -1;
+    S.lineError = null;
+    resetConfigurator();
+    render();
+  }
+  function removeLine(idx) {
+    S.lines.splice(idx, 1);
+    S.lineError = null;
+    if (S.editing === idx) {
+      S.editing = -1;
+      resetConfigurator();
+    } else if (S.editing > idx) {
+      S.editing -= 1;
+    }
+    render();
+  }
+
+  function applyPromo() {
+    var v = el.promo.value.trim();
+    if (!v) return;
+    var code = v.toUpperCase();
+    if (CODES.indexOf(code) !== -1) {
+      S.promo = code;
+      el.promo.value = "";
+      S.promoError = false;
+    } else {
+      S.promoError = true;
+    }
+    render();
+  }
+
+  function placeOrder() {
+    if (!S.lines.length || S.editing !== -1) return;
+    var r = compute(S.lines, S.promo);
+    var d = deliveryDate(S.lines);
+    S.seq += 1;
+    var now = new Date();
+    el.cRef.textContent = "AT-" + now.getFullYear() + pad(now.getMonth() + 1, 2) + pad(now.getDate(), 2) + "-" + pad(S.seq, 3);
+    el.cBikes.textContent = r.B === 1 ? "1 bike" : r.B + " bikes";
+    el.cTotal.textContent = fmt(r.total);
+    el.cDel.textContent = fmtDate(d);
+    S.notice = [];
+    el.main.hidden = true;
+    el.conf.hidden = false;
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function newOrder() {
+    S.lines = [];
+    S.promo = null;
+    S.editing = -1;
+    el.height.value = "";
+    el.promo.value = "";
+    S.height = null;
+    S.promoError = false;
+    S.lineError = null;
+    resetConfigurator();
+    el.conf.hidden = true;
+    el.main.hidden = false;
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function setText(node, text) {
+    if (text === null || text === undefined || text === "") {
+      node.hidden = true;
+      node.textContent = "";
+    } else {
+      node.textContent = text;
+      node.hidden = false;
+    }
+  }
+
+  function render() {
+    var c = S.cfg;
+    var editing = S.editing !== -1;
+    var raw = el.height.value.trim();
+
+    // Rider
+    var heightErr = raw !== "" && S.height === null;
+    setText(el.heightErr, heightErr ? MSG.m01 : null);
+    if (heightErr) {
+      el.height.setAttribute("aria-invalid", "true");
+      el.height.setAttribute("aria-describedby", "height-error");
+    } else {
+      el.height.removeAttribute("aria-invalid");
+      el.height.setAttribute("aria-describedby", "height-rec");
+    }
+    var rec = S.height !== null ? recommended(S.height) : null;
+    setText(el.heightRec, rec ? "Recommended frame: " + rec : null);
+
+    // Cards
+    Object.keys(GROUPS).forEach(function (group) {
+      GROUPS[group].forEach(function (opt) {
+        var o = inputs[group][opt.id];
+        var selected = group === "accessory" ? hasAcc(c, opt.id) : c[GROUP_KEY[group]] === opt.id;
+        var reason = unavailable(group, opt.id, c.frame);
+        o.input.checked = selected;
+        o.input.disabled = !!reason;
+        o.card.classList.toggle("selected", selected);
+        o.card.classList.toggle("unavailable", !!reason);
+        setText(o.reason, reason);
+        var priceText;
+        if (group === "frame") priceText = fmt(opt.price);
+        else if (group === "color" && opt.id === "red") priceText = c.drivetrain === "pro" ? "Included" : signed(opt.price);
+        else priceText = signed(opt.price);
+        o.price.textContent = priceText;
+        if (o.badge) o.badge.hidden = rec !== opt.id;
+      });
+    });
+
+    // Quantity & price
+    el.qtyVal.textContent = String(S.qty);
+    el.qtyDec.disabled = S.qty <= 1;
+    el.qtyInc.disabled = S.qty >= 5;
+    el.bikePrice.textContent = c.frame ? fmt(unitPrice(c) * S.qty) : "—";
+    el.undo.disabled = S.history.length === 0;
+
+    // Add / edit
+    if (editing) {
+      el.add.textContent = "Update line " + (S.editing + 1);
+      el.add.disabled = !c.frame;
+      setText(el.addHint, null);
+    } else {
+      el.add.textContent = "Add to order";
+      el.add.disabled = S.height === null || !c.frame;
+      setText(el.addHint, S.height === null ? MSG.m03 : null);
+    }
+    el.cancel.hidden = !editing;
+    setText(el.lineErr, S.lineError);
+
+    // Order lines
+    el.lines.textContent = "";
+    S.lines.forEach(function (l, i) {
+      var row = document.createElement("div");
+      row.className = "order-line" + (S.editing === i ? " editing" : "");
+      row.setAttribute("data-testid", "order-line-" + (i + 1));
+      row.innerHTML =
+        '<div class="top"><span class="num">' + (i + 1) + '.</span><div>' +
+        '<div data-role="description"></div><div data-role="accessories"></div></div></div>' +
+        '<div class="meta"><span class="q">Qty <span data-role="qty"></span></span>' +
+        '<span data-role="amount"></span></div>' +
+        '<div class="btn-row" style="margin-top:8px"><button type="button" data-role="edit">Edit</button>' +
+        '<button type="button" data-role="remove">Remove</button></div>';
+      row.querySelector('[data-role="description"]').textContent = description(l.cfg);
+      row.querySelector('[data-role="accessories"]').textContent = accList(l.cfg);
+      row.querySelector('[data-role="qty"]').textContent = String(l.qty);
+      row.querySelector('[data-role="amount"]').textContent = fmt(unitPrice(l.cfg) * l.qty);
+      row.querySelector('[data-role="edit"]').addEventListener("click", function () { startEdit(i); });
+      row.querySelector('[data-role="remove"]').addEventListener("click", function () { removeLine(i); });
+      el.lines.appendChild(row);
+    });
+    el.empty.hidden = S.lines.length > 0;
+    el.lines.hidden = S.lines.length === 0;
+
+    // Promo
+    var r = compute(S.lines, S.promo);
+    el.promoApply.disabled = el.promo.value.trim() === "";
+    setText(el.promoErr, S.promoError ? MSG.m20 : null);
+    if (S.promoError) {
+      el.promo.setAttribute("aria-invalid", "true");
+      el.promo.setAttribute("aria-describedby", "promo-error");
+    } else {
+      el.promo.removeAttribute("aria-invalid");
+      el.promo.removeAttribute("aria-describedby");
+    }
+    setText(el.promoStatus, promoStatus(r, S.promo));
+    el.promoRemove.hidden = !S.promo;
+
+    // Summary
+    el.summary.textContent = "";
+    if (S.lines.length) {
+      var rows = [["bikes", "Bikes", fmt(r.bikes), ""]];
+      if (r.pack > 0) rows.push(["pack", "Commuter pack", discount(r.pack), "discount"]);
+      if (r.volume > 0) rows.push(["volume", "Volume discount", discount(r.volume), "discount"]);
+      if (r.promoDisc > 0) rows.push(["promo", "Promo " + S.promo, discount(r.promoDisc), "discount"]);
+      rows.push(["shipping", "Shipping", r.ship === 0 ? "Free" : fmt(r.ship), ""]);
+      rows.push(["total", "Total", fmt(r.total), "total"]);
+      rows.push(["vat", "VAT included", fmt(r.vat), ""]);
+      rows.push(["delivery", "Delivery", fmtDate(deliveryDate(S.lines)), ""]);
+      rows.forEach(function (x) {
+        var d = document.createElement("div");
+        d.className = "sum " + x[3];
+        d.setAttribute("data-testid", "summary-line-" + x[0]);
+        var a = document.createElement("span");
+        a.setAttribute("data-role", "label");
+        a.textContent = x[1];
+        var b = document.createElement("span");
+        b.setAttribute("data-role", "value");
+        b.textContent = x[2];
+        d.appendChild(a);
+        d.appendChild(b);
+        el.summary.appendChild(d);
+      });
+    }
+    el.summary.hidden = S.lines.length === 0;
+
+    // Place order
+    el.place.textContent = r.B === 0 ? "Place order" : r.B === 1 ? "Place order (1 bike)" : "Place order (" + r.B + " bikes)";
+    el.place.disabled = S.lines.length === 0 || editing;
+    setText(el.placeHint, editing ? MSG.m31 : null);
+
+    // Notice
+    setText(el.notice, S.notice.length ? S.notice.join(" ") : null);
+  }
+
+  // ---------- Wiring ----------
+  buildCards();
+  el.height.addEventListener("input", onHeight);
+  el.qtyDec.addEventListener("click", function () { changeQty(-1); });
+  el.qtyInc.addEventListener("click", function () { changeQty(1); });
+  el.undo.addEventListener("click", undo);
+  el.add.addEventListener("click", addOrSave);
+  el.cancel.addEventListener("click", cancelEdit);
+  el.promo.addEventListener("input", function () {
+    S.promoError = false;
+    render();
+  });
+  el.promo.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      if (!el.promoApply.disabled) applyPromo();
+    }
+  });
+  el.promoApply.addEventListener("click", applyPromo);
+  el.promoRemove.addEventListener("click", function () {
+    S.promo = null;
+    render();
+  });
+  el.place.addEventListener("click", placeOrder);
+  el.cNew.addEventListener("click", newOrder);
+  // A height pre-filled by the browser (e.g. form restore) is taken into account.
+  if (el.height.value) onHeight(); else render();
+})();
+</script>
+</body>
+</html>

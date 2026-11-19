@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Book — 12-fr-persistence</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-book">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a> · <a href="10-fr-sheets-and-names.html">10-fr-sheets-and-names</a> · <a href="11-fr-sort-fill-find-csv.html">11-fr-sort-fill-find-csv</a> · <strong>12-fr-persistence</strong></nav>
+<h1 id="12-functional-requirements--persistence">12. Functional requirements — Persistence</h1>
+<p>The workbook is kept in the <code>localStorage</code> of the browser, under one key: <code>tally-book</code>. The format of the value stored under that key is free. A <strong>new workbook</strong> is what the page shows when it loads and finds nothing it can restore: one sheet named <code>Sheet1</code>, every cell empty with the format <code>general</code>, the selection <code>A1</code>, no defined name.</p>
+<h3 id="FR-PER-01">FR-PER-01 Saving the workbook</h3>
+<ul>
+<li><strong>Statement:</strong> After every action that changes the workbook (the sheets, their order and their names, the raw content or the format of a cell, the defined names and their targets), the active sheet, or the anchor or the active cell of a sheet, undo and redo included, the system shall store the whole state in <code>localStorage</code> under the key <code>tally-book</code>, before it handles the next user action, so that a reload at any moment restores the state the user last saw. The whole saved state shall be the value of that single key: the system shall write no other key in <code>localStorage</code>, and shall keep no state in <code>sessionStorage</code>, in cookies or in any other storage. A content that is being typed and is not committed (FR-EDT-02) is not part of the state.</li>
+<li><strong>Rationale:</strong> Closing the page loses nothing, and one key is all there is to remove to start again.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Saved at once
+  Given the user enters &quot;42&quot; in B2
+  And the user clicks cell D4
+  When the user reloads the page
+  Then cell-B2 reads &quot;42&quot;
+  And the selection is &quot;D4&quot;
+  And localStorage has exactly one key, &quot;tally-book&quot;
+  When the user enters &quot;43&quot; in B2
+  And the user clicks button undo-button
+  And the user reloads the page
+  Then cell-B2 reads &quot;42&quot;
+  And the selection is &quot;B2&quot;
+</code></pre>
+<h3 id="FR-PER-02">FR-PER-02 Restoring the workbook</h3>
+<ul>
+<li><strong>Statement:</strong> When the page loads and <code>localStorage</code> holds, under the key <code>tally-book</code>, a state that the page stored, the system shall restore it: the sheets in their order, with their names, the raw content and the format of every cell, the anchor and the active cell of each sheet; the active sheet; the defined names, in their writing, with their targets, the removed ones included. The raw contents shall be restored as they were stored, without being committed again (02, section 2.2): no formula is written again and no format is changed. Every value shall then be computed from the restored contents, and every element of the page shall show the restored state.</li>
+<li><strong>Rationale:</strong> The user finds the workbook exactly as it was left: same sheet, same selection, same names.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: The whole workbook comes back
+  Given the user enters &quot;=sheet2!A1+1&quot; in A3
+  And the user clicks button add-sheet
+  And the user enters &quot;7&quot; in A1
+  And the user clicks sheet tab 1
+  And the user enters &quot;1234.5&quot; in A1
+  And the user enters &quot;2024-02-29&quot; in A2
+  And the user clicks cell A1
+  And the user sets the format to &quot;fixed2&quot;
+  And the user shift-clicks cell A2
+  And the user defines the name &quot;Data&quot;
+  And the user renames the sheet to &quot;Main book&quot;
+  And the user clicks sheet tab 2
+  And the user enters &quot;=SUM(Data)&quot; in B1
+  And the user clicks cell C3
+  And the user shift-clicks cell D5
+  When the user reloads the page
+  Then there are 2 sheet tabs
+  And sheet-tab-1 reads &quot;Main book&quot;
+  And sheet-tab-2 reads &quot;Sheet2&quot;
+  And sheet-tab-2 has aria-selected &quot;true&quot;
+  And sheet-name-input has the value &quot;Sheet2&quot;
+  And the selection is &quot;C3:D5&quot;
+  And cell-B1 reads &quot;46584.5&quot;
+  And name-item-1 reads &quot;Data = &#39;Main book&#39;!A1:A2&quot;
+  When the user clicks sheet tab 1
+  Then the selection is &quot;A1:A2&quot;
+  And cell-A1 reads &quot;1,234.50&quot;
+  And cell-A2 reads &quot;2024-02-29&quot;
+  And cell-A3 reads &quot;8&quot;
+  And the raw content of A3 is &quot;=sheet2!A1+1&quot;
+  When the user clicks cell A2
+  Then format-select has the value &quot;date&quot;
+</code></pre>
+<p>In this scenario <code>A3</code> was committed before <code>Sheet2</code> existed and is stored <code>=sheet2!A1+1</code>; the reload restores that exact string.</p>
+<h3 id="FR-PER-03">FR-PER-03 What is not saved</h3>
+<ul>
+<li><strong>Statement:</strong> When the page loads, whatever it restores, the system shall start with: an empty history (<code>undo-button</code> and <code>redo-button</code> disabled); an empty clipboard (<code>paste-button</code> disabled); no editing state; no visible message (<code>sheet-message</code>, <code>name-message</code>, <code>find-status</code>, <code>csv-message</code>); and the fields of 03, section 3.4 in their starting state: <code>name-input</code>, <code>find-input</code>, <code>replace-input</code> and <code>csv-text</code> empty, <code>find-case</code>, <code>find-whole</code> and <code>csv-raw</code> unchecked, <code>sheet-name-input</code> holding the name of the active sheet.</li>
+<li><strong>Rationale:</strong> A reload brings back the data, not the gestures in progress.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: History, clipboard, fields and messages
+  Given the user enters &quot;5&quot; in A1
+  And the user clicks cell A1
+  And the user clicks button copy-button
+  And the user fills find-input with &quot;5&quot;
+  And the user fills replace-input with &quot;6&quot;
+  And the user checks find-case
+  And the user clicks button find-next
+  And the user clicks button csv-export
+  And the user fills name-input with &quot;Rate2&quot;
+  And the user clicks button define-name
+  And the user fills formula-input with &quot;zzz&quot;
+  When the user reloads the page
+  Then cell-A1 reads &quot;5&quot;
+  And formula-input has the value &quot;5&quot;
+  And formula-input has data-editing &quot;false&quot;
+  And undo-button is disabled
+  And redo-button is disabled
+  And paste-button is disabled
+  And find-input has the value &quot;&quot;
+  And replace-input has the value &quot;&quot;
+  And find-case is not checked
+  And find-status is not visible
+  And csv-text has the value &quot;&quot;
+  And name-input has the value &quot;&quot;
+  And name-message is not visible
+</code></pre>
+<h3 id="FR-PER-04">FR-PER-04 Unusable saved data</h3>
+<ul>
+<li><strong>Statement:</strong> If, when the page loads, the key <code>tally-book</code> is absent, or its value is not a complete state that the page stored — for example the empty string, <code>{not json</code>, <code>null</code>, <code>[]</code>, <code>{}</code>, <code>0</code>, <code>{&quot;sheets&quot;:[]}</code> or any other string the page cannot read back as a whole workbook — then the system shall start a new workbook, without any uncaught error and without showing a message. The system shall then save normally at the next change. If reading or writing <code>localStorage</code> throws an exception, then the system shall work as specified in everything else, without persistence and without any uncaught error.</li>
+<li><strong>Rationale:</strong> Damaged or foreign data never blocks the page; the worst case is an empty workbook.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Damaged data
+  Given localStorage holds &quot;{not json&quot; under the key &quot;tally-book&quot;
+  When the page loads
+  Then there is 1 sheet tab
+  And sheet-tab-1 reads &quot;Sheet1&quot;
+  And every cell shows nothing
+  And the selection is &quot;A1&quot;
+  And there are no name items
+  And the page threw no uncaught error
+  When the user enters &quot;1&quot; in A1
+  And the user reloads the page
+  Then cell-A1 reads &quot;1&quot;
+
+Scenario: Storage that throws
+  Given localStorage is unavailable
+  When the page loads
+  And the user enters &quot;=1+1&quot; in A1
+  And the user clicks button add-sheet
+  Then there are 2 sheet tabs
+  And the page threw no uncaught error
+  When the user clicks sheet tab 1
+  Then cell-A1 reads &quot;2&quot;
+</code></pre>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator 3D — 11-fr-preview-3d</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator-3d">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <a href="08-fr-order.html">08-fr-order</a> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a> · <strong>11-fr-preview-3d</strong></nav>
+<h1 id="11-functional-requirements--3d-bike-preview">11. Functional requirements — 3D bike preview</h1>
+<p><code>bike-preview</code> shows the configured bicycle in three dimensions. The customer turns it with the pointer or the keyboard, and every part added or removed appears or disappears on the model. The bicycle, the camera and the projection are defined below with exact numbers, so that what the page shows can be computed independently and compared pixel by pixel.</p>
+<h2 id="111-coordinates-and-units">11.1 Coordinates and units</h2>
+<ul>
+<li>Lengths are in millimetres, angles in degrees.</li>
+<li>The <strong>world axes</strong>: <code>x</code> runs along the bicycle, from the rear axle towards the front; <code>y</code> points up, the ground being <code>y = 0</code>; <code>z</code> points to the side of the bicycle that faces the camera at yaw 0.</li>
+<li><code>(a, b, c)</code> is a point or a vector. <code>cos</code> and <code>sin</code> take degrees.</li>
+</ul>
+<h2 id="112-primitives">11.2 Primitives</h2>
+<p>The model is made only of capsules and boxes.</p>
+<table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>Defined by</th>
+<th>Solid made of</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>capsule</strong> <code>cap(P, Q, r)</code></td>
+<td>two points <code>P</code>, <code>Q</code> and a radius <code>r</code></td>
+<td>every point whose distance to the segment <code>[P, Q]</code> is at most <code>r</code></td>
+</tr>
+<tr>
+<td><strong>box</strong> <code>box(Min, Max)</code></td>
+<td>two corners, the box being aligned on the world axes</td>
+<td>every point <code>(x, y, z)</code> with <code>Min.x ≤ x ≤ Max.x</code>, <code>Min.y ≤ y ≤ Max.y</code>, <code>Min.z ≤ z ≤ Max.z</code></td>
+</tr>
+</tbody></table>
+<h2 id="113-model-parameters">11.3 Model parameters</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>R</code>, wheel radius</td>
+<td><code>350</code> for <code>27.5&quot; wheels</code>, <code>375</code> for <code>29&quot; wheels</code></td>
+</tr>
+<tr>
+<td><code>L</code>, seat tube length</td>
+<td><code>430</code> for frame <code>S</code>, <code>470</code> for <code>M</code>, <code>510</code> for <code>L</code>, <code>550</code> for <code>XL</code>; <code>470</code> while no frame is selected</td>
+</tr>
+<tr>
+<td><code>C</code>, frame color</td>
+<td>the hex value of the selected color (02-catalog-and-rules)</td>
+</tr>
+</tbody></table>
+<h2 id="114-key-points">11.4 Key points</h2>
+<table>
+<thead>
+<tr>
+<th>Point</th>
+<th>Coordinates</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RA</code>, rear axle</td>
+<td><code>(0, R, 0)</code></td>
+</tr>
+<tr>
+<td><code>FA</code>, front axle</td>
+<td><code>(1080, R, 0)</code></td>
+</tr>
+<tr>
+<td><code>BB</code>, bottom bracket</td>
+<td><code>(420, 300, 0)</code></td>
+</tr>
+<tr>
+<td><code>ST</code>, top of the seat tube</td>
+<td><code>(420 − 0.25·L, 300 + L, 0)</code></td>
+</tr>
+<tr>
+<td><code>HT</code>, top of the head tube</td>
+<td><code>(1000, 340 + L, 0)</code></td>
+</tr>
+<tr>
+<td><code>HB</code>, bottom of the head tube</td>
+<td><code>(1020, 220 + L, 0)</code></td>
+</tr>
+<tr>
+<td><code>SP</code>, top of the seat post</td>
+<td><code>ST + (−15, 60, 0)</code></td>
+</tr>
+<tr>
+<td><code>HS</code>, top of the stem</td>
+<td><code>HT + (−60, 60, 0)</code></td>
+</tr>
+</tbody></table>
+<h2 id="115-parts">11.5 Parts</h2>
+<p>Each <strong>part</strong> has a name, a color, and a list of primitives. A part is <strong>present</strong> when the condition of its row holds; a part that is not present is not drawn and takes no part in any measure.</p>
+<table>
+<thead>
+<tr>
+<th>Part name</th>
+<th>Present</th>
+<th>Color</th>
+<th>Primitives</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>frame</code></td>
+<td>always</td>
+<td><code>C</code></td>
+<td><code>cap(BB, ST, 18)</code>, <code>cap(ST, HT, 18)</code>, <code>cap(BB, HB, 20)</code>, <code>cap(HB, HT, 20)</code>, <code>cap(ST, RA, 16)</code>, <code>cap(BB, RA, 16)</code>, <code>cap(HB, FA, 16)</code>, <code>cap(ST, SP, 13)</code>, <code>cap(HT, HS, 15)</code>, <code>cap(HS + (0, 0, −260), HS + (0, 0, 260), 16)</code></td>
+</tr>
+<tr>
+<td><code>saddle</code></td>
+<td>always</td>
+<td><code>#1C1C1E</code></td>
+<td><code>cap(SP + (−90, 0, 0), SP + (80, 0, 0), 24)</code></td>
+</tr>
+<tr>
+<td><code>wheel-rear</code></td>
+<td>always</td>
+<td><code>#1C1C1E</code></td>
+<td>36 capsules <code>cap(T_k, T_{k+1}, 22)</code> for <code>k</code> from 0 to 35, with <code>T_k = RA + (R·cos(10k), R·sin(10k), 0)</code> and <code>T_36 = T_0</code>; and the hub <code>cap(RA + (0, 0, −50), RA + (0, 0, 50), 15)</code></td>
+</tr>
+<tr>
+<td><code>wheel-front</code></td>
+<td>always</td>
+<td><code>#1C1C1E</code></td>
+<td>the same, with <code>FA</code> in place of <code>RA</code></td>
+</tr>
+<tr>
+<td><code>mudguard-rear</code></td>
+<td>while <code>mudguards</code> is selected</td>
+<td><code>#2C2C2E</code></td>
+<td>12 capsules <code>cap(G_k, G_{k+1}, 25)</code> for <code>k</code> from 0 to 11, with <code>G_k = RA + ((R + 45)·cos(30 + 10k), (R + 45)·sin(30 + 10k), 0)</code></td>
+</tr>
+<tr>
+<td><code>mudguard-front</code></td>
+<td>while <code>mudguards</code> is selected</td>
+<td><code>#2C2C2E</code></td>
+<td>the same, with <code>FA</code> in place of <code>RA</code></td>
+</tr>
+<tr>
+<td><code>rack</code></td>
+<td>while <code>rack</code> is selected</td>
+<td><code>#48484A</code></td>
+<td><code>box((−120, 2R + 80, −90), (260, 2R + 92, 90))</code> and <code>cap((−100, 2R + 86, 0), RA, 14)</code></td>
+</tr>
+<tr>
+<td><code>light</code></td>
+<td>while <code>lights</code> is selected</td>
+<td><code>#FFD60A</code></td>
+<td><code>box(HT + (20, −60, −25), HT + (70, −20, 25))</code></td>
+</tr>
+<tr>
+<td><code>kickstand</code></td>
+<td>while <code>kickstand</code> is selected</td>
+<td><code>#8E8E93</code></td>
+<td><code>cap((380, 300, 60), (300, 0, 160), 20)</code></td>
+</tr>
+</tbody></table>
+<h2 id="116-camera-and-projection">11.6 Camera and projection</h2>
+<p>The camera turns around the <strong>target</strong> <code>T = (540, 450, 0)</code> at the distance <code>D = 3600</code>. Its position is set by the <strong>yaw</strong> <code>θ</code> and the <strong>pitch</strong> <code>φ</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>camera position <code>E</code></td>
+<td><code>T + D·(sin θ·cos φ, sin φ, cos θ·cos φ)</code></td>
+</tr>
+<tr>
+<td>forward <code>f</code></td>
+<td>`(T − E) /</td>
+</tr>
+<tr>
+<td>right <code>r</code></td>
+<td>`(f × (0, 1, 0)) /</td>
+</tr>
+<tr>
+<td>up <code>u</code></td>
+<td><code>r × f</code></td>
+</tr>
+<tr>
+<td>focal length <code>F</code></td>
+<td><code>(H / 2) / tan(15)</code>, where <code>H</code> is the height of <code>bike-preview</code> in CSS pixels (vertical field of view 30°)</td>
+</tr>
+</tbody></table>
+<p><code>W</code> and <code>H</code> are the width and the height of the content box of <code>bike-preview</code> in CSS pixels. A point <code>(px, py)</code> of <code>bike-preview</code> is measured in CSS pixels from the top left corner of that content box.</p>
+<ul>
+<li><strong>Projection of a world point</strong> <code>Q</code>: with <code>d = Q − E</code>, the point is shown at <code>px = W/2 + F·(d·r)/(d·f)</code> and <code>py = H/2 − F·(d·u)/(d·f)</code>.</li>
+<li><strong>Ray of a point</strong> <code>(px, py)</code>: the half-line from <code>E</code> in the direction <code>f + ((px − W/2)/F)·r − ((py − H/2)/F)·u</code>.</li>
+<li><strong>Part seen at</strong> <code>(px, py)</code>: the present part that owns the primitive whose solid the ray of that point meets first (smallest distance from <code>E</code>). When the ray meets no solid, no part is seen there.</li>
+</ul>
+<p>At yaw 0 and pitch 0 the camera is on the <code>+z</code> side, the front of the bicycle on the right of the image.</p>
+<h2 id="117-requirements">11.7 Requirements</h2>
+<h3 id="FR-PRV-01">FR-PRV-01 Preview element and state</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall render <code>bike-preview</code> as a <code>&lt;canvas&gt;</code> element, focusable (<code>tabindex=&quot;0&quot;</code>), with <code>role=&quot;img&quot;</code> and the accessible name <code>Bike preview</code>. The system shall expose two functions:<ul>
+<li><code>window.bikePreviewState()</code> returns a new plain object <code>{ yaw, pitch, parts }</code>: <code>yaw</code> is <code>θ</code> in degrees, from 0 included to 360 excluded; <code>pitch</code> is <code>φ</code> in degrees; <code>parts</code> is the array of the names of the present parts (11.5), in the order of the table of 11.5.</li>
+<li><code>window.bikePickAt(px, py)</code> returns the name of the part seen at <code>(px, py)</code> (11.6), or <code>null</code> when no part is seen there.</li>
+</ul>
+</li>
+<li><strong>Rationale:</strong> The model can be checked by its numbers as well as by its pixels.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Initial state
+  When the page loads
+  Then bike-preview is a canvas with role &quot;img&quot; named &quot;Bike preview&quot;
+  And bikePreviewState() returns yaw 0, pitch 10 and parts &quot;frame, saddle, wheel-rear, wheel-front&quot;
+</code></pre>
+<h3 id="FR-PRV-02">FR-PRV-02 Initial camera</h3>
+<ul>
+<li><strong>Statement:</strong> When the page loads, the system shall set the yaw to 0 and the pitch to 10. The configuration changes of files 05 to 08 (frame, wheels, color, accessories, new configuration) shall not change the yaw or the pitch.</li>
+<li><strong>Rationale:</strong> Every customer starts from the same side view, and the view the customer chose is kept while they configure.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: View kept while configuring
+  Given the user has dragged bike-preview 50 px to the right
+  When the user checks &quot;Lights&quot;
+  Then bikePreviewState() returns yaw 45 and pitch 10
+</code></pre>
+<h3 id="FR-PRV-03">FR-PRV-03 Parts follow the configuration</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall keep the present parts, the parameters <code>R</code> and <code>L</code> and the frame color <code>C</code> (11.3 and 11.5) equal to the current configuration at all times, in <code>bikePreviewState()</code>, in <code>bikePickAt</code> and in the drawing.</li>
+<li><strong>Rationale:</strong> The customer sees the bike they are building.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Parts added and removed
+  When the user checks &quot;Rear rack&quot;
+  Then bikePreviewState() returns parts &quot;frame, saddle, wheel-rear, wheel-front, mudguard-rear, mudguard-front, rack&quot;
+  When the user unchecks &quot;Mudguards&quot;
+  Then bikePreviewState() returns parts &quot;frame, saddle, wheel-rear, wheel-front&quot;
+</code></pre>
+<h3 id="FR-PRV-04">FR-PRV-04 Part seen at a point</h3>
+<ul>
+<li><strong>Statement:</strong> For every point <code>(px, py)</code> of <code>bike-preview</code> that is not exempt, in every view, <code>window.bikePickAt(px, py)</code> shall return the part seen at that point as 11.6 defines it. A point <code>(px, py)</code> is <strong>exempt</strong> when the part seen (or no part) is not the same at the point and at each of the eight points <code>(px + a, py + b)</code>, <code>a</code> and <code>b</code> taken in <code>−1.5, 0, 1.5</code>, not both 0.</li>
+<li><strong>Rationale:</strong> Parts in front hide the parts behind them, as on a real bicycle.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Kickstand in front, then hidden by the rear wheel
+  Given the user checks &quot;Kickstand&quot;
+  When the projection of the point (320, 75, 135) is (px, py)
+  Then bikePickAt(px, py) returns &quot;kickstand&quot;
+  When the user presses ArrowLeft 10 times on bike-preview
+  Then bikePreviewState() returns yaw 210
+  And bikePickAt at the new projection of (320, 75, 135) returns &quot;wheel-rear&quot;
+</code></pre>
+<h3 id="FR-PRV-05">FR-PRV-05 Drawing</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall draw the model in <code>bike-preview</code> as 11.6 defines it, at a device pixel ratio of 1. Pixel <code>(i, j)</code> of <code>bike-preview</code> is the screenshot pixel whose center is the point <code>(i + 0.5, j + 0.5)</code>. For each pixel whose center is a point where a part is seen and that is not exempt (FR-PRV-04), the pixel shall have the color of that part shaded: there is one factor <code>s</code> from 0.4 to 1 such that each of its red, green and blue channels differs by at most 6 from <code>s</code> times the same channel of the part color. For each pixel whose center is a point where no part is seen and that is not exempt, the pixel shall be <code>#EDEDF2</code> within 6 on each channel, in both color schemes.</li>
+<li><strong>Rationale:</strong> What the page reports is what the customer sees.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Frame color on the canvas
+  Given the content box of bike-preview is 310 × 260 CSS pixels (wide viewport)
+  When the user selects card-color-red
+  Then pixel (179, 124), at the middle of the down tube (BB + HB) / 2, has the color &quot;#C8102E&quot; shaded
+  And pixel (2, 2) is &quot;#EDEDF2&quot;
+</code></pre>
+<h3 id="FR-PRV-06">FR-PRV-06 Turning with the pointer</h3>
+<ul>
+<li><strong>Statement:</strong> While the primary pointer button is held after a <code>pointerdown</code> on <code>bike-preview</code>, the system shall, for each pointer move of <code>dx</code> CSS pixels to the right and <code>dy</code> CSS pixels down, add <code>0.9·dx</code> to the yaw and <code>0.5·dy</code> to the pitch. The yaw is then brought between 0 included and 360 excluded by adding or removing whole turns of 360; the pitch is then kept between −20 and 60. A move after the button is released shall change nothing. The page shall not scroll or select text during the drag.</li>
+<li><strong>Rationale:</strong> The customer looks at the bike from any side.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Drag
+  When the user drags bike-preview 100 px to the right and 40 px down
+  Then bikePreviewState() returns yaw 90 and pitch 30
+  When the user drags bike-preview 100 px to the left and 200 px down
+  Then bikePreviewState() returns yaw 0 and pitch 60
+  When the user drags bike-preview 30 px to the left
+  Then bikePreviewState() returns yaw 333 (within 0.01)
+</code></pre>
+<h3 id="FR-PRV-07">FR-PRV-07 Turning with the keyboard</h3>
+<ul>
+<li><strong>Statement:</strong> While <code>bike-preview</code> has the focus, the system shall add 15 to the yaw on <code>ArrowRight</code> and remove 15 on <code>ArrowLeft</code>, add 5 to the pitch on <code>ArrowUp</code> and remove 5 on <code>ArrowDown</code>, with the same bounds as FR-PRV-06, and prevent the default action of these four keys. <code>Home</code> shall bring the yaw back to 0 and the pitch to 10.</li>
+<li><strong>Rationale:</strong> The preview can be turned without a pointer.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Keys
+  Given bike-preview has the focus
+  When the user presses ArrowLeft
+  Then bikePreviewState() returns yaw 345
+  When the user presses ArrowUp 20 times
+  Then bikePreviewState() returns pitch 60
+  When the user presses Home
+  Then bikePreviewState() returns yaw 0 and pitch 10
+</code></pre>
+<h3 id="FR-PRV-08">FR-PRV-08 Refresh</h3>
+<ul>
+<li><strong>Statement:</strong> Within 500 ms of any change of the configuration, of the yaw, of the pitch or of the size of <code>bike-preview</code>, the system shall show the new state on the canvas, and <code>bikePreviewState()</code> and <code>bikePickAt</code> shall return it at once. The canvas shall then stay unchanged until the next change.</li>
+<li><strong>Rationale:</strong> The image always matches the configuration, and the page settles.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Wheels changed
+  When the user selects card-wheels-29
+  Then within 500 ms the screenshot of bike-preview matches the model with R = 375
+</code></pre>
+
+</main>
+</body>
+</html>

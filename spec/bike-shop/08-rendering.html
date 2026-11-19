@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 08-rendering</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-configurator.html">04-fr-configurator</a> · <a href="05-fr-order-lines.html">05-fr-order-lines</a> · <a href="06-fr-pricing.html">06-fr-pricing</a> · <a href="07-fr-checkout.html">07-fr-checkout</a> · <strong>08-rendering</strong> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="8-rendering-requirements">8. Rendering requirements</h1>
+<p>The visual design is free. These requirements set the limits every design shall respect. They are checked at two viewports: <strong>narrow</strong> 360 × 740 and <strong>wide</strong> 1280 × 800, in the light color scheme.</p>
+<p>The <strong>checked states</strong> are:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>How it is reached</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Load</td>
+<td>The page has loaded.</td>
+</tr>
+<tr>
+<td>Full order</td>
+<td>Four lines with different bikes, each with at least two accessories and a quantity of at least 2, and a code applied. The height field then holds a height whose recommended frame is <code>S</code>, so that the configurator shows frame <code>S</code> with <code>29&quot; wheels</code>, <code>Pro Electronic 2×12</code> and <code>Glacier</code> unavailable. The user then checks <code>Rear rack</code> (<code>notice</code> visible) and clicks <code>add-to-order</code>, which is refused (<code>line-error</code> visible).</td>
+</tr>
+<tr>
+<td>Edit</td>
+<td>The full order, with its last line being edited.</td>
+</tr>
+<tr>
+<td>Confirmation</td>
+<td>The full order placed.</td>
+</tr>
+</tbody></table>
+<p>A <strong>control</strong> is any <code>&lt;input&gt;</code> or <code>&lt;button&gt;</code> listed in 03-ui-contract, and any option card, that is visible in the state checked.</p>
+<h3 id="DR-LAY-01">DR-LAY-01 No horizontal scrolling</h3>
+<ul>
+<li><strong>Statement:</strong> In every checked state at both viewports, the system shall not make the page wider than the viewport: <code>document.documentElement.scrollWidth</code> shall not exceed <code>window.innerWidth</code>.</li>
+<li><strong>Rationale:</strong> A phone user never scrolls sideways to reach a price or a button.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Full order on a phone
+  Given the viewport is 360 × 740
+  When the user builds the full order
+  Then the page is not wider than the viewport
+</code></pre>
+<h3 id="DR-LAY-02">DR-LAY-02 Reachable controls</h3>
+<ul>
+<li><p><strong>Statement:</strong> In every checked state at both viewports, each control shall be reachable: at one at least of the three window scroll positions below, the center of the control&#39;s bounding box is inside the viewport and <code>document.elementFromPoint</code> at that center returns the control or one of its descendants (for an option card: the card or one of its descendants).</p>
+<ol>
+<li>The position reached by <code>element.scrollIntoView({ block: &quot;center&quot; })</code> on the control.</li>
+<li>The top of the page (<code>window.scrollTo(0, 0)</code>).</li>
+<li>The bottom of the page (<code>window.scrollTo(0, document.documentElement.scrollHeight)</code>).</li>
+</ol>
+<p>For the input of an option card, the check is made on the card that contains it: its bounding box, <code>scrollIntoView</code> and <code>elementFromPoint</code> are taken on the card, which passes when <code>elementFromPoint</code> returns the card or one of its descendants.</p>
+</li>
+<li><p><strong>Rationale:</strong> No control is covered by another element or kept out of the screen, whatever sticky or fixed parts the design uses.</p>
+</li>
+<li><p><strong>Verification:</strong> Test</p>
+</li>
+<li><p><strong>Acceptance criteria:</strong></p>
+</li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Order buttons on a phone
+  Given the viewport is 360 × 740
+  When the user builds the full order
+  Then place-order, promo-apply and every Remove button are reachable
+</code></pre>
+<h3 id="DR-FOC-01">DR-FOC-01 Visible keyboard focus</h3>
+<ul>
+<li><strong>Statement:</strong> When a control receives the focus from the Tab key, the system shall make that focus visible: the control, or for the input of an option card the card itself, shall differ from its unfocused state in at least one of its computed <code>outline-style</code>, <code>outline-width</code>, <code>outline-color</code>, <code>box-shadow</code>, <code>border-top-color</code> or <code>background-color</code>. Within a radio group, the radio that receives the focus from the Tab key is the checked one, or the first one in DOM order when none is checked; arrow keys are not used to move the focus in this check.</li>
+<li><strong>Rationale:</strong> A keyboard user always sees where the focus is.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Focus on a frame card
+  Given the user fills height-input with &quot;170&quot;
+  And the radio &quot;Frame M&quot; is checked
+  When the user moves the focus with Tab to the radio &quot;Frame M&quot;
+  Then card-frame-M looks different from its unfocused state
+</code></pre>
+<h3 id="DR-CON-01">DR-CON-01 Text contrast</h3>
+<ul>
+<li><strong>Statement:</strong> For the text of each element below, in every checked state at both viewports, the contrast ratio between the computed <code>color</code> and the effective background shall be at least 4.5:1, computed with the WCAG 2.2 formula. The <strong>effective background</strong> of an element is obtained by blending, from the root down to the element, the computed <code>background-color</code> of each ancestor and of the element itself, starting from white. When the computed <code>color</code> has an alpha below 1, it is first blended over the effective background, and the ratio is computed between the resulting opaque color and the effective background. These elements, and their ancestors, shall not show their text over a <code>background-image</code>, and shall have a computed <code>opacity</code> of 1. Disabled <code>&lt;button&gt;</code> elements are exempt. Only the listed elements that are visible (README, section 2.5) in the checked state are checked. The <code>[data-role=&quot;name&quot;]</code> and <code>[data-role=&quot;price&quot;]</code> of every card are checked whether the option is available or not, and the <code>[data-role=&quot;reason&quot;]</code> of every unavailable card is checked.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Elements</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>[data-role=&quot;name&quot;]</code>, <code>[data-role=&quot;price&quot;]</code> and <code>[data-role=&quot;reason&quot;]</code> of every card</td>
+</tr>
+<tr>
+<td><code>height-error</code>, <code>height-recommendation</code>, <code>add-hint</code>, <code>line-error</code>, <code>promo-error</code>, <code>promo-status</code>, <code>place-hint</code>, <code>notice</code></td>
+</tr>
+<tr>
+<td><code>bike-price</code>, <code>qty-value</code>, every <code>[data-role]</code> element of the order lines and summary lines</td>
+</tr>
+<tr>
+<td>the text of every enabled <code>&lt;button&gt;</code> of 03-ui-contract</td>
+</tr>
+<tr>
+<td>every <code>data-testid</code> element of the confirmation</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Rationale:</strong> Every price, message and action stays readable.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Messages readable
+  When the user fills height-input with &quot;140&quot;
+  Then the contrast of height-error is at least 4.5:1
+</code></pre>
+<h3 id="DR-ANI-01">DR-ANI-01 Finite animations</h3>
+<ul>
+<li><strong>Statement:</strong> The system may run animations with an infinite iteration count only on decorative elements that carry no <code>data-testid</code>, contain no control and contain none of the elements listed in DR-CON-01. Every other animation and transition shall finish within 1 second of the event that starts it.</li>
+<li><strong>Rationale:</strong> Values are read on a settled page; a page that never settles cannot be read.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Settled after a choice
+  When the user selects card-frame-M
+  Then within 1 second no finite animation or transition is running
+</code></pre>
+
+</main>
+</body>
+</html>

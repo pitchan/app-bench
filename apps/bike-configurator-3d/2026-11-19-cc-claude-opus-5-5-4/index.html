@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+:root {
+  --color-bg: #F6F4F0;
+  --color-surface: #FFFFFF;
+  --color-text: #1B1A18;
+  --color-muted: #67625B;
+  --color-border: #DCD6CC;
+  --color-accent: #0E6B58;
+  --color-accent-contrast: #FFFFFF;
+  --color-danger: #B42318;
+  --color-disabled-bg: #ECE8E1;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --duration-fast: 150ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121110;
+    --color-surface: #1D1B19;
+    --color-text: #F3F0EA;
+    --color-muted: #A59F96;
+    --color-border: #38342F;
+    --color-accent: #3BC4A5;
+    --color-accent-contrast: #0B0A09;
+    --color-danger: #F97066;
+    --color-disabled-bg: #2A2724;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+header { max-width: 1200px; margin: 0 auto; padding: var(--space-5) var(--space-5) 0; }
+header h1 { margin: 0 0 var(--space-5); font-size: var(--text-xl); line-height: 36px; font-weight: 700; }
+main {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px 96px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 32px; align-items: start;
+}
+#configurator { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+section.panel, aside {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+aside { position: sticky; top: 24px; min-width: 0; }
+h2 { font-size: 20px; font-weight: 600; margin: 0 0 var(--space-4); line-height: 28px; }
+@media (max-width: 1023.98px) {
+  header { padding: var(--space-4) 16px 0; }
+  main { padding: 0 16px 96px; grid-template-columns: minmax(0, 1fr); }
+  aside { position: static; }
+}
+.grid { display: grid; gap: 12px; }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1023.98px) {
+  .n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .n1 { grid-template-columns: minmax(0, 1fr); }
+}
+#section-frame .grid { padding-top: 10px; }
+.card {
+  position: relative; display: flex; flex-direction: column; gap: 2px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 16px; cursor: pointer; min-width: 0;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+.card input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; top: 0; left: 0; pointer-events: none; }
+.card [data-role="name"] { font-size: 16px; font-weight: 600; color: var(--color-text); padding-right: 22px; }
+.card [data-role="price"] { font-size: 14px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.card [data-role="reason"] { font-size: 14px; color: var(--color-muted); }
+.card [data-role="check"] { position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; border-radius: 50%; background: var(--color-accent); color: var(--color-accent-contrast); font-size: 13px; line-height: 20px; text-align: center; }
+.card:not(:has(input:checked)) [data-role="check"] { display: none; }
+.card:not(:has(input:disabled)) [data-role="reason"] { display: none; }
+.card:hover:not(:has(input:checked)):not(:has(input:disabled)) { border-color: var(--color-muted); }
+.card:has(input:checked) { border: 2px solid var(--color-accent); padding: 15px; }
+.card:has(input:checked) [data-role="check"] { top: 11px; right: 11px; }
+.card:has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
+.card:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+[data-role="swatch"] { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--color-border); margin-bottom: 6px; flex: none; }
+[data-role="badge"] {
+  position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+  background-color: var(--color-accent); color: var(--color-accent-contrast);
+  border-radius: var(--radius-pill); font-size: 14px; font-weight: 600; line-height: 20px;
+  padding: 2px 8px; white-space: nowrap;
+}
+.field label { display: block; font-weight: 600; margin-bottom: var(--space-2); }
+input[type="text"] {
+  font: inherit; color: var(--color-text); background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-control);
+  height: 40px; padding: 0 12px; width: 100%; max-width: 240px;
+}
+input[type="text"]:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+#height-input[aria-invalid="true"] { border-color: var(--color-danger); }
+.error { color: var(--color-danger); font-size: 14px; margin: var(--space-2) 0 0; }
+.info { margin: var(--space-2) 0 0; font-size: 14px; color: var(--color-muted); }
+#frame-warning { margin: 0 0 var(--space-3); font-size: 14px; color: var(--color-danger); }
+button {
+  font: inherit; cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.btn2 {
+  background-color: transparent; border: 1px solid var(--color-border); color: var(--color-text);
+  height: 40px; border-radius: var(--radius-control); padding: 0 16px;
+}
+.btn2:disabled { opacity: 0.45; cursor: not-allowed; }
+.qty { display: flex; align-items: center; gap: var(--space-4); }
+.qty .btn2 { width: 40px; padding: 0; font-size: 20px; }
+#qty-value { min-width: 24px; text-align: center; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#bike-preview { display: block; width: 100%; height: 260px; border: none; padding: 0; border-radius: var(--radius-control); background: #EDEDF2; touch-action: none; user-select: none; cursor: grab; margin-bottom: var(--space-4); }
+#bike-preview:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.line { display: flex; align-items: baseline; gap: var(--space-3); padding: 2px 0; }
+.line [data-role="label"] { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line [data-role="value"] { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.line.sub [data-role="label"] { color: var(--color-muted); }
+#summary-line-qty-discount [data-role="value"], #summary-line-promo [data-role="value"] { color: var(--color-accent); }
+#summary-line-unit { margin-top: var(--space-2); }
+#summary-line-total { border-top: 1px solid var(--color-border); margin-top: var(--space-2); padding-top: var(--space-3); }
+#summary-line-total [data-role="label"], #summary-line-total [data-role="value"] { font-size: 28px; font-weight: 700; line-height: 36px; }
+#summary-line-vat, #summary-line-delivery { font-size: 14px; color: var(--color-muted); }
+.promo { margin-top: var(--space-4); }
+.promo label { display: block; font-weight: 600; margin-bottom: var(--space-2); font-size: 14px; }
+.promo-row { display: flex; gap: var(--space-2); }
+.promo-row input { max-width: none; flex: 1; min-width: 0; }
+#promo-status { font-size: 14px; margin: var(--space-2) 0 0; }
+#promo-status.on { color: var(--color-accent); }
+#promo-status.off { color: var(--color-muted); }
+#promo-remove { margin-top: var(--space-2); }
+#order-button {
+  display: block; width: 100%; height: 48px; border: none; border-radius: var(--radius-control);
+  font-size: 16px; font-weight: 600; margin-top: var(--space-5);
+  background-color: var(--color-accent); color: var(--color-accent-contrast);
+}
+#order-button:disabled { background-color: var(--color-disabled-bg); color: var(--color-muted); cursor: not-allowed; }
+#order-hint { font-size: 14px; color: var(--color-muted); margin: var(--space-2) 0 0; text-align: center; }
+#notice {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: min(480px, calc(100vw - 32px));
+  background-color: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-border); border-left: 4px solid var(--color-accent);
+  padding: 12px 16px; border-radius: var(--radius-control);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); z-index: 10;
+}
+#confirmation { max-width: 560px; margin: 0 auto 64px; }
+#confirmation h2 { font-size: var(--text-xl); line-height: 36px; }
+#confirmation h2:focus { outline: none; }
+#confirmation dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-5); }
+#confirmation dt { color: var(--color-muted); }
+#confirmation dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 1023.98px) { #confirmation { margin: 0 16px 64px; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+<main id="main">
+  <div id="configurator" data-testid="configurator">
+    <section class="panel" data-testid="section-rider">
+      <h2>1. Rider</h2>
+      <div class="field">
+        <label for="height-input">Your height (cm)</label>
+        <input id="height-input" data-testid="height-input" type="text" inputmode="numeric" autocomplete="off">
+        <p id="height-error" class="error" data-testid="height-error" hidden>Enter a height between 150 and 200 cm.</p>
+        <p id="height-recommendation" class="info" data-testid="height-recommendation" hidden></p>
+      </div>
+    </section>
+    <section class="panel" id="section-frame" data-testid="section-frame">
+      <h2>2. Frame</h2>
+      <p id="frame-warning" data-testid="frame-warning" hidden></p>
+      <div class="grid g4 n2" id="grid-frame"></div>
+    </section>
+    <section class="panel" data-testid="section-wheels">
+      <h2>3. Wheels</h2>
+      <div class="grid g2 n2" id="grid-wheels"></div>
+    </section>
+    <section class="panel" data-testid="section-drivetrain">
+      <h2>4. Drivetrain</h2>
+      <div class="grid g3 n1" id="grid-drivetrain"></div>
+    </section>
+    <section class="panel" data-testid="section-color">
+      <h2>5. Color</h2>
+      <div class="grid g4 n2" id="grid-color"></div>
+    </section>
+    <section class="panel" data-testid="section-accessories">
+      <h2>6. Accessories</h2>
+      <div class="grid g2 n2" id="grid-accessory"></div>
+    </section>
+    <section class="panel" data-testid="section-quantity">
+      <h2>7. Quantity</h2>
+      <div class="qty">
+        <button type="button" class="btn2" id="qty-decrease" data-testid="qty-decrease" aria-label="Decrease quantity">−</button>
+        <span id="qty-value" data-testid="qty-value">1</span>
+        <button type="button" class="btn2" id="qty-increase" data-testid="qty-increase" aria-label="Increase quantity">+</button>
+      </div>
+    </section>
+  </div>
+  <aside id="summary" data-testid="summary">
+    <canvas id="bike-preview" data-testid="bike-preview" tabindex="0" role="img" aria-label="Bike preview" width="310" height="260"></canvas>
+    <div id="lines"></div>
+    <div class="promo">
+      <label for="promo-input">Promo code</label>
+      <div class="promo-row">
+        <input id="promo-input" data-testid="promo-input" type="text" autocomplete="off">
+        <button type="button" class="btn2" id="promo-apply" data-testid="promo-apply" disabled>Apply</button>
+      </div>
+      <p id="promo-error" class="error" data-testid="promo-error" hidden>This code is not valid.</p>
+      <p id="promo-status" data-testid="promo-status" hidden></p>
+      <button type="button" class="btn2" id="promo-remove" data-testid="promo-remove" hidden>Remove code</button>
+    </div>
+    <button type="button" id="order-button" data-testid="order-button" disabled>Order 1 bike</button>
+    <p id="order-hint" data-testid="order-hint">Enter your height to continue.</p>
+  </aside>
+</main>
+<div role="status" id="status-region"><div id="notice" data-testid="notice" hidden></div></div>
+<section id="confirmation" class="panel" data-testid="confirmation" hidden>
+  <h2 id="confirmation-title" data-testid="confirmation-title" tabindex="-1">Order confirmed</h2>
+  <dl>
+    <dt>Reference</dt><dd data-testid="confirmation-reference" id="confirmation-reference"></dd>
+    <dt>Total</dt><dd data-testid="confirmation-total" id="confirmation-total"></dd>
+    <dt>Estimated delivery</dt><dd data-testid="confirmation-delivery" id="confirmation-delivery"></dd>
+  </dl>
+  <button type="button" class="btn2" id="confirmation-new" data-testid="confirmation-new">Configure another bike</button>
+</section>
+<script>
+(function () {
+  'use strict';
+  var FRAMES = [
+    { id: 'S', name: 'Frame S', min: 150, max: 164, price: 119000, L: 430 },
+    { id: 'M', name: 'Frame M', min: 165, max: 174, price: 119000, L: 470 },
+    { id: 'L', name: 'Frame L', min: 175, max: 184, price: 124000, L: 510 },
+    { id: 'XL', name: 'Frame XL', min: 185, max: 200, price: 129000, L: 550 }
+  ];
+  var WHEELS = [
+    { id: '275', name: '27.5" wheels', price: 0, R: 350 },
+    { id: '29', name: '29" wheels', price: 12000, R: 375 }
+  ];
+  var DRIVES = [
+    { id: 'essential', name: 'Essential 1×10', price: 0, lead: 5 },
+    { id: 'sport', name: 'Sport 1×12', price: 24000, lead: 7 },
+    { id: 'pro', name: 'Pro Electronic 2×12', price: 69000, lead: 12 }
+  ];
+  var COLORS = [
+    { id: 'graphite', name: 'Graphite', hex: '#3A3A3C', price: 0 },
+    { id: 'sand', name: 'Sand', hex: '#D8C7A6', price: 0 },
+    { id: 'red', name: 'Racing Red', hex: '#C8102E', price: 6000 },
+    { id: 'glacier', name: 'Glacier', hex: '#A9D6E5', price: 0 }
+  ];
+  var ACCS = [
+    { id: 'mudguards', name: 'Mudguards', price: 4500 },
+    { id: 'rack', name: 'Rear rack', price: 6900 },
+    { id: 'lights', name: 'Lights', price: 3990 },
+    { id: 'kickstand', name: 'Kickstand', price: 2450 }
+  ];
+  var CODES = ['SPRING10', 'WELCOME50', 'FREESHIP'];
+  var CLOSED = { '2026-12-24': 1, '2026-12-25': 1, '2026-12-31': 1, '2027-01-01': 1 };
+  var MSG07 = '29" wheels were replaced by 27.5" wheels: not available with frame S.';
+  var MSG08 = 'Mudguards were added: required by the rear rack.';
+  var MSG09 = 'Rear rack was removed: it requires mudguards.';
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  var S, orderSeq = 0, view = { yaw: 0, pitch: 10 };
+  function initialState() {
+    return { heightText: '', auto: true, frame: null, wheels: '275', drive: 'essential', color: 'graphite',
+      acc: { mudguards: false, rack: false, lights: false, kickstand: false }, qty: 1, code: null };
+  }
+  S = initialState();
+
+  function $(id) { return document.getElementById(id); }
+  function find(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+
+  // ---------- formats ----------
+  function amount(c) {
+    var e = Math.floor(c / 100), ct = c % 100;
+    var s = String(e).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return '€' + s + '.' + (ct < 10 ? '0' : '') + ct;
+  }
+  function signed(c) { return c === 0 ? 'Included' : '+' + amount(c); }
+  function discount(c) { return '−' + amount(c); }
+  function fmtDate(d) { return DAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
+  function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2); }
+
+  // ---------- rules ----------
+  function heightInfo() {
+    var t = S.heightText.trim();
+    if (t === '') return { empty: true, valid: false };
+    if (/^[0-9]+$/.test(t)) {
+      var v = parseInt(t, 10);
+      if (v >= 150 && v <= 200) {
+        var rec = null;
+        FRAMES.forEach(function (f) { if (v >= f.min && v <= f.max) rec = f.id; });
+        return { empty: false, valid: true, rec: rec };
+      }
+    }
+    return { empty: false, valid: false };
+  }
+  function colorSurcharge() { return (S.color === 'red' && S.drive === 'pro') ? 0 : find(COLORS, S.color).price; }
+  function compute() {
+    var r = { hasFrame: !!S.frame };
+    var lead = find(DRIVES, S.drive).lead + (S.color === 'red' ? 3 : 0) + (S.qty >= 3 ? 2 : 0);
+    r.delivery = deliveryDate(lead);
+    var qtyDisc = 0, after = 0;
+    if (S.frame) {
+      var unit = find(FRAMES, S.frame).price + find(WHEELS, S.wheels).price + find(DRIVES, S.drive).price + colorSurcharge();
+      ACCS.forEach(function (a) { if (S.acc[a.id]) unit += a.price; });
+      var sub = unit * S.qty;
+      qtyDisc = S.qty >= 3 ? Math.floor((sub * 5 + 50) / 100) : 0;
+      after = sub - qtyDisc;
+      r.unit = unit; r.sub = sub; r.qtyDisc = qtyDisc; r.after = after;
+    }
+    var active = false;
+    if (S.code === 'SPRING10') active = !!S.frame && after >= 150000;
+    else if (S.code === 'WELCOME50') active = S.qty < 3;
+    else if (S.code === 'FREESHIP') active = true;
+    r.active = active;
+    if (S.frame) {
+      var promo = 0;
+      if (active && S.code === 'SPRING10') promo = Math.floor((after * 10 + 50) / 100);
+      if (active && S.code === 'WELCOME50') promo = 5000;
+      var merch = after - promo;
+      var ship = (S.code === 'FREESHIP' || merch >= 200000) ? 0 : 4900;
+      r.promo = promo; r.ship = ship; r.total = merch + ship;
+      r.vat = Math.floor((r.total * 20 + 60) / 120);
+    }
+    return r;
+  }
+  function deliveryDate(lead) {
+    var now = new Date();
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var n = 0;
+    while (n < lead) {
+      d.setDate(d.getDate() + 1);
+      var wd = d.getDay();
+      if (wd !== 0 && wd !== 6 && !CLOSED[iso(d)]) n++;
+    }
+    return d;
+  }
+
+  // ---------- build cards ----------
+  var inputs = {};
+  function makeCard(group, opt, type) {
+    var label = document.createElement('label');
+    label.className = 'card';
+    label.setAttribute('data-testid', 'card-' + group + '-' + opt.id);
+    var input = document.createElement('input');
+    input.type = type;
+    input.name = group;
+    input.value = opt.id;
+    input.setAttribute('aria-label', opt.name);
+    label.appendChild(input);
+    if (group === 'color') {
+      var sw = document.createElement('span');
+      sw.setAttribute('data-role', 'swatch');
+      sw.style.backgroundColor = opt.hex;
+      label.appendChild(sw);
+    }
+    var nm = document.createElement('span'); nm.setAttribute('data-role', 'name'); nm.textContent = opt.name; label.appendChild(nm);
+    var pr = document.createElement('span'); pr.setAttribute('data-role', 'price'); label.appendChild(pr);
+    var ck = document.createElement('span'); ck.setAttribute('data-role', 'check'); ck.setAttribute('aria-hidden', 'true'); ck.textContent = '✓'; label.appendChild(ck);
+    var rs = document.createElement('span'); rs.setAttribute('data-role', 'reason'); label.appendChild(rs);
+    if (group === 'frame') {
+      var bd = document.createElement('span'); bd.setAttribute('data-role', 'badge'); bd.textContent = 'Recommended'; bd.hidden = true; label.appendChild(bd);
+    }
+    $('grid-' + group).appendChild(label);
+    inputs[group + ':' + opt.id] = input;
+    return input;
+  }
+  function q(group, id, role) { return inputs[group + ':' + id].parentNode.querySelector('[data-role="' + role + '"]'); }
+
+  FRAMES.forEach(function (f) {
+    var inp = makeCard('frame', f, 'radio');
+    q('frame', f.id, 'price').textContent = amount(f.price);
+    inp.addEventListener('click', function () { S.auto = false; });
+    inp.addEventListener('change', function () {
+      if (!inp.checked) return;
+      S.auto = false;
+      var msg = setFrame(f.id);
+      setNotice(msg);
+      update();
+    });
+  });
+  WHEELS.forEach(function (w) {
+    var inp = makeCard('wheels', w, 'radio');
+    q('wheels', w.id, 'price').textContent = signed(w.price);
+    q('wheels', w.id, 'reason').textContent = 'Not available with frame S';
+    inp.addEventListener('change', function () { if (!inp.checked) return; S.wheels = w.id; setNotice(null); update(); });
+  });
+  DRIVES.forEach(function (d) {
+    var inp = makeCard('drivetrain', d, 'radio');
+    q('drivetrain', d.id, 'price').textContent = signed(d.price);
+    inp.addEventListener('change', function () { if (!inp.checked) return; S.drive = d.id; setNotice(null); update(); });
+  });
+  COLORS.forEach(function (c) {
+    var inp = makeCard('color', c, 'radio');
+    if (c.id === 'glacier') { inp.disabled = true; q('color', c.id, 'reason').textContent = 'Out of stock'; }
+    inp.addEventListener('change', function () { if (!inp.checked || c.id === 'glacier') return; S.color = c.id; setNotice(null); update(); });
+  });
+  ACCS.forEach(function (a) {
+    var inp = makeCard('accessory', a, 'checkbox');
+    q('accessory', a.id, 'price').textContent = signed(a.price);
+    inp.addEventListener('change', function () {
+      var msg = null;
+      S.acc[a.id] = inp.checked;
+      if (a.id === 'rack' && inp.checked && !S.acc.mudguards) { S.acc.mudguards = true; msg = MSG08; }
+      if (a.id === 'mudguards' && !inp.checked && S.acc.rack) { S.acc.rack = false; msg = MSG09; }
+      setNotice(msg);
+      update();
+    });
+  });
+
+  // ---------- summary lines ----------
+  var lineKeys = ['frame', 'wheels', 'drivetrain', 'color'];
+  ACCS.forEach(function (a) { lineKeys.push('accessory-' + a.id); });
+  lineKeys = lineKeys.concat(['unit', 'quantity', 'subtotal', 'qty-discount', 'promo', 'shipping', 'total', 'vat', 'delivery']);
+  var lines = {};
+  lineKeys.forEach(function (k) {
+    var row = document.createElement('div');
+    row.className = 'line' + (/^(wheels|drivetrain|color|accessory-)/.test(k) ? ' sub' : '');
+    row.id = 'summary-line-' + k;
+    row.setAttribute('data-testid', 'summary-line-' + k);
+    var l = document.createElement('span'); l.setAttribute('data-role', 'label');
+    var v = document.createElement('span'); v.setAttribute('data-role', 'value');
+    row.appendChild(l); row.appendChild(v);
+    $('lines').appendChild(row);
+    lines[k] = { row: row, l: l, v: v };
+  });
+  function setLine(k, label, value, show) {
+    var o = lines[k];
+    o.row.hidden = show === false;
+    if (o.l.textContent !== label) o.l.textContent = label;
+    if (o.v.textContent !== value) o.v.textContent = value;
+  }
+
+  // ---------- state changes ----------
+  function setFrame(id) {
+    var msg = null;
+    S.frame = id;
+    if (id === 'S' && S.wheels === '29') { S.wheels = '275'; msg = MSG07; }
+    return msg;
+  }
+  function setNotice(msg) {
+    var n = $('notice');
+    if (msg) { n.textContent = msg; n.hidden = false; }
+    else { n.hidden = true; n.textContent = ''; }
+  }
+
+  var heightInput = $('height-input');
+  heightInput.addEventListener('input', function () {
+    S.heightText = heightInput.value;
+    var h = heightInfo(), msg = null;
+    if (h.valid && S.auto) msg = setFrame(h.rec);
+    setNotice(msg);
+    update();
+  });
+  $('qty-decrease').addEventListener('click', function () { if (S.qty > 1) { S.qty--; setNotice(null); update(); } });
+  $('qty-increase').addEventListener('click', function () { if (S.qty < 5) { S.qty++; setNotice(null); update(); } });
+
+  var promoInput = $('promo-input');
+  promoInput.addEventListener('input', function () { setPromoError(false); updatePromoApply(); });
+  promoInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); if (!$('promo-apply').disabled) applyCode(); }
+  });
+  $('promo-apply').addEventListener('click', applyCode);
+  $('promo-remove').addEventListener('click', function () { S.code = null; update(); });
+  function updatePromoApply() { $('promo-apply').disabled = promoInput.value.trim() === ''; }
+  function setPromoError(on) {
+    $('promo-error').hidden = !on;
+    if (on) { promoInput.setAttribute('aria-invalid', 'true'); promoInput.setAttribute('aria-describedby', 'promo-error'); }
+    else { promoInput.removeAttribute('aria-invalid'); promoInput.removeAttribute('aria-describedby'); }
+  }
+  function applyCode() {
+    var c = promoInput.value.trim().toUpperCase();
+    if (c === '') return;
+    if (CODES.indexOf(c) >= 0) {
+      S.code = c; promoInput.value = ''; setPromoError(false);
+    } else {
+      setPromoError(true);
+    }
+    updatePromoApply();
+    update();
+  }
+
+  $('order-button').addEventListener('click', function () {
+    var h = heightInfo();
+    if (!h.valid || !S.frame) return;
+    var r = compute();
+    orderSeq++;
+    var now = new Date();
+    $('confirmation-reference').textContent = 'BK-' + now.getFullYear() + pad(now.getMonth() + 1, 2) + pad(now.getDate(), 2) + '-' + pad(orderSeq, 3);
+    $('confirmation-total').textContent = amount(r.total);
+    $('confirmation-delivery').textContent = fmtDate(r.delivery);
+    setNotice(null);
+    $('main').hidden = true;
+    $('confirmation').hidden = false;
+    $('confirmation-title').focus();
+  });
+  $('confirmation-new').addEventListener('click', function () {
+    S = initialState();
+    heightInput.value = '';
+    promoInput.value = '';
+    setPromoError(false);
+    updatePromoApply();
+    setNotice(null);
+    $('confirmation').hidden = true;
+    $('main').hidden = false;
+    update();
+    heightInput.focus();
+  });
+
+  // ---------- render ----------
+  function update() {
+    var h = heightInfo();
+    // height
+    var err = !h.empty && !h.valid;
+    $('height-error').hidden = !err;
+    if (err) { heightInput.setAttribute('aria-invalid', 'true'); heightInput.setAttribute('aria-describedby', 'height-error'); }
+    else { heightInput.removeAttribute('aria-invalid'); heightInput.removeAttribute('aria-describedby'); }
+    var rec = $('height-recommendation');
+    rec.hidden = !h.valid;
+    rec.textContent = h.valid ? 'Recommended frame: ' + h.rec : '';
+    // frame warning
+    var warn = $('frame-warning'), order = ['S', 'M', 'L', 'XL'];
+    if (h.valid && S.frame) {
+      var gap = order.indexOf(S.frame) - order.indexOf(h.rec);
+      if (Math.abs(gap) >= 2) {
+        warn.textContent = 'Frame ' + S.frame + ' is ' + Math.abs(gap) + ' sizes ' + (gap > 0 ? 'larger' : 'smaller') + ' than recommended.';
+        warn.hidden = false;
+      } else warn.hidden = true;
+    } else warn.hidden = true;
+    // cards
+    FRAMES.forEach(function (f) {
+      inputs['frame:' + f.id].checked = S.frame === f.id;
+      q('frame', f.id, 'badge').hidden = !(h.valid && h.rec === f.id);
+    });
+    var w29 = inputs['wheels:29'];
+    w29.disabled = S.frame === 'S';
+    WHEELS.forEach(function (w) { inputs['wheels:' + w.id].checked = S.wheels === w.id; });
+    DRIVES.forEach(function (d) { inputs['drivetrain:' + d.id].checked = S.drive === d.id; });
+    COLORS.forEach(function (c) { inputs['color:' + c.id].checked = S.color === c.id; });
+    q('color', 'red', 'price').textContent = S.drive === 'pro' ? 'Included with Pro' : signed(6000);
+    ACCS.forEach(function (a) { inputs['accessory:' + a.id].checked = S.acc[a.id]; });
+    // quantity
+    $('qty-value').textContent = String(S.qty);
+    $('qty-decrease').disabled = S.qty <= 1;
+    $('qty-increase').disabled = S.qty >= 5;
+    // summary
+    var r = compute(), DASH = '—';
+    if (S.frame) setLine('frame', 'Frame ' + S.frame, amount(find(FRAMES, S.frame).price));
+    else setLine('frame', 'Frame', DASH);
+    setLine('wheels', find(WHEELS, S.wheels).name, signed(find(WHEELS, S.wheels).price));
+    setLine('drivetrain', find(DRIVES, S.drive).name, signed(find(DRIVES, S.drive).price));
+    setLine('color', find(COLORS, S.color).name, signed(colorSurcharge()));
+    ACCS.forEach(function (a) { setLine('accessory-' + a.id, a.name, signed(a.price), S.acc[a.id]); });
+    setLine('unit', 'Unit price', S.frame ? amount(r.unit) : DASH);
+    setLine('quantity', 'Quantity', '× ' + S.qty);
+    setLine('subtotal', 'Subtotal', S.frame ? amount(r.sub) : DASH);
+    setLine('qty-discount', 'Quantity discount (5%)', S.frame ? discount(r.qtyDisc) : '', !!S.frame && S.qty >= 3);
+    setLine('promo', 'Code ' + (S.code || ''), S.frame ? discount(r.promo) : '', !!S.frame && r.active && r.promo > 0);
+    setLine('shipping', 'Shipping', S.frame ? (r.ship === 0 ? 'Free' : amount(r.ship)) : DASH);
+    setLine('total', 'Total', S.frame ? amount(r.total) : DASH);
+    setLine('vat', 'Including VAT (20%)', S.frame ? amount(r.vat) : DASH);
+    setLine('delivery', 'Estimated delivery', fmtDate(r.delivery));
+    // promo status
+    var st = $('promo-status');
+    if (S.code) {
+      var txt;
+      if (r.active) txt = 'Code ' + S.code + ' applied.';
+      else if (S.code === 'SPRING10') txt = 'SPRING10 requires €1,500.00 or more after the quantity discount.';
+      else txt = 'WELCOME50 cannot be combined with the quantity discount.';
+      st.textContent = txt;
+      st.className = r.active ? 'on' : 'off';
+      st.hidden = false;
+      $('promo-remove').hidden = false;
+    } else {
+      st.hidden = true; st.textContent = '';
+      $('promo-remove').hidden = true;
+    }
+    // order
+    var ob = $('order-button');
+    ob.textContent = S.qty === 1 ? 'Order 1 bike' : 'Order ' + S.qty + ' bikes';
+    ob.disabled = !(h.valid && S.frame);
+    $('order-hint').hidden = h.valid;
+    scheduleDraw();
+  }
+
+  // ---------- 3D model ----------
+  function v3(x, y, z) { return [x, y, z]; }
+  function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+  function sub3(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function scl(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
+  function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+  function norm(a) { var l = Math.sqrt(dot(a, a)); return [a[0] / l, a[1] / l, a[2] / l]; }
+  var RAD = Math.PI / 180;
+  function cosd(a) { return Math.cos(a * RAD); }
+  function sind(a) { return Math.sin(a * RAD); }
+  function hexRgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+  function cap(P, Q, r) { return { t: 0, a: P, b: Q, r: r }; }
+  function box(mn, mx) { return { t: 1, a: mn, b: mx }; }
+
+  function buildModel() {
+    var R = find(WHEELS, S.wheels).R;
+    var L = S.frame ? find(FRAMES, S.frame).L : 470;
+    var C = find(COLORS, S.color).hex;
+    var RA = v3(0, R, 0), FA = v3(1080, R, 0), BB = v3(420, 300, 0);
+    var ST = v3(420 - 0.25 * L, 300 + L, 0), HT = v3(1000, 340 + L, 0), HB = v3(1020, 220 + L, 0);
+    var SP = add(ST, v3(-15, 60, 0)), HS = add(HT, v3(-60, 60, 0));
+    var parts = [];
+    parts.push({ name: 'frame', color: C, prims: [cap(BB, ST, 18), cap(ST, HT, 18), cap(BB, HB, 20), cap(HB, HT, 20), cap(ST, RA, 16), cap(BB, RA, 16), cap(HB, FA, 16), cap(ST, SP, 13), cap(HT, HS, 15), cap(add(HS, v3(0, 0, -260)), add(HS, v3(0, 0, 260)), 16)] });
+    parts.push({ name: 'saddle', color: '#1C1C1E', prims: [cap(add(SP, v3(-90, 0, 0)), add(SP, v3(80, 0, 0)), 24)] });
+    function wheel(A) {
+      var pr = [], k;
+      for (k = 0; k < 36; k++) {
+        var k2 = (k + 1) % 36;
+        pr.push(cap(add(A, v3(R * cosd(10 * k), R * sind(10 * k), 0)), add(A, v3(R * cosd(10 * k2), R * sind(10 * k2), 0)), 22));
+      }
+      pr.push(cap(add(A, v3(0, 0, -50)), add(A, v3(0, 0, 50)), 15));
+      return pr;
+    }
+    function guard(A) {
+      var pr = [], k;
+      for (k = 0; k < 12; k++) {
+        pr.push(cap(add(A, v3((R + 45) * cosd(30 + 10 * k), (R + 45) * sind(30 + 10 * k), 0)), add(A, v3((R + 45) * cosd(40 + 10 * k), (R + 45) * sind(40 + 10 * k), 0)), 25));
+      }
+      return pr;
+    }
+    parts.push({ name: 'wheel-rear', color: '#1C1C1E', prims: wheel(RA) });
+    parts.push({ name: 'wheel-front', color: '#1C1C1E', prims: wheel(FA) });
+    if (S.acc.mudguards) {
+      parts.push({ name: 'mudguard-rear', color: '#2C2C2E', prims: guard(RA) });
+      parts.push({ name: 'mudguard-front', color: '#2C2C2E', prims: guard(FA) });
+    }
+    if (S.acc.rack) parts.push({ name: 'rack', color: '#48484A', prims: [box(v3(-120, 2 * R + 80, -90), v3(260, 2 * R + 92, 90)), cap(v3(-100, 2 * R + 86, 0), RA, 14)] });
+    if (S.acc.lights) parts.push({ name: 'light', color: '#FFD60A', prims: [box(add(HT, v3(20, -60, -25)), add(HT, v3(70, -20, 25)))] });
+    if (S.acc.kickstand) parts.push({ name: 'kickstand', color: '#8E8E93', prims: [cap(v3(380, 300, 60), v3(300, 0, 160), 20)] });
+    // bounding spheres
+    parts.forEach(function (p) {
+      var mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+      p.prims.forEach(function (q) {
+        var rr = q.t === 0 ? q.r : 0;
+        [q.a, q.b].forEach(function (pt) {
+          for (var i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], pt[i] - rr); mx[i] = Math.max(mx[i], pt[i] + rr); }
+        });
+      });
+      p.c = scl(add(mn, mx), 0.5);
+      var d = sub3(mx, mn);
+      p.rad = Math.sqrt(dot(d, d)) / 2 + 1;
+      p.rgb = hexRgb(p.color);
+    });
+    return parts;
+  }
+
+  // ray-capsule; rd normalized. returns t or -1
+  function hitCap(ro, rd, q) {
+    var pa = q.a, pb = q.b, r = q.r;
+    var ba = sub3(pb, pa), oa = sub3(ro, pa);
+    var baba = dot(ba, ba), bard = dot(ba, rd), baoa = dot(ba, oa), rdoa = dot(rd, oa), oaoa = dot(oa, oa);
+    var a = baba - bard * bard;
+    if (a > 1e-9 * baba) {
+      var b = baba * rdoa - baoa * bard;
+      var c = baba * oaoa - baoa * baoa - r * r * baba;
+      var h = b * b - a * c;
+      if (h < 0) return -1;
+      var t = (-b - Math.sqrt(h)) / a;
+      var y = baoa + t * bard;
+      if (y > 0 && y < baba) return t;
+      var oc = y <= 0 ? oa : sub3(ro, pb);
+      var b2 = dot(rd, oc), c2 = dot(oc, oc) - r * r, h2 = b2 * b2 - c2;
+      if (h2 > 0) return -b2 - Math.sqrt(h2);
+      return -1;
+    }
+    var best = -1;
+    [oa, sub3(ro, pb)].forEach(function (o) {
+      var b3 = dot(rd, o), c3 = dot(o, o) - r * r, h3 = b3 * b3 - c3;
+      if (h3 > 0) { var t3 = -b3 - Math.sqrt(h3); if (t3 > 0 && (best < 0 || t3 < best)) best = t3; }
+    });
+    return best;
+  }
+  function hitBox(ro, rd, q) {
+    var t0 = -Infinity, t1 = Infinity;
+    for (var i = 0; i < 3; i++) {
+      if (Math.abs(rd[i]) < 1e-12) { if (ro[i] < q.a[i] || ro[i] > q.b[i]) return -1; continue; }
+      var ta = (q.a[i] - ro[i]) / rd[i], tb = (q.b[i] - ro[i]) / rd[i];
+      if (ta > tb) { var tt = ta; ta = tb; tb = tt; }
+      if (ta > t0) t0 = ta;
+      if (tb < t1) t1 = tb;
+      if (t0 > t1) return -1;
+    }
+    return t0 > 0 ? t0 : -1;
+  }
+  function normalAt(q, p) {
+    if (q.t === 0) {
+      var ba = sub3(q.b, q.a), h = dot(sub3(p, q.a), ba) / dot(ba, ba);
+      h = Math.max(0, Math.min(1, h));
+      return norm(sub3(p, add(q.a, scl(ba, h))));
+    }
+    var best = 1e9, n = [0, 1, 0];
+    for (var i = 0; i < 3; i++) {
+      var d0 = Math.abs(p[i] - q.a[i]), d1 = Math.abs(p[i] - q.b[i]);
+      if (d0 < best) { best = d0; n = [0, 0, 0]; n[i] = -1; }
+      if (d1 < best) { best = d1; n = [0, 0, 0]; n[i] = 1; }
+    }
+    return n;
+  }
+  function trace(ro, rd, parts) {
+    var bestT = Infinity, bestP = null, bestQ = null;
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var oc = sub3(ro, p.c), b = dot(rd, oc), c = dot(oc, oc) - p.rad * p.rad, h = b * b - c;
+      if (h < 0) continue;
+      if (-b - Math.sqrt(h) > bestT) continue;
+      for (var j = 0; j < p.prims.length; j++) {
+        var q = p.prims[j];
+        var t = q.t === 0 ? hitCap(ro, rd, q) : hitBox(ro, rd, q);
+        if (t > 0 && t < bestT) { bestT = t; bestP = p; bestQ = q; }
+      }
+    }
+    return bestP ? { part: bestP, prim: bestQ, t: bestT } : null;
+  }
+  function camera(W, H) {
+    var T = [540, 450, 0], D = 3600, th = view.yaw, ph = view.pitch;
+    var E = add(T, scl([sind(th) * cosd(ph), sind(ph), cosd(th) * cosd(ph)], D));
+    var f = norm(sub3(T, E));
+    var r = norm(cross(f, [0, 1, 0]));
+    var u = cross(r, f);
+    return { E: E, f: f, r: r, u: u, F: (H / 2) / Math.tan(15 * RAD), W: W, H: H };
+  }
+  function rayDir(cam, px, py) {
+    var a = (px - cam.W / 2) / cam.F, b = (py - cam.H / 2) / cam.F;
+    return norm([cam.f[0] + a * cam.r[0] - b * cam.u[0], cam.f[1] + a * cam.r[1] - b * cam.u[1], cam.f[2] + a * cam.r[2] - b * cam.u[2]]);
+  }
+  var canvas = $('bike-preview');
+  function canvasSize() {
+    var W = canvas.clientWidth, H = canvas.clientHeight;
+    return { W: W || canvas.width, H: H || canvas.height };
+  }
+
+  window.bikePreviewState = function () {
+    return { yaw: view.yaw, pitch: view.pitch, parts: buildModel().map(function (p) { return p.name; }) };
+  };
+  window.bikePickAt = function (px, py) {
+    var sz = canvasSize(), cam = camera(sz.W, sz.H);
+    var hit = trace(cam.E, rayDir(cam, px, py), buildModel());
+    return hit ? hit.part.name : null;
+  };
+
+  var drawPending = false;
+  function scheduleDraw() {
+    if (drawPending) return;
+    drawPending = true;
+    requestAnimationFrame(function () { drawPending = false; draw(); });
+  }
+  function draw() {
+    var W = canvas.clientWidth, H = canvas.clientHeight;
+    if (!W || !H) return;
+    if (canvas.width !== W) canvas.width = W;
+    if (canvas.height !== H) canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    var img = ctx.createImageData(W, H), data = img.data;
+    var cam = camera(W, H), parts = buildModel();
+    var Ldir = norm([-0.3, 0.8, 0.5]);
+    for (var j = 0; j < H; j++) {
+      for (var i = 0; i < W; i++) {
+        var k = (j * W + i) * 4;
+        var rd = rayDir(cam, i + 0.5, j + 0.5);
+        var hit = trace(cam.E, rd, parts);
+        if (!hit) { data[k] = 0xED; data[k + 1] = 0xED; data[k + 2] = 0xF2; data[k + 3] = 255; continue; }
+        var p = add(cam.E, scl(rd, hit.t));
+        var n = normalAt(hit.prim, p);
+        var facing = Math.abs(dot(n, rd));
+        var diff = Math.max(0, dot(n, Ldir));
+        var s = 0.4 + 0.35 * facing + 0.25 * diff;
+        if (s > 1) s = 1;
+        var c = hit.part.rgb;
+        data[k] = Math.round(c[0] * s); data[k + 1] = Math.round(c[1] * s); data[k + 2] = Math.round(c[2] * s); data[k + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  if (window.ResizeObserver) new ResizeObserver(scheduleDraw).observe(canvas);
+
+  // ---------- turning ----------
+  function setView(yaw, pitch) {
+    yaw = yaw % 360; if (yaw < 0) yaw += 360; if (yaw >= 360) yaw -= 360;
+    view.yaw = yaw;
+    view.pitch = Math.max(-20, Math.min(60, pitch));
+    scheduleDraw();
+  }
+  var drag = null;
+  canvas.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    canvas.focus();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!(e.buttons & 1)) { drag = null; return; }
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (dx || dy) setView(view.yaw + 0.9 * dx, view.pitch + 0.5 * dy);
+  });
+  function endDrag(e) { if (drag && e.pointerId === drag.id) drag = null; }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('lostpointercapture', endDrag);
+  canvas.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowRight': setView(view.yaw + 15, view.pitch); break;
+      case 'ArrowLeft': setView(view.yaw - 15, view.pitch); break;
+      case 'ArrowUp': setView(view.yaw, view.pitch + 5); break;
+      case 'ArrowDown': setView(view.yaw, view.pitch - 5); break;
+      case 'Home': setView(0, 10); break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>

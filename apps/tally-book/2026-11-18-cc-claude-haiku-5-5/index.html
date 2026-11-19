@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Haiku 5.5</title>
+<style>
+:root{--bg:#f6f6f4;--ink:#1c1c1e;--line:#c9c9c4;--accent:#1f5fbf;--sel:#dce9ff;--head:#ececea;--err:#8a1c1c;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px}
+[hidden]{display:none !important}
+h1{font-size:20px;margin:0 0 12px}
+main{display:flex;flex-direction:column;gap:12px;min-width:0}
+.bar{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+button{font:inherit;color:var(--ink);background:#fff;border:1px solid #8a8a85;border-radius:6px;padding:6px 10px;min-height:32px;cursor:pointer}
+button:hover:not(:disabled){background:#eef3fb}
+button:disabled{opacity:.5;cursor:default}
+input[type=text],textarea,select{font:inherit;color:var(--ink);background:#fff;border:1px solid #8a8a85;border-radius:6px;padding:6px 8px;min-height:32px;max-width:100%}
+input[type=text]{width:170px}
+input[type=checkbox]{width:16px;height:16px;margin:0}
+input:disabled,select:disabled,textarea:disabled{opacity:.5}
+textarea{width:100%;min-height:96px;font-family:ui-monospace,Consolas,monospace}
+.check{display:inline-flex;align-items:center;gap:6px}
+:focus{outline:3px solid var(--accent);outline-offset:2px}
+.namebox{min-width:90px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+#formula-input{flex:1 1 220px;width:auto;min-width:0}
+.grid-wrap{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
+[role=row]{display:grid;grid-template-columns:48px repeat(8,112px)}
+[role=columnheader],[role=rowheader],[role=presentation]{background:var(--head);border:1px solid var(--line);height:28px;display:flex;align-items:center;justify-content:center;font-weight:600}
+[role=gridcell]{border:1px solid var(--line);height:28px;padding:0 6px;display:flex;align-items:center;overflow:hidden;white-space:nowrap;background:#fff}
+[role=gridcell][data-kind=number]{justify-content:flex-end}
+[role=gridcell][data-in-selection=true]{background:var(--sel)}
+[role=gridcell][aria-selected=true]{box-shadow:inset 0 0 0 2px var(--accent)}
+.summary{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tabs{display:flex;gap:4px;overflow-x:auto;max-width:100%;min-width:0;flex:1 1 100%;padding-bottom:4px}
+[role=tab]{white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;background:#e9e9e6;flex:0 0 auto}
+[role=tab][aria-selected=true]{background:#fff;border-bottom:3px solid var(--accent);font-weight:600}
+.msg{color:var(--err);font-weight:600;flex:1 1 100%;overflow-wrap:anywhere}
+.names{display:flex;flex-direction:column;gap:4px;flex:1 1 100%;min-width:0}
+[role=listitem]{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Haiku 5.5</h1></header>
+<main>
+<div class="bar" data-testid="toolbar">
+<button type="button" data-testid="undo-button">Undo</button>
+<button type="button" data-testid="redo-button">Redo</button>
+<button type="button" data-testid="copy-button">Copy</button>
+<button type="button" data-testid="cut-button">Cut</button>
+<button type="button" data-testid="paste-button">Paste</button>
+<button type="button" data-testid="clear-button">Clear</button>
+<button type="button" data-testid="insert-row">Insert row</button>
+<button type="button" data-testid="delete-row">Delete row</button>
+<button type="button" data-testid="insert-col">Insert column</button>
+<button type="button" data-testid="delete-col">Delete column</button>
+<button type="button" data-testid="sort-asc">Sort ascending</button>
+<button type="button" data-testid="sort-desc">Sort descending</button>
+<button type="button" data-testid="fill-down">Fill down</button>
+<button type="button" data-testid="fill-right">Fill right</button>
+<button type="button" data-testid="fill-series">Fill series</button>
+<label for="format-select">Number format</label>
+<select id="format-select" data-testid="format-select">
+<option value="general">General</option>
+<option value="fixed2">1,234.50</option>
+<option value="percent1">12.5%</option>
+<option value="date">2024-12-31</option>
+</select>
+</div>
+<div class="bar">
+<div class="namebox" data-testid="name-box">A1</div>
+<label for="formula-input">Cell content</label>
+<input type="text" id="formula-input" data-testid="formula-input" autocomplete="off" data-editing="false">
+</div>
+<div class="grid-wrap">
+<div role="grid" aria-label="Sheet" tabindex="0" data-testid="grid" id="grid"></div>
+</div>
+<div class="summary" data-testid="selection-summary" hidden></div>
+<section class="bar" data-testid="sheet-bar">
+<div class="tabs" role="tablist" aria-label="Sheets" data-testid="sheet-tabs"></div>
+<button type="button" data-testid="add-sheet">Add sheet</button>
+<label for="sheet-name-input">Sheet name</label>
+<input type="text" id="sheet-name-input" data-testid="sheet-name-input" autocomplete="off">
+<button type="button" data-testid="rename-sheet">Rename sheet</button>
+<button type="button" data-testid="delete-sheet">Delete sheet</button>
+<div class="msg" data-testid="sheet-message" hidden></div>
+</section>
+<section class="bar" data-testid="names-panel">
+<label for="name-input">Name</label>
+<input type="text" id="name-input" data-testid="name-input" autocomplete="off">
+<button type="button" data-testid="define-name">Define name</button>
+<button type="button" data-testid="delete-name">Delete name</button>
+<div class="msg" data-testid="name-message" hidden></div>
+<div class="names" role="list" aria-label="Names" data-testid="name-list"></div>
+</section>
+<section class="bar" data-testid="find-panel">
+<label for="find-input">Find</label>
+<input type="text" id="find-input" data-testid="find-input" autocomplete="off">
+<label for="replace-input">Replace with</label>
+<input type="text" id="replace-input" data-testid="replace-input" autocomplete="off">
+<label class="check"><input type="checkbox" data-testid="find-case"><span>Match case</span></label>
+<label class="check"><input type="checkbox" data-testid="find-whole"><span>Whole cell</span></label>
+<button type="button" data-testid="find-next">Find next</button>
+<button type="button" data-testid="replace-all">Replace all</button>
+<div class="msg" data-testid="find-status" hidden></div>
+</section>
+<section class="bar" data-testid="csv-panel">
+<label class="check"><input type="checkbox" data-testid="csv-raw"><span>Raw contents</span></label>
+<button type="button" data-testid="csv-export">Export CSV</button>
+<button type="button" data-testid="csv-import">Import CSV</button>
+<label for="csv-text">CSV</label>
+<textarea id="csv-text" data-testid="csv-text"></textarea>
+<div class="msg" data-testid="csv-message" hidden></div>
+</section>
+</main>
+<script>
+'use strict';
+const ROWS = 12, COLS = 8, MAX_SERIAL = 2958464, HIST_LIMIT = 20, STORE_KEY = 'tally-book';
+const WB = { sheets: [], active: 0, names: [], nextId: 1, past: [], future: [] };
+
+/* ---------- errors ---------- */
+class Err { constructor(c) { this.c = c; } }
+const E = (c) => new Err(c);
+const isErr = (v) => v instanceof Err;
+
+/* ---------- numbers ---------- */
+function plainOf(x) {
+  const neg = x < 0;
+  const s = Math.abs(x).toPrecision(12);
+  let m = s, e = 0;
+  if (s.indexOf('e') >= 0) { const p = s.split('e'); m = p[0]; e = Number(p[1]); }
+  const parts = m.split('.');
+  const digits = parts[0] + (parts[1] || '');
+  const point = parts[0].length + e;
+  let out;
+  if (point <= 0) out = '0.' + '0'.repeat(-point) + digits;
+  else if (point >= digits.length) out = digits + '0'.repeat(point - digits.length);
+  else out = digits.slice(0, point) + '.' + digits.slice(point);
+  return (neg ? '-' : '') + out;
+}
+function incDigits(s) {
+  const a = s.split('');
+  let i = a.length - 1;
+  while (i >= 0) {
+    if (a[i] === '9') { a[i] = '0'; i--; }
+    else { a[i] = String.fromCharCode(a[i].charCodeAt(0) + 1); return a.join(''); }
+  }
+  return '1' + a.join('');
+}
+/* R(x, d) with mode 'half' (ties away), 'up' (R-up) or 'down' (R-down); returns a plain string */
+function roundStr(x, d, mode) {
+  const s = plainOf(x);
+  const neg = s[0] === '-';
+  const abs = neg ? s.slice(1) : s;
+  const dot = abs.indexOf('.');
+  let ip = dot < 0 ? abs : abs.slice(0, dot);
+  let fp = dot < 0 ? '' : abs.slice(dot + 1);
+  let kept, dropped;
+  if (d >= 0) {
+    fp = fp.padEnd(d, '0');
+    kept = ip + fp.slice(0, d);
+    dropped = fp.slice(d);
+  } else {
+    const k = -d;
+    ip = ip.padStart(k, '0');
+    kept = ip.slice(0, ip.length - k);
+    dropped = ip.slice(ip.length - k) + fp;
+  }
+  if (kept === '') kept = '0';
+  let up = false;
+  if (mode === 'up') up = /[1-9]/.test(dropped);
+  else if (mode === 'half') up = (dropped[0] || '0') >= '5';
+  if (up) kept = incDigits(kept);
+  let res;
+  if (d >= 0) {
+    const cut = kept.length - d;
+    res = kept.slice(0, cut) + (d > 0 ? '.' + kept.slice(cut) : '');
+  } else {
+    res = kept + '0'.repeat(-d);
+  }
+  return (neg ? '-' : '') + res;
+}
+/* N(x): normalization with the range rule */
+function N(x) {
+  if (!isFinite(x)) return E('#NUM!');
+  const n = Number(x.toPrecision(12));
+  if (!isFinite(n) || Math.abs(n) >= 1e15) return E('#NUM!');
+  return n === 0 ? 0 : n;
+}
+/* normalization without the range rule */
+function nraw(x) { const n = Number(x.toPrecision(12)); return n === 0 ? 0 : n; }
+function groupInt(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function numText(x, dec, grouped, pct) {
+  let s = roundStr(x, dec, 'half');
+  const neg = s[0] === '-';
+  if (neg) s = s.slice(1);
+  const parts = s.split('.');
+  let ip = parts[0];
+  const fp = parts[1] || '';
+  if (grouped) ip = groupInt(ip);
+  let out = ip + (dec > 0 ? '.' + fp : '') + (pct ? '%' : '');
+  if (neg && Number(s) !== 0) out = '-' + out;
+  return out;
+}
+function generalText(x) {
+  const s = roundStr(x, 6, 'half');
+  if (Number(s) === 0) return '0';
+  let t = s;
+  if (t.indexOf('.') >= 0) t = t.replace(/0+$/, '').replace(/\.$/, '');
+  return t;
+}
+/* P(x): plain text of a normalized number, used as raw content */
+function plainText(x) {
+  let s = plainOf(x);
+  if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s === '-0' ? '0' : s;
+}
+
+/* ---------- dates ---------- */
+const BASE = (() => { const t = new Date(0); t.setUTCFullYear(1900, 0, 1); return t.getTime(); })();
+function serialOf(y, m, d) {
+  const t = new Date(0);
+  t.setUTCFullYear(y, m - 1, d);
+  return Math.round((t.getTime() - BASE) / 864e5) + 1;
+}
+function ymdOf(s) {
+  const t = new Date(BASE + (s - 1) * 864e5);
+  return [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()];
+}
+function serialToIso(s) {
+  const [y, m, d] = ymdOf(s);
+  return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+function dateEntry(t) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if (mo < 1 || mo > 12 || d < 1) return null;
+  const s = serialOf(y, mo, d);
+  if (s < 1 || s > MAX_SERIAL) return null;
+  const back = ymdOf(s);
+  if (back[0] !== y || back[1] !== mo || back[2] !== d) return null;
+  return s;
+}
+function entryNumber(t) {
+  const m = /^([+-]?)(\d+(\.\d+)?|\.\d+)(%?)$/.exec(t);
+  if (!m) return null;
+  let v = Number(m[2]);
+  if (m[4] === '%') v = v / 100;
+  if (m[1] === '-') v = -v;
+  const n = Number(v.toPrecision(12));
+  if (!isFinite(n) || Math.abs(n) >= 1e15) return null;
+  return n === 0 ? 0 : n;
+}
+function trimSp(s) { return s.replace(/^ +| +$/g, ''); }
+
+/* value of a raw content that is not a formula (02, section 2.2) */
+function constValue(raw) {
+  if (raw === '') return null;
+  if (raw[0] === "'") return raw.slice(1);
+  const t = trimSp(raw);
+  const ser = dateEntry(t);
+  if (ser !== null) return ser;
+  const num = entryNumber(t);
+  if (num !== null) return num;
+  if (/^(TRUE|FALSE)$/i.test(t)) return t.toUpperCase() === 'TRUE';
+  return raw;
+}
+
+/* display text (02, section 2.5) */
+function displayText(v, fmt) {
+  if (v === null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  if (isErr(v)) return v.c;
+  if (fmt === 'fixed2') return numText(v, 2, true, false);
+  if (fmt === 'percent1') return numText(nraw(v * 100), 1, false, true);
+  if (fmt === 'date') {
+    const d = Math.floor(v);
+    if (d >= 1 && d <= MAX_SERIAL) return serialToIso(d);
+    return generalText(v);
+  }
+  return generalText(v);
+}
+
+/* ---------- columns and references ---------- */
+function colIndex(letters) {
+  let n = 0;
+  for (const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+function colLetters(n) {
+  let s = '';
+  while (n > 0) { s = String.fromCharCode(65 + ((n - 1) % 26)) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function addr(r, c) { return colLetters(c) + r; }
+function inGrid(c, r) { return c >= 1 && c <= COLS && r >= 1 && r <= ROWS; }
+function quoteSheet(name) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "'" + name.replace(/'/g, "''") + "'";
+}
+
+/* ---------- tokenizer and parser ---------- */
+const OPS2 = ['<>', '<=', '>='];
+const OPS1 = '+-*/^&%=<>';
+function tokenize(src) {
+  const toks = [];
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i];
+    if (ch === ' ') { i++; continue; }
+    if (/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(src[i + 1] || ''))) {
+      const m = /^(\d+(\.\d+)?|\.\d+)/.exec(src.slice(i));
+      toks.push({ t: 'num', v: m[0] });
+      i += m[0].length;
+      continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      for (;;) {
+        if (j >= n) return null;
+        if (src[j] === '"') {
+          if (src[j + 1] === '"') { j += 2; continue; }
+          break;
+        }
+        j++;
+      }
+      toks.push({ t: 'str', v: src.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    if (ch === "'") {
+      let j = i + 1, name = '';
+      for (;;) {
+        if (j >= n) return null;
+        if (src[j] === "'") {
+          if (src[j + 1] === "'") { name += "'"; j += 2; continue; }
+          break;
+        }
+        name += src[j];
+        j++;
+      }
+      if (name === '' || src[j + 1] !== '!') return null;
+      toks.push({ t: 'prefix', v: name });
+      i = j + 2;
+      continue;
+    }
+    if (/[A-Za-z_$]/.test(ch)) {
+      let j = i;
+      while (j < n && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      const w = src.slice(i, j);
+      if (src[j] === '!') {
+        if (w.indexOf('$') >= 0) return null;
+        toks.push({ t: 'prefix', v: w });
+        i = j + 1;
+        continue;
+      }
+      if (/^(TRUE|FALSE)$/i.test(w)) toks.push({ t: 'bool', v: w.toUpperCase() === 'TRUE' });
+      else {
+        const m = /^(\$?)([A-Za-z]+)(\$?)([0-9]+)$/.exec(w);
+        if (m) toks.push({ t: 'ref', cabs: !!m[1], col: colIndex(m[2]), rabs: !!m[3], row: parseInt(m[4], 10) });
+        else if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(w)) toks.push({ t: 'name', v: w });
+        else return null;
+      }
+      i = j;
+      continue;
+    }
+    if (ch === '#' && src.substr(i, 5).toUpperCase() === '#REF!') { toks.push({ t: 'refErr' }); i += 5; continue; }
+    const two = src.substr(i, 2);
+    if (OPS2.indexOf(two) >= 0) { toks.push({ t: 'op', v: two }); i += 2; continue; }
+    if (OPS1.indexOf(ch) >= 0) { toks.push({ t: 'op', v: ch }); i++; continue; }
+    if ('(),:'.indexOf(ch) >= 0) { toks.push({ t: 'p', v: ch }); i++; continue; }
+    return null;
+  }
+  return toks;
+}
+function unquote(raw) { return raw.slice(1, -1).replace(/""/g, '"'); }
+/* parses a raw content starting with "="; returns the tree, or null when not valid */
+function parseFormula(src) {
+  if (src[0] !== '=') return null;
+  const toks = tokenize(src.slice(1));
+  if (!toks || toks.length === 0) return null;
+  let p = 0;
+  const fail = () => { throw 0; };
+  const isOp = (v) => toks[p] && toks[p].t === 'op' && toks[p].v === v;
+  const isP = (v) => toks[p] && toks[p].t === 'p' && toks[p].v === v;
+  const binLevel = (sub, ops) => {
+    let a = sub();
+    while (toks[p] && toks[p].t === 'op' && ops.indexOf(toks[p].v) >= 0) {
+      const op = toks[p].v;
+      p++;
+      a = { t: 'bin', op, a, b: sub() };
+    }
+    return a;
+  };
+  const expression = () => binLevel(concat, ['=', '<>', '<', '<=', '>', '>=']);
+  const concat = () => binLevel(sum, ['&']);
+  const sum = () => binLevel(product, ['+', '-']);
+  const product = () => binLevel(signed, ['*', '/']);
+  const signed = () => {
+    if (isOp('-') || isOp('+')) { const op = toks[p].v; p++; return { t: 'un', op, a: signed() }; }
+    return power();
+  };
+  const power = () => {
+    const a = percent();
+    if (isOp('^')) { p++; return { t: 'bin', op: '^', a, b: signed() }; }
+    return a;
+  };
+  const percent = () => {
+    let a = primary();
+    while (isOp('%')) { p++; a = { t: 'pct', a }; }
+    return a;
+  };
+  const refOrRange = (sheet, t) => {
+    const a = { col: t.col, row: t.row, cabs: t.cabs, rabs: t.rabs };
+    if (isP(':')) {
+      p++;
+      const nx = toks[p];
+      if (!nx || nx.t !== 'ref') fail();
+      p++;
+      return { t: 'range', sheet, a, b: { col: nx.col, row: nx.row, cabs: nx.cabs, rabs: nx.rabs } };
+    }
+    return { t: 'ref', sheet, ...a };
+  };
+  const primary = () => {
+    const t = toks[p];
+    if (!t) fail();
+    if (t.t === 'num') { p++; return { t: 'num', text: t.v }; }
+    if (t.t === 'str') { p++; return { t: 'str', text: t.v, v: unquote(t.v) }; }
+    if (t.t === 'bool') { p++; return { t: 'bool', v: t.v }; }
+    if (t.t === 'refErr') { p++; return { t: 'refErr' }; }
+    if (t.t === 'prefix') {
+      p++;
+      const nx = toks[p];
+      if (!nx || nx.t !== 'ref') fail();
+      p++;
+      return refOrRange(t.v, nx);
+    }
+    if (t.t === 'ref') { p++; return refOrRange(null, t); }
+    if (t.t === 'name') {
+      p++;
+      if (isP('(')) {
+        p++;
+        const args = [];
+        if (isP(')')) p++;
+        else {
+          for (;;) {
+            args.push(expression());
+            if (isP(',')) { p++; continue; }
+            if (isP(')')) { p++; break; }
+            fail();
+          }
+        }
+        return { t: 'call', name: t.v.toUpperCase(), args };
+      }
+      return { t: 'name', name: t.v.toUpperCase() };
+    }
+    if (t.t === 'p' && t.v === '(') {
+      p++;
+      const e = expression();
+      if (!isP(')')) fail();
+      p++;
+      return { t: 'paren', a: e };
+    }
+    fail();
+  };
+  try {
+    const ast = expression();
+    if (p !== toks.length) return null;
+    return ast;
+  } catch (err) {
+    return null;
+  }
+}
+
+/* ---------- writing a tree back (canonical form) ---------- */
+function refText(r) { return (r.cabs ? '$' : '') + colLetters(r.col) + (r.rabs ? '$' : '') + r.row; }
+function rangeText(a, b) {
+  const minC = a.col <= b.col ? a : b;
+  const maxC = a.col > b.col ? a : b;
+  const minR = a.row <= b.row ? a : b;
+  const maxR = a.row > b.row ? a : b;
+  return refText({ col: minC.col, cabs: minC.cabs, row: minR.row, rabs: minR.rabs }) + ':' +
+    refText({ col: maxC.col, cabs: maxC.cabs, row: maxR.row, rabs: maxR.rabs });
+}
+function pre(sheet) { return sheet === null ? '' : quoteSheet(sheet) + '!'; }
+function genNode(n) {
+  switch (n.t) {
+    case 'num': return n.text;
+    case 'str': return n.text;
+    case 'bool': return n.v ? 'TRUE' : 'FALSE';
+    case 'refErr': return '#REF!';
+    case 'ref': return pre(n.sheet) + refText(n);
+    case 'range': return pre(n.sheet) + rangeText(n.a, n.b);
+    case 'call': return n.name + '(' + n.args.map(genNode).join(',') + ')';
+    case 'name': return n.name;
+    case 'un': return n.op + genNode(n.a);
+    case 'pct': return genNode(n.a) + '%';
+    case 'paren': return '(' + genNode(n.a) + ')';
+    case 'bin': return genNode(n.a) + n.op + genNode(n.b);
+  }
+  return '';
+}
+function genFormula(ast) { return '=' + genNode(ast); }
+/* applies fn to every reference and range node of a tree */
+function mapRefs(n, fn) {
+  switch (n.t) {
+    case 'ref': case 'range': return fn(n);
+    case 'call': return { ...n, args: n.args.map((x) => mapRefs(x, fn)) };
+    case 'bin': return { ...n, a: mapRefs(n.a, fn), b: mapRefs(n.b, fn) };
+    case 'un': case 'pct': case 'paren': return { ...n, a: mapRefs(n.a, fn) };
+    default: return n;
+  }
+}
+/* rewrites a formula raw content with hook(node, targetSheet); null when not a valid formula */
+function rewriteRaw(raw, owner, hook) {
+  if (raw[0] !== '=') return null;
+  const ast = parseFormula(raw);
+  if (!ast) return null;
+  let changed = false;
+  const out = mapRefs(ast, (n) => {
+    const tgt = n.sheet === null ? owner : sheetByName(n.sheet);
+    const r = hook(n, tgt);
+    if (r !== n) changed = true;
+    return r;
+  });
+  return { raw: genFormula(out), changed };
+}
+
+/* ---------- workbook lookups ---------- */
+function sheetByName(name) {
+  const u = name.toUpperCase();
+  return WB.sheets.find((s) => s.name.toUpperCase() === u) || null;
+}
+function sheetById(id) { return WB.sheets.find((s) => s.id === id) || null; }
+function findName(name) {
+  const u = name.toUpperCase();
+  return WB.names.find((d) => d.name.toUpperCase() === u) || null;
+}
+function cur() { return WB.sheets[WB.active]; }
+
+/* ---------- values ---------- */
+let memo = new Map();
+let circ = new Set();
+const astCache = new Map();
+function getAst(raw) {
+  if (!astCache.has(raw)) astCache.set(raw, parseFormula(raw));
+  return astCache.get(raw);
+}
+function keyOf(sh, r, c) { return sh.id + ':' + r + ':' + c; }
+function valueAt(sh, r, c) {
+  const k = keyOf(sh, r, c);
+  if (memo.has(k)) return memo.get(k);
+  const raw = sh.cells[r - 1][c - 1].raw;
+  let v;
+  if (raw === '') v = null;
+  else if (raw[0] === '=') {
+    if (circ.has(k)) v = E('#CYCLE!');
+    else {
+      const ast = getAst(raw);
+      if (!ast) v = E('#SYNTAX!');
+      else { v = evalNode(ast, sh); if (v === null) v = 0; }
+    }
+  } else v = constValue(raw);
+  memo.set(k, v);
+  return v;
+}
+function rectOf(sh) {
+  const a = sh.anchor, b = sh.active;
+  return { r1: Math.min(a.r, b.r), r2: Math.max(a.r, b.r), c1: Math.min(a.c, b.c), c2: Math.max(a.c, b.c) };
+}
+function rectCells(rc) {
+  const out = [];
+  for (let r = rc.r1; r <= rc.r2; r++) for (let c = rc.c1; c <= rc.c2; c++) out.push({ sh: rc.sheet, r, c });
+  return out;
+}
+/* dependencies of a tree, as keys */
+function collectDeps(n, owner, out) {
+  switch (n.t) {
+    case 'ref': {
+      const sh = n.sheet === null ? owner : sheetByName(n.sheet);
+      if (sh && inGrid(n.col, n.row)) out.push(keyOf(sh, n.row, n.col));
+      return;
+    }
+    case 'range': {
+      const sh = n.sheet === null ? owner : sheetByName(n.sheet);
+      if (sh && inGrid(n.a.col, n.a.row) && inGrid(n.b.col, n.b.row)) {
+        const rc = { sheet: sh, r1: Math.min(n.a.row, n.b.row), r2: Math.max(n.a.row, n.b.row), c1: Math.min(n.a.col, n.b.col), c2: Math.max(n.a.col, n.b.col) };
+        rectCells(rc).forEach((x) => out.push(keyOf(x.sh, x.r, x.c)));
+      }
+      return;
+    }
+    case 'name': {
+      const d = findName(n.name);
+      if (!d || d.target.kind === 'removed') return;
+      const sh = sheetById(d.target.sheetId);
+      if (!sh) return;
+      rectCells({ sheet: sh, r1: d.target.r1, r2: d.target.r2, c1: d.target.c1, c2: d.target.c2 }).forEach((x) => out.push(keyOf(x.sh, x.r, x.c)));
+      return;
+    }
+    case 'call': n.args.forEach((x) => collectDeps(x, owner, out)); return;
+    case 'bin': collectDeps(n.a, owner, out); collectDeps(n.b, owner, out); return;
+    case 'un': case 'pct': case 'paren': collectDeps(n.a, owner, out); return;
+  }
+}
+function findCycles(nodes, edges) {
+  let index = 0;
+  const idx = new Map(), low = new Map(), onStack = new Set(), stack = [], result = new Set();
+  const strong = (v) => {
+    idx.set(v, index); low.set(v, index); index++;
+    stack.push(v); onStack.add(v);
+    for (const w of edges.get(v) || []) {
+      if (!nodes.has(w)) continue;
+      if (!idx.has(w)) { strong(w); low.set(v, Math.min(low.get(v), low.get(w))); }
+      else if (onStack.has(w)) low.set(v, Math.min(low.get(v), idx.get(w)));
+    }
+    if (low.get(v) === idx.get(v)) {
+      const comp = [];
+      let w;
+      do { w = stack.pop(); onStack.delete(w); comp.push(w); } while (w !== v);
+      if (comp.length > 1 || (edges.get(v) || []).indexOf(v) >= 0) comp.forEach((x) => result.add(x));
+    }
+  };
+  for (const v of nodes.keys()) if (!idx.has(v)) strong(v);
+  return result;
+}
+/* recomputes the circular cells and forgets the values */
+function computeAll() {
+  memo = new Map();
+  const nodes = new Map();
+  for (const sh of WB.sheets) {
+    for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) {
+      const raw = sh.cells[r - 1][c - 1].raw;
+      if (raw[0] === '=') {
+        const ast = getAst(raw);
+        if (ast) nodes.set(keyOf(sh, r, c), { sh, ast });
+      }
+    }
+  }
+  const edges = new Map();
+  for (const [k, nd] of nodes) {
+    const deps = [];
+    collectDeps(nd.ast, nd.sh, deps);
+    edges.set(k, deps.filter((d) => nodes.has(d)));
+  }
+  circ = findCycles(nodes, edges);
+}
+
+/* ---------- operators and conversions ---------- */
+function toNum(v) {
+  if (isErr(v)) return v;
+  if (v === null) return 0;
+  if (typeof v === 'number') return v;
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  return E('#VALUE!');
+}
+function toText(v) {
+  if (isErr(v)) return v;
+  if (v === null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  return generalText(v);
+}
+function toLogic(v) {
+  if (isErr(v)) return v;
+  if (v === null) return false;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v !== 0;
+  return E('#VALUE!');
+}
+function toInt(v) {
+  const n = toNum(v);
+  if (isErr(n)) return n;
+  return Math.trunc(n);
+}
+function typeRank(v) { return typeof v === 'number' ? 0 : typeof v === 'string' ? 1 : 2; }
+function cmpSame(a, b) {
+  if (typeof a === 'number') return a < b ? -1 : a > b ? 1 : 0;
+  if (typeof a === 'string') {
+    const x = a.toUpperCase(), y = b.toUpperCase();
+    return x < y ? -1 : x > y ? 1 : 0;
+  }
+  return Number(a) - Number(b);
+}
+function compareOp(op, l, r) {
+  if (l === null && r === null) { l = 0; r = 0; }
+  else if (l === null) l = typeof r === 'number' ? 0 : typeof r === 'string' ? '' : false;
+  else if (r === null) r = typeof l === 'number' ? 0 : typeof l === 'string' ? '' : false;
+  let c;
+  if (typeRank(l) !== typeRank(r)) c = typeRank(l) < typeRank(r) ? -1 : 1;
+  else c = cmpSame(l, r);
+  switch (op) {
+    case '=': return c === 0;
+    case '<>': return c !== 0;
+    case '<': return c < 0;
+    case '<=': return c <= 0;
+    case '>': return c > 0;
+    case '>=': return c >= 0;
+  }
+  return false;
+}
+function power(a, b) {
+  if (a === 0 && b === 0) return E('#NUM!');
+  if (a === 0 && b < 0) return E('#DIV/0!');
+  if (a < 0 && !Number.isInteger(b)) return E('#NUM!');
+  return N(Math.pow(a, b));
+}
+function evalBin(n, owner) {
+  const l = evalNode(n.a, owner);
+  if (isErr(l)) return l;
+  const r = evalNode(n.b, owner);
+  if (isErr(r)) return r;
+  if (n.op === '&') return toText(l) + toText(r);
+  if (['=', '<>', '<', '<=', '>', '>='].indexOf(n.op) >= 0) return compareOp(n.op, l, r);
+  const a = toNum(l);
+  if (isErr(a)) return a;
+  const b = toNum(r);
+  if (isErr(b)) return b;
+  switch (n.op) {
+    case '+': return N(a + b);
+    case '-': return N(a - b);
+    case '*': return N(a * b);
+    case '/': return b === 0 ? E('#DIV/0!') : N(a / b);
+    case '^': return power(a, b);
+  }
+  return E('#SYNTAX!');
+}
+
+/* ---------- references as ranges ---------- */
+function isRangeArg(n) { return n.t === 'ref' || n.t === 'range' || n.t === 'refErr' || n.t === 'name'; }
+/* a range argument used as a range: {sheet, r1, c1, r2, c2} (1-based) or an error */
+function resolveRange(n, owner) {
+  if (n.t === 'refErr') return E('#REF!');
+  if (n.t === 'name') {
+    const d = findName(n.name);
+    if (!d) return E('#NAME?');
+    if (d.target.kind === 'removed') return E('#REF!');
+    const sh = sheetById(d.target.sheetId);
+    if (!sh) return E('#REF!');
+    return { sheet: sh, r1: d.target.r1, c1: d.target.c1, r2: d.target.r2, c2: d.target.c2 };
+  }
+  const sh = n.sheet === null ? owner : sheetByName(n.sheet);
+  if (!sh) return E('#REF!');
+  if (n.t === 'ref') {
+    if (!inGrid(n.col, n.row)) return E('#REF!');
+    return { sheet: sh, r1: n.row, c1: n.col, r2: n.row, c2: n.col };
+  }
+  if (!inGrid(n.a.col, n.a.row) || !inGrid(n.b.col, n.b.row)) return E('#REF!');
+  return {
+    sheet: sh,
+    r1: Math.min(n.a.row, n.b.row), r2: Math.max(n.a.row, n.b.row),
+    c1: Math.min(n.a.col, n.b.col), c2: Math.max(n.a.col, n.b.col),
+  };
+}
+/* the values of a range argument, or the error met */
+function rangeValues(n, owner) {
+  const rc = resolveRange(n, owner);
+  if (isErr(rc)) return rc;
+  return rectCells(rc).map((x) => ({ v: valueAt(x.sh, x.r, x.c), raw: x.sh.cells[x.r - 1][x.c - 1].raw }));
+}
+
+/* ---------- evaluation ---------- */
+function evalNode(n, owner) {
+  switch (n.t) {
+    case 'num': { const x = Number(n.text); return isFinite(x) ? N(x) : E('#NUM!'); }
+    case 'str': return n.v;
+    case 'bool': return n.v;
+    case 'refErr': return E('#REF!');
+    case 'ref': {
+      const sh = n.sheet === null ? owner : sheetByName(n.sheet);
+      if (!sh || !inGrid(n.col, n.row)) return E('#REF!');
+      return valueAt(sh, n.row, n.col);
+    }
+    case 'range': return E('#VALUE!');
+    case 'name': {
+      const d = findName(n.name);
+      if (!d) return E('#NAME?');
+      if (d.target.kind === 'removed') return E('#REF!');
+      if (d.target.kind === 'range') return E('#VALUE!');
+      const sh = sheetById(d.target.sheetId);
+      if (!sh) return E('#REF!');
+      return valueAt(sh, d.target.r1, d.target.c1);
+    }
+    case 'paren': return evalNode(n.a, owner);
+    case 'un': {
+      const v = evalNode(n.a, owner);
+      const x = toNum(v);
+      if (isErr(x)) return x;
+      return n.op === '-' ? N(-x) : N(x);
+    }
+    case 'pct': {
+      const x = toNum(evalNode(n.a, owner));
+      if (isErr(x)) return x;
+      return N(x / 100);
+    }
+    case 'bin': return evalBin(n, owner);
+    case 'call': {
+      const spec = FUNCS[n.name];
+      if (!spec) return E('#NAME?');
+      if (n.args.length < spec[0] || n.args.length > spec[1]) return E('#ARGS!');
+      return spec[2](n.args, owner);
+    }
+  }
+  return E('#SYNTAX!');
+}
+/* converts the arguments in order; first error returned */
+function convArgs(args, owner, kinds) {
+  const out = [];
+  for (let i = 0; i < kinds.length; i++) {
+    const v = evalNode(args[i], owner);
+    let c;
+    if (kinds[i] === 'i') c = toInt(v);
+    else if (kinds[i] === 't') c = toText(v);
+    else if (kinds[i] === 'l') c = toLogic(v);
+    else c = toNum(v);
+    if (isErr(c)) return c;
+    out.push(c);
+  }
+  return out;
+}
+/* serial argument check, once every argument is converted */
+function serialOk(x) {
+  const s = Math.floor(x);
+  return s >= 1 && s <= MAX_SERIAL ? s : null;
+}
+/* numbers of the aggregate arguments, or the error met */
+function numbersOf(args, owner) {
+  const nums = [];
+  for (const a of args) {
+    if (isRangeArg(a)) {
+      const vals = rangeValues(a, owner);
+      if (isErr(vals)) return vals;
+      for (const x of vals) {
+        if (isErr(x.v)) return x.v;
+        if (typeof x.v === 'number') nums.push(x.v);
+      }
+    } else {
+      const v = evalNode(a, owner);
+      if (isErr(v)) return v;
+      const n = toNum(v);
+      if (isErr(n)) return n;
+      nums.push(n);
+    }
+  }
+  return nums;
+}
+function fSum(args, owner) {
+  const nums = numbersOf(args, owner);
+  if (isErr(nums)) return nums;
+  return N(nums.reduce((s, x) => s + x, 0));
+}
+function fAverage(args, owner) {
+  const nums = numbersOf(args, owner);
+  if (isErr(nums)) return nums;
+  if (nums.length === 0) return E('#DIV/0!');
+  return N(nums.reduce((s, x) => s + x, 0) / nums.length);
+}
+function fMin(args, owner) {
+  const nums = numbersOf(args, owner);
+  if (isErr(nums)) return nums;
+  return nums.length ? N(Math.min(...nums)) : 0;
+}
+function fMax(args, owner) {
+  const nums = numbersOf(args, owner);
+  if (isErr(nums)) return nums;
+  return nums.length ? N(Math.max(...nums)) : 0;
+}
+function fCount(args, owner) {
+  let n = 0;
+  for (const a of args) {
+    if (isRangeArg(a)) {
+      const vals = rangeValues(a, owner);
+      if (isErr(vals)) return vals;
+      for (const x of vals) {
+        if (isErr(x.v)) return x.v;
+        if (typeof x.v === 'number') n++;
+      }
+    } else {
+      const v = evalNode(a, owner);
+      if (isErr(v)) return v;
+      if (typeof v === 'number') n++;
+    }
+  }
+  return n;
+}
+function fCounta(args, owner) {
+  let n = 0;
+  for (const a of args) {
+    if (isRangeArg(a)) {
+      const vals = rangeValues(a, owner);
+      if (isErr(vals)) return vals;
+      for (const x of vals) {
+        if (isErr(x.v)) return x.v;
+        if (x.raw !== '') n++;
+      }
+    } else {
+      const v = evalNode(a, owner);
+      if (isErr(v)) return v;
+      n++;
+    }
+  }
+  return n;
+}
+function roundFn(mode) {
+  return (args, owner) => {
+    const c = convArgs(args, owner, ['n', 'i']);
+    if (isErr(c)) return c;
+    const [x, d] = c;
+    if (d < -9 || d > 9) return E('#NUM!');
+    return N(Number(roundStr(x, d, mode)));
+  };
+}
+function fAbs(args, owner) { const c = convArgs(args, owner, ['n']); return isErr(c) ? c : N(Math.abs(c[0])); }
+function fInt(args, owner) { const c = convArgs(args, owner, ['n']); return isErr(c) ? c : N(Math.floor(c[0])); }
+function fMod(args, owner) {
+  const c = convArgs(args, owner, ['n', 'n']);
+  if (isErr(c)) return c;
+  const [a, b] = c;
+  if (b === 0) return E('#DIV/0!');
+  return N(a - b * Math.floor(a / b));
+}
+function fIf(args, owner) {
+  const c = evalNode(args[0], owner);
+  if (isErr(c)) return c;
+  const l = toLogic(c);
+  if (isErr(l)) return l;
+  return l ? evalNode(args[1], owner) : evalNode(args[2], owner);
+}
+function andOr(isOr) {
+  return (args, owner) => {
+    let firstErr = null;
+    let acc = !isOr;
+    for (const a of args) {
+      const l = toLogic(evalNode(a, owner));
+      if (isErr(l)) { if (!firstErr) firstErr = l; continue; }
+      acc = isOr ? (acc || l) : (acc && l);
+    }
+    return firstErr || acc;
+  };
+}
+function fNot(args, owner) { const c = convArgs(args, owner, ['l']); return isErr(c) ? c : !c[0]; }
+function fIferror(args, owner) {
+  const v = evalNode(args[0], owner);
+  return isErr(v) ? evalNode(args[1], owner) : v;
+}
+function fIserror(args, owner) { return isErr(evalNode(args[0], owner)); }
+function fIsblank(args, owner) {
+  const a = args[0];
+  if (isRangeArg(a)) {
+    if (a.t === 'range') return isErr(resolveRange(a, owner)) ? resolveRange(a, owner) : E('#VALUE!');
+    if (a.t === 'name') {
+      const d = findName(a.name);
+      if (!d) return E('#NAME?');
+      if (d.target.kind === 'removed') return E('#REF!');
+      if (d.target.kind === 'range') return E('#VALUE!');
+    }
+    const rc = resolveRange(a, owner);
+    if (isErr(rc)) return rc;
+    return rc.sheet.cells[rc.r1 - 1][rc.c1 - 1].raw === '';
+  }
+  const v = evalNode(a, owner);
+  return isErr(v) ? v : false;
+}
+function fChoose(args, owner) {
+  const i = toInt(evalNode(args[0], owner));
+  if (isErr(i)) return i;
+  if (i < 1 || i > args.length - 1) return E('#VALUE!');
+  return evalNode(args[i], owner);
+}
+function fLen(args, owner) { const c = convArgs(args, owner, ['t']); return isErr(c) ? c : c[0].length; }
+function fUpper(args, owner) { const c = convArgs(args, owner, ['t']); return isErr(c) ? c : c[0].toUpperCase(); }
+function fLower(args, owner) { const c = convArgs(args, owner, ['t']); return isErr(c) ? c : c[0].toLowerCase(); }
+function fTrim(args, owner) {
+  const c = convArgs(args, owner, ['t']);
+  return isErr(c) ? c : c[0].replace(/ +/g, ' ').replace(/^ | $/g, '');
+}
+function fLeft(args, owner) {
+  const c = convArgs(args, owner, ['t', 'i']);
+  if (isErr(c)) return c;
+  if (c[1] < 0) return E('#VALUE!');
+  return c[0].slice(0, c[1]);
+}
+function fRight(args, owner) {
+  const c = convArgs(args, owner, ['t', 'i']);
+  if (isErr(c)) return c;
+  if (c[1] < 0) return E('#VALUE!');
+  return c[0].slice(Math.max(0, c[0].length - c[1]));
+}
+function fMid(args, owner) {
+  const c = convArgs(args, owner, ['t', 'i', 'i']);
+  if (isErr(c)) return c;
+  const [t, s, n] = c;
+  if (s < 1 || n < 0) return E('#VALUE!');
+  return t.substr(s - 1, n);
+}
+function fConcat(args, owner) {
+  let out = '';
+  for (const a of args) {
+    if (isRangeArg(a)) {
+      const vals = rangeValues(a, owner);
+      if (isErr(vals)) return vals;
+      for (const x of vals) {
+        const t = toText(x.v);
+        if (isErr(t)) return t;
+        out += t;
+      }
+    } else {
+      const t = toText(evalNode(a, owner));
+      if (isErr(t)) return t;
+      out += t;
+    }
+  }
+  return out;
+}
+function fRept(args, owner) {
+  const c = convArgs(args, owner, ['t', 'i']);
+  if (isErr(c)) return c;
+  const [t, n] = c;
+  if (n < 0 || t.length * n > 255) return E('#VALUE!');
+  return t.repeat(n);
+}
+function fFind(args, owner) {
+  const c = convArgs(args, owner, args.length === 3 ? ['t', 't', 'i'] : ['t', 't']);
+  if (isErr(c)) return c;
+  const [s, t] = c;
+  const start = c.length === 3 ? c[2] : 1;
+  if (start < 1 || start > t.length + 1) return E('#VALUE!');
+  const idx = t.indexOf(s, start - 1);
+  return idx < 0 ? E('#VALUE!') : idx + 1;
+}
+function fSubstitute(args, owner) {
+  const c = convArgs(args, owner, args.length === 4 ? ['t', 't', 't', 'i'] : ['t', 't', 't']);
+  if (isErr(c)) return c;
+  const [t, old, nw] = c;
+  if (c.length === 4 && c[3] < 1) return E('#VALUE!');
+  if (old === '') return t;
+  const occ = [];
+  let pos = 0, i;
+  while ((i = t.indexOf(old, pos)) >= 0) { occ.push(i); pos = i + old.length; }
+  if (c.length === 4) {
+    const k = c[3];
+    if (occ.length < k) return t;
+    const at = occ[k - 1];
+    return t.slice(0, at) + nw + t.slice(at + old.length);
+  }
+  let out = '', last = 0;
+  for (const at of occ) { out += t.slice(last, at) + nw; last = at + old.length; }
+  return out + t.slice(last);
+}
+function fText(args, owner) {
+  const c = convArgs(args, owner, ['n', 't']);
+  if (isErr(c)) return c;
+  const [x, p] = c;
+  if (p === 'yyyy-mm-dd') {
+    const s = serialOk(x);
+    return s === null ? E('#NUM!') : serialToIso(s);
+  }
+  const m = /^(#,##)?0(\.(0{1,6}))?(%?)$/.exec(p);
+  if (!m) return E('#VALUE!');
+  const dec = m[3] ? m[3].length : 0;
+  const grouped = !!m[1];
+  const pct = m[4] === '%';
+  let y = x;
+  if (pct) { y = N(x * 100); if (isErr(y)) return y; }
+  return numText(y, dec, grouped, pct);
+}
+/* orders values for lookups: null when not comparable */
+function comparable(v, key) { return v !== null && typeof v === typeof key; }
+/* scans values for the lookup modes: 0 exact, 1 at most, -1 at least; returns index, -1, or an error */
+function lookupScan(vals, key, mode) {
+  let best = -1;
+  for (let i = 0; i < vals.length; i++) {
+    const v = vals[i];
+    if (isErr(v)) return v;
+    if (!comparable(v, key)) continue;
+    if (mode === 0) {
+      if (cmpSame(v, key) === 0) return i;
+      continue;
+    }
+    const c = cmpSame(v, key);
+    if (mode === 1 ? c > 0 : c < 0) continue;
+    if (best < 0) best = i;
+    else {
+      const d = cmpSame(v, vals[best]);
+      if (mode === 1 ? d >= 0 : d <= 0) best = i;
+    }
+  }
+  return best;
+}
+function fMatch(args, owner) {
+  const list = args[1];
+  if (!isRangeArg(list)) return E('#VALUE!');
+  const rc = resolveRange(list, owner);
+  if (isErr(rc)) return rc;
+  if (rc.r2 > rc.r1 && rc.c2 > rc.c1) return E('#VALUE!');
+  let key = evalNode(args[0], owner);
+  if (isErr(key)) return key;
+  let type = 1;
+  if (args.length === 3) {
+    type = toInt(evalNode(args[2], owner));
+    if (isErr(type)) return type;
+    if (type !== -1 && type !== 0 && type !== 1) return E('#VALUE!');
+  }
+  if (key === null) key = 0;
+  const vals = rectCells(rc).map((x) => valueAt(x.sh, x.r, x.c));
+  const mode = type === 0 ? 0 : type;
+  const idx = lookupScan(vals, key, mode);
+  if (isErr(idx)) return idx;
+  return idx < 0 ? E('#N/A') : idx + 1;
+}
+function fVlookup(args, owner) {
+  const table = args[1];
+  if (!isRangeArg(table)) return E('#VALUE!');
+  const rc = resolveRange(table, owner);
+  if (isErr(rc)) return rc;
+  let key = evalNode(args[0], owner);
+  if (isErr(key)) return key;
+  const col = toInt(evalNode(args[2], owner));
+  if (isErr(col)) return col;
+  if (col < 1) return E('#VALUE!');
+  if (col > rc.c2 - rc.c1 + 1) return E('#REF!');
+  let approx = false;
+  if (args.length === 4) {
+    approx = toLogic(evalNode(args[3], owner));
+    if (isErr(approx)) return approx;
+  }
+  if (key === null) key = 0;
+  const firstCol = [];
+  for (let r = rc.r1; r <= rc.r2; r++) firstCol.push(valueAt(rc.sheet, r, rc.c1));
+  const idx = lookupScan(firstCol, key, approx ? 1 : 0);
+  if (isErr(idx)) return idx;
+  if (idx < 0) return E('#N/A');
+  return valueAt(rc.sheet, rc.r1 + idx, rc.c1 + col - 1);
+}
+function fIndex(args, owner) {
+  const range = args[0];
+  if (!isRangeArg(range)) return E('#VALUE!');
+  const rc = resolveRange(range, owner);
+  if (isErr(rc)) return rc;
+  const n = toInt(evalNode(args[1], owner));
+  if (isErr(n)) return n;
+  const rows = rc.r2 - rc.r1 + 1, cols = rc.c2 - rc.c1 + 1;
+  if (args.length === 2) {
+    if (n < 1) return E('#VALUE!');
+    if (n > rows * cols) return E('#REF!');
+    const r = rc.r1 + Math.floor((n - 1) / cols), c = rc.c1 + ((n - 1) % cols);
+    return valueAt(rc.sheet, r, c);
+  }
+  const m = toInt(evalNode(args[2], owner));
+  if (isErr(m)) return m;
+  if (n < 1 || m < 1) return E('#VALUE!');
+  if (n > rows || m > cols) return E('#REF!');
+  return valueAt(rc.sheet, rc.r1 + n - 1, rc.c1 + m - 1);
+}
+/* criterion: {op, operand} */
+function parseCrit(v) {
+  if (v === null) return { op: '=', operand: '' };
+  if (typeof v === 'number' || typeof v === 'boolean') return { op: '=', operand: v };
+  for (const op of ['>=', '<=', '<>', '>', '<', '=']) {
+    if (v.startsWith(op)) {
+      const rest = v.slice(op.length);
+      let operand;
+      const num = entryNumber(rest);
+      if (num !== null) operand = num;
+      else if (/^(TRUE|FALSE)$/i.test(rest)) operand = rest.toUpperCase() === 'TRUE';
+      else operand = rest;
+      return { op, operand };
+    }
+  }
+  return { op: '=', operand: v };
+}
+function meetsEq(v, operand) { return typeof v === typeof operand && cmpSame(v, operand) === 0; }
+function meets(v, cr) {
+  const same = typeof v === typeof cr.operand;
+  switch (cr.op) {
+    case '=': return meetsEq(v, cr.operand);
+    case '<>': return !meetsEq(v, cr.operand);
+    case '<': return same && cmpSame(v, cr.operand) < 0;
+    case '<=': return same && cmpSame(v, cr.operand) <= 0;
+    case '>': return same && cmpSame(v, cr.operand) > 0;
+    case '>=': return same && cmpSame(v, cr.operand) >= 0;
+  }
+  return false;
+}
+/* conditional aggregates (02, section 2.8.3): ranges in argument order, crits, critMap, sumIdx (-1 for none) */
+function condCore(owner, ranges, critNodes, critMap, sumIdx) {
+  for (const n of ranges) if (!isRangeArg(n)) return E('#VALUE!');
+  const rects = [];
+  for (const n of ranges) {
+    const rc = resolveRange(n, owner);
+    if (isErr(rc)) return rc;
+    rects.push(rc);
+  }
+  const h = rects[0].r2 - rects[0].r1, w = rects[0].c2 - rects[0].c1;
+  for (const rc of rects) if (rc.r2 - rc.r1 !== h || rc.c2 - rc.c1 !== w) return E('#VALUE!');
+  const crits = [];
+  for (const n of critNodes) {
+    const v = evalNode(n, owner);
+    if (isErr(v)) return v;
+    crits.push(parseCrit(v));
+  }
+  const lists = rects.map((rc) => rectCells(rc));
+  const count = lists[0].length;
+  let matches = 0, sum = 0, cnt = 0;
+  for (let i = 0; i < count; i++) {
+    let ok = true;
+    for (let k = 0; k < crits.length; k++) {
+      const cell = lists[critMap[k]][i];
+      const v = valueAt(cell.sh, cell.r, cell.c);
+      if (isErr(v)) return v;
+      if (v === null || !meets(v, crits[k])) { ok = false; break; }
+    }
+    if (!ok) continue;
+    matches++;
+    if (sumIdx >= 0) {
+      const cell = lists[sumIdx][i];
+      const v = valueAt(cell.sh, cell.r, cell.c);
+      if (isErr(v)) return v;
+      if (typeof v === 'number') { sum += v; cnt++; }
+    }
+  }
+  return { matches, sum, cnt };
+}
+function fCountif(args, owner) {
+  const r = condCore(owner, [args[0]], [args[1]], [0], -1);
+  return isErr(r) ? r : r.matches;
+}
+function fCountifs(args, owner) {
+  const ranges = [], crits = [], map = [];
+  for (let i = 0; i < args.length; i += 2) { ranges.push(args[i]); crits.push(args[i + 1]); map.push(i / 2); }
+  const r = condCore(owner, ranges, crits, map, -1);
+  return isErr(r) ? r : r.matches;
+}
+function fSumif(args, owner) {
+  const r = condCore(owner, [args[0], args[2]], [args[1]], [0], 1);
+  return isErr(r) ? r : N(r.sum);
+}
+function fSumifs(args, owner) {
+  const ranges = [args[0]], crits = [], map = [];
+  for (let i = 1; i < args.length; i += 2) { ranges.push(args[i]); crits.push(args[i + 1]); map.push(ranges.length - 1); }
+  const r = condCore(owner, ranges, crits, map, 0);
+  return isErr(r) ? r : N(r.sum);
+}
+function fAverageif(args, owner) {
+  const ranges = args.length === 3 ? [args[0], args[2]] : [args[0]];
+  const r = condCore(owner, ranges, [args[1]], [0], args.length === 3 ? 1 : 0);
+  if (isErr(r)) return r;
+  if (r.cnt === 0) return E('#DIV/0!');
+  return N(r.sum / r.cnt);
+}
+/* dates */
+function fDate(args, owner) {
+  const c = convArgs(args, owner, ['i', 'i', 'i']);
+  if (isErr(c)) return c;
+  const [y, m, d] = c;
+  if (y < 1900 || y > 9999) return E('#NUM!');
+  const s = serialOf(y, m, d);
+  return s < 1 || s > MAX_SERIAL ? E('#NUM!') : s;
+}
+function datePart(part) {
+  return (args, owner) => {
+    const x = toNum(evalNode(args[0], owner));
+    if (isErr(x)) return x;
+    const s = serialOk(x);
+    if (s === null) return E('#NUM!');
+    return ymdOf(s)[part];
+  };
+}
+function fWeekday(args, owner) {
+  const x = toNum(evalNode(args[0], owner));
+  if (isErr(x)) return x;
+  let t = 1;
+  if (args.length === 2) { t = toInt(evalNode(args[1], owner)); if (isErr(t)) return t; }
+  const s = serialOk(x);
+  if (s === null) return E('#NUM!');
+  if (t !== 1 && t !== 2 && t !== 3) return E('#NUM!');
+  const dow = s % 7;
+  if (t === 1) return dow + 1;
+  if (t === 2) return ((dow + 6) % 7) + 1;
+  return (dow + 6) % 7;
+}
+function fEdate(args, owner) {
+  const c = convArgs(args, owner, ['n', 'i']);
+  if (isErr(c)) return c;
+  const s = serialOk(c[0]);
+  if (s === null) return E('#NUM!');
+  const [y, m, d] = ymdOf(s);
+  const first = new Date(0);
+  first.setUTCFullYear(y, m - 1 + c[1], 1);
+  const ty = first.getUTCFullYear(), tm = first.getUTCMonth();
+  if (ty < 1900 || ty > 9999) return E('#NUM!');
+  const last = new Date(0);
+  last.setUTCFullYear(ty, tm + 1, 0);
+  const day = Math.min(d, last.getUTCDate());
+  return serialOf(ty, tm + 1, day);
+}
+function fDays(args, owner) {
+  const c = convArgs(args, owner, ['n', 'n']);
+  if (isErr(c)) return c;
+  const a = serialOk(c[0]), b = serialOk(c[1]);
+  if (a === null || b === null) return E('#NUM!');
+  return a - b;
+}
+
+const FUNCS = {
+  SUM: [1, Infinity, fSum], AVERAGE: [1, Infinity, fAverage], MIN: [1, Infinity, fMin], MAX: [1, Infinity, fMax],
+  COUNT: [1, Infinity, fCount], COUNTA: [1, Infinity, fCounta],
+  ROUND: [2, 2, roundFn('half')], ROUNDUP: [2, 2, roundFn('up')], ROUNDDOWN: [2, 2, roundFn('down')],
+  ABS: [1, 1, fAbs], INT: [1, 1, fInt], MOD: [2, 2, fMod],
+  IF: [3, 3, fIf], AND: [1, Infinity, andOr(false)], OR: [1, Infinity, andOr(true)], NOT: [1, 1, fNot],
+  IFERROR: [2, 2, fIferror], ISERROR: [1, 1, fIserror], ISBLANK: [1, 1, fIsblank], CHOOSE: [2, Infinity, fChoose],
+  LEN: [1, 1, fLen], UPPER: [1, 1, fUpper], LOWER: [1, 1, fLower], TRIM: [1, 1, fTrim],
+  LEFT: [2, 2, fLeft], RIGHT: [2, 2, fRight], MID: [3, 3, fMid], CONCAT: [1, Infinity, fConcat],
+  REPT: [2, 2, fRept], FIND: [2, 3, fFind], SUBSTITUTE: [3, 4, fSubstitute], TEXT: [2, 2, fText],
+  MATCH: [2, 3, fMatch], INDEX: [2, 3, fIndex], VLOOKUP: [3, 4, fVlookup],
+  COUNTIF: [2, 2, fCountif], COUNTIFS: [2, Infinity, fCountifs], SUMIF: [3, 3, fSumif], SUMIFS: [3, Infinity, fSumifs],
+  AVERAGEIF: [2, 3, fAverageif],
+  DATE: [3, 3, fDate], YEAR: [1, 1, datePart(0)], MONTH: [1, 1, datePart(1)], DAY: [1, 1, datePart(2)],
+  WEEKDAY: [1, 2, fWeekday], EDATE: [2, 2, fEdate], DAYS: [2, 2, fDays],
+};
+
+/* ---------- workbook state ---------- */
+function blankCells() {
+  return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ({ raw: '', fmt: 'general' })));
+}
+function newSheet(name) {
+  return { id: WB.nextId++, name, cells: blankCells(), anchor: { r: 1, c: 1 }, active: { r: 1, c: 1 } };
+}
+function snap() {
+  return JSON.stringify({
+    sheets: WB.sheets.map((s) => ({ id: s.id, name: s.name, cells: s.cells, anchor: s.anchor, active: s.active })),
+    active: WB.active,
+    names: WB.names,
+  });
+}
+function contentKey() {
+  return JSON.stringify({ s: WB.sheets.map((s) => [s.id, s.name, s.cells]), n: WB.names });
+}
+function applySnap(str) {
+  const o = JSON.parse(str);
+  WB.sheets = o.sheets;
+  WB.active = o.active;
+  WB.names = o.names;
+}
+const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,19}$/;
+function validName(s) {
+  if (!NAME_RE.test(s)) return false;
+  const u = s.toUpperCase();
+  if (u === 'TRUE' || u === 'FALSE') return false;
+  if (FUNCS[u]) return false;
+  if (/^[A-Za-z]+[0-9]+$/.test(s)) return false;
+  return true;
+}
+function validSheetName(s) {
+  return s.length >= 1 && s.length <= 20 && /^[A-Za-z0-9 _.'-]+$/.test(s) && s[0] !== ' ' && s[s.length - 1] !== ' ';
+}
+function validState(o) {
+  if (!o || !Array.isArray(o.sheets) || o.sheets.length < 1 || o.sheets.length > 5) return false;
+  if (!Number.isInteger(o.active) || o.active < 0 || o.active >= o.sheets.length) return false;
+  if (!Array.isArray(o.names) || o.names.length > 10) return false;
+  for (const s of o.sheets) {
+    if (!s || typeof s.name !== 'string' || !validSheetName(s.name) || !Number.isInteger(s.id)) return false;
+    if (!Array.isArray(s.cells) || s.cells.length !== ROWS) return false;
+    for (const row of s.cells) {
+      if (!Array.isArray(row) || row.length !== COLS) return false;
+      for (const cell of row) {
+        if (!cell || typeof cell.raw !== 'string') return false;
+        if (['general', 'fixed2', 'percent1', 'date'].indexOf(cell.fmt) < 0) return false;
+      }
+    }
+    for (const p of [s.anchor, s.active]) {
+      if (!p || !Number.isInteger(p.r) || !Number.isInteger(p.c) || p.r < 1 || p.r > ROWS || p.c < 1 || p.c > COLS) return false;
+    }
+  }
+  for (const d of o.names) {
+    if (!d || typeof d.name !== 'string' || !d.target) return false;
+  }
+  return true;
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, snap()); } catch (e) { /* no persistence */ }
+}
+function load() {
+  let loaded = false;
+  try {
+    const s = localStorage.getItem(STORE_KEY);
+    if (s) {
+      const o = JSON.parse(s);
+      if (validState(o)) { applySnap(JSON.stringify(o)); loaded = true; }
+    }
+  } catch (e) { loaded = false; }
+  if (!loaded) {
+    WB.sheets = [newSheet('Sheet1')];
+    WB.active = 0;
+    WB.names = [];
+  }
+  let maxId = 0;
+  WB.sheets.forEach((s) => { maxId = Math.max(maxId, s.id); });
+  WB.nextId = Math.max(WB.nextId, maxId + 1);
+  WB.names.forEach((d) => {
+    if (d.target.kind !== 'removed' && !sheetById(d.target.sheetId)) d.target = { kind: 'removed' };
+  });
+}
+
+/* ---------- commit of an entered string (02, section 2.2) ---------- */
+function decideRaw(s) {
+  if (s === '') return { raw: '' };
+  if (s[0] === '=') {
+    const ast = parseFormula(s);
+    if (!ast) return { raw: s };
+    const exact = mapRefs(ast, (n) => {
+      if (n.sheet === null) return n;
+      const sh = sheetByName(n.sheet);
+      return sh && sh.name !== n.sheet ? { ...n, sheet: sh.name } : n;
+    });
+    return { raw: genFormula(exact) };
+  }
+  if (s[0] === "'") return { raw: s };
+  if (dateEntry(trimSp(s)) !== null) return { raw: s, date: true };
+  return { raw: s };
+}
+function commitRaw(sh, r, c, s) {
+  const cell = sh.cells[r - 1][c - 1];
+  const d = decideRaw(s);
+  if (d.raw === cell.raw) return;
+  cell.raw = d.raw;
+  if (d.date && cell.fmt === 'general') cell.fmt = 'date';
+}
+
+/* ---------- structural rewrites ---------- */
+function shiftOne(n, pos, insert, lim) {
+  if (insert) return n < pos ? n : (n + 1 > lim ? null : n + 1);
+  if (n < pos) return n;
+  return n === pos ? null : n - 1;
+}
+function shiftRange(lo, hi, pos, insert, lim) {
+  if (insert) {
+    const nlo = lo >= pos ? lo + 1 : lo;
+    if (nlo > lim) return null;
+    const nhi = Math.min(hi >= pos ? hi + 1 : hi, lim);
+    return [nlo, nhi];
+  }
+  if (pos > hi) return [lo, hi];
+  if (pos < lo) return [lo - 1, hi - 1];
+  if (lo === hi) return null;
+  return [lo, hi - 1];
+}
+function shiftHook(S, axis, pos, insert) {
+  const lim = axis === 'row' ? ROWS : COLS;
+  return (n, tgt) => {
+    if (tgt !== S) return n;
+    if (n.t === 'ref') {
+      if (!inGrid(n.col, n.row)) return n;
+      const v = shiftOne(n[axis], pos, insert, lim);
+      return v === null ? { t: 'refErr' } : { ...n, [axis]: v };
+    }
+    if (!inGrid(n.a.col, n.a.row) || !inGrid(n.b.col, n.b.row)) return n;
+    const va = n.a[axis], vb = n.b[axis];
+    const res = shiftRange(Math.min(va, vb), Math.max(va, vb), pos, insert, lim);
+    if (res === null) return { t: 'refErr' };
+    const aLow = va <= vb;
+    return {
+      ...n,
+      a: { ...n.a, [axis]: aLow ? res[0] : res[1] },
+      b: { ...n.b, [axis]: aLow ? res[1] : res[0] },
+    };
+  };
+}
+function pasteHook(dr, dc) {
+  return (n) => {
+    if (n.t === 'ref') {
+      if (!inGrid(n.col, n.row)) return n;
+      const col = n.cabs ? n.col : n.col + dc;
+      const row = n.rabs ? n.row : n.row + dr;
+      return inGrid(col, row) ? { ...n, col, row } : { t: 'refErr' };
+    }
+    if (!inGrid(n.a.col, n.a.row) || !inGrid(n.b.col, n.b.row)) return n;
+    const adj = (p) => {
+      const col = p.cabs ? p.col : p.col + dc;
+      const row = p.rabs ? p.row : p.row + dr;
+      return { ...p, col, row };
+    };
+    const a = adj(n.a), b = adj(n.b);
+    if (!inGrid(a.col, a.row) || !inGrid(b.col, b.row)) return { t: 'refErr' };
+    return { ...n, a, b };
+  };
+}
+/* new raw content of a formula moved by an offset; unchanged when not a valid formula */
+function adjustRaw(raw, dr, dc, owner) {
+  if (raw[0] !== '=') return raw;
+  const res = rewriteRaw(raw, owner, pasteHook(dr, dc));
+  return res ? res.raw : raw;
+}
+function rewriteAllFormulas(hook) {
+  for (const s2 of WB.sheets) {
+    for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) {
+      const cell = s2.cells[r - 1][c - 1];
+      if (cell.raw[0] !== '=') continue;
+      const res = rewriteRaw(cell.raw, s2, hook);
+      if (res && res.changed) cell.raw = res.raw;
+    }
+  }
+}
+/* a row or column of sheet S inserted or deleted at pos (1-based) */
+function structure(S, axis, pos, insert) {
+  if (axis === 'row') {
+    const idx = pos - 1;
+    if (insert) {
+      for (let i = ROWS - 1; i > idx; i--) S.cells[i] = S.cells[i - 1];
+      S.cells[idx] = Array.from({ length: COLS }, () => ({ raw: '', fmt: 'general' }));
+    } else {
+      for (let i = idx; i < ROWS - 1; i++) S.cells[i] = S.cells[i + 1];
+      S.cells[ROWS - 1] = Array.from({ length: COLS }, () => ({ raw: '', fmt: 'general' }));
+    }
+  } else {
+    const idx = pos - 1;
+    for (const row of S.cells) {
+      if (insert) {
+        for (let j = COLS - 1; j > idx; j--) row[j] = row[j - 1];
+        row[idx] = { raw: '', fmt: 'general' };
+      } else {
+        for (let j = idx; j < COLS - 1; j++) row[j] = row[j + 1];
+        row[COLS - 1] = { raw: '', fmt: 'general' };
+      }
+    }
+  }
+  const hook = shiftHook(S, axis, pos, insert);
+  rewriteAllFormulas(hook);
+  for (const d of WB.names) {
+    if (d.target.kind === 'removed' || d.target.sheetId !== S.id) continue;
+    const t = d.target;
+    if (t.kind === 'cell') {
+      const res = hook({ t: 'ref', sheet: null, col: t.c1, row: t.r1, cabs: false, rabs: false }, S);
+      if (res.t === 'refErr') d.target = { kind: 'removed' };
+      else d.target = { ...t, r1: res.row, r2: res.row, c1: res.col, c2: res.col };
+    } else {
+      const node = { t: 'range', sheet: null, a: { col: t.c1, row: t.r1, cabs: false, rabs: false }, b: { col: t.c2, row: t.r2, cabs: false, rabs: false } };
+      const res = hook(node, S);
+      if (res.t === 'refErr') d.target = { kind: 'removed' };
+      else d.target = { ...t, r1: Math.min(res.a.row, res.b.row), r2: Math.max(res.a.row, res.b.row), c1: Math.min(res.a.col, res.b.col), c2: Math.max(res.a.col, res.b.col) };
+    }
+  }
+}
+
+/* ---------- messages ---------- */
+const els = {};
+function setMsg(el, text) {
+  el.textContent = text || '';
+  el.hidden = !text;
+}
+
+/* ---------- history and actions ---------- */
+function finish() { save(); render(); }
+function transact(fn) {
+  computeAll();
+  const k0 = contentKey();
+  const before = snap();
+  const forced = fn() === true;
+  if (forced || contentKey() !== k0) {
+    WB.past.push({ before, after: snap() });
+    if (WB.past.length > HIST_LIMIT) WB.past.shift();
+    WB.future = [];
+  }
+  finish();
+}
+function undo() {
+  if (!WB.past.length) return;
+  const st = WB.past.pop();
+  WB.future.push(st);
+  applySnap(st.before);
+  syncSheetName();
+  finish();
+}
+function redo() {
+  if (!WB.future.length) return;
+  const st = WB.future.pop();
+  WB.past.push(st);
+  applySnap(st.after);
+  syncSheetName();
+  finish();
+}
+function syncSheetName() { els.sheetNameInput.value = cur().name; }
+let clip = null;
+let editing = false;
+
+function moveSel(dr, dc, extend) {
+  const sh = cur();
+  const r = Math.min(ROWS, Math.max(1, sh.active.r + dr));
+  const c = Math.min(COLS, Math.max(1, sh.active.c + dc));
+  sh.active = { r, c };
+  if (!extend) sh.anchor = { r, c };
+  finish();
+}
+function clearSel() {
+  transact(() => {
+    const sh = cur();
+    const rc = rectOf(sh);
+    for (let r = rc.r1; r <= rc.r2; r++) for (let c = rc.c1; c <= rc.c2; c++) sh.cells[r - 1][c - 1].raw = '';
+  });
+}
+function copyCells(sh, rc) {
+  const cells = [];
+  for (let r = rc.r1; r <= rc.r2; r++) {
+    const row = [];
+    for (let c = rc.c1; c <= rc.c2; c++) row.push({ ...sh.cells[r - 1][c - 1] });
+    cells.push(row);
+  }
+  return cells;
+}
+function doCopy(mode) {
+  const sh = cur();
+  const rc = rectOf(sh);
+  clip = { mode, sheetName: sh.name, r1: rc.r1, c1: rc.c1, cells: copyCells(sh, rc) };
+  finish();
+}
+function doPaste() {
+  if (!clip) return;
+  const sh = cur();
+  const sel = rectOf(sh);
+  const h = clip.cells.length, w = clip.cells[0].length;
+  transact(() => {
+    if (clip.mode === 'cut') {
+      const src = sheetByName(clip.sheetName);
+      if (src) {
+        for (let i = 0; i < h; i++) for (let j = 0; j < w; j++) {
+          src.cells[clip.r1 - 1 + i][clip.c1 - 1 + j] = { raw: '', fmt: 'general' };
+        }
+      }
+    }
+    const dr = sel.r1 - clip.r1, dc = sel.c1 - clip.c1;
+    for (let i = 0; i < h; i++) for (let j = 0; j < w; j++) {
+      const r = sel.r1 + i, c = sel.c1 + j;
+      if (r > ROWS || c > COLS) continue;
+      const cell = clip.cells[i][j];
+      const raw = clip.mode === 'copy' ? adjustRaw(cell.raw, dr, dc, sh) : cell.raw;
+      sh.cells[r - 1][c - 1] = { raw, fmt: cell.fmt };
+    }
+    sh.anchor = { r: sel.r1, c: sel.c1 };
+    sh.active = { r: sel.r1, c: sel.c1 };
+    if (clip.mode === 'cut') clip = null;
+    return true;
+  });
+}
+function applyFormat(f) {
+  transact(() => {
+    const sh = cur();
+    const rc = rectOf(sh);
+    for (let r = rc.r1; r <= rc.r2; r++) for (let c = rc.c1; c <= rc.c2; c++) sh.cells[r - 1][c - 1].fmt = f;
+  });
+}
+function structureAction(axis, insert) {
+  const sh = cur();
+  const pos = axis === 'row' ? sh.active.r : sh.active.c;
+  transact(() => { structure(sh, axis, pos, insert); return true; });
+}
+function sortRows(desc) {
+  transact(() => {
+    const sh = cur();
+    const sel = rectOf(sh);
+    const keyC = sh.active.c;
+    const rows = [];
+    for (let r = sel.r1; r <= sel.r2; r++) rows.push(r);
+    const keys = rows.map((r) => valueAt(sh, r, keyC));
+    const order = rows.map((_, i) => i);
+    order.sort((i, j) => {
+      const c = cmpKey(keys[i], keys[j], desc);
+      return c !== 0 ? c : i - j;
+    });
+    if (order.every((v, i) => v === i)) return false;
+    const saved = rows.map((r) => copyCells(sh, { r1: r, r2: r, c1: sel.c1, c2: sel.c2 })[0]);
+    rows.forEach((r, k) => {
+      const src = saved[order[k]];
+      for (let c = sel.c1; c <= sel.c2; c++) sh.cells[r - 1][c - 1] = { ...src[c - sel.c1] };
+    });
+    return false;
+  });
+}
+function rankOf(v) {
+  if (v === null) return 4;
+  if (isErr(v)) return 3;
+  if (typeof v === 'boolean') return 2;
+  if (typeof v === 'string') return 1;
+  return 0;
+}
+function ascCmp(a, b) {
+  const ra = rankOf(a), rb = rankOf(b);
+  if (ra !== rb) return ra - rb;
+  if (ra === 0) return a - b;
+  if (ra === 1) {
+    const x = a.toUpperCase(), y = b.toUpperCase();
+    return x < y ? -1 : x > y ? 1 : 0;
+  }
+  if (ra === 2) return Number(a) - Number(b);
+  return 0;
+}
+function cmpKey(a, b, desc) {
+  const ra = rankOf(a), rb = rankOf(b);
+  if (ra === 4 || rb === 4) return ra === rb ? 0 : (ra === 4 ? 1 : -1);
+  return desc ? -ascCmp(a, b) : ascCmp(a, b);
+}
+function fillDir(down) {
+  transact(() => {
+    const sh = cur();
+    const sel = rectOf(sh);
+    if (down ? sel.r2 === sel.r1 : sel.c2 === sel.c1) return false;
+    if (down) {
+      for (let c = sel.c1; c <= sel.c2; c++) {
+        const src = { ...sh.cells[sel.r1 - 1][c - 1] };
+        for (let r = sel.r1 + 1; r <= sel.r2; r++) {
+          sh.cells[r - 1][c - 1] = { raw: adjustRaw(src.raw, r - sel.r1, 0, sh), fmt: src.fmt };
+        }
+      }
+    } else {
+      for (let r = sel.r1; r <= sel.r2; r++) {
+        const src = { ...sh.cells[r - 1][sel.c1 - 1] };
+        for (let c = sel.c1 + 1; c <= sel.c2; c++) {
+          sh.cells[r - 1][c - 1] = { raw: adjustRaw(src.raw, 0, c - sel.c1, sh), fmt: src.fmt };
+        }
+      }
+    }
+    return true;
+  });
+}
+function isNumberSeed(cell) {
+  return cell.raw !== '' && cell.raw[0] !== '=' && typeof constValue(cell.raw) === 'number';
+}
+function fillSeries() {
+  transact(() => {
+    const sh = cur();
+    const sel = rectOf(sh);
+    const lines = [];
+    if (sel.r1 === sel.r2) {
+      const line = [];
+      for (let c = sel.c1; c <= sel.c2; c++) line.push([sel.r1, c]);
+      lines.push(line);
+    } else {
+      for (let c = sel.c1; c <= sel.c2; c++) {
+        const line = [];
+        for (let r = sel.r1; r <= sel.r2; r++) line.push([r, c]);
+        lines.push(line);
+      }
+    }
+    let any = false;
+    for (const line of lines) {
+      if (line.length < 3) continue;
+      const cell = (p) => sh.cells[p[0] - 1][p[1] - 1];
+      const s1 = cell(line[0]), s2 = cell(line[1]);
+      if (!isNumberSeed(s1) || !isNumberSeed(s2)) continue;
+      const a = constValue(s1.raw), b = constValue(s2.raw);
+      const step = N(b - a);
+      if (isErr(step)) continue;
+      const vals = [];
+      let ok = true;
+      for (let i = 2; i < line.length; i++) {
+        const v = N(a + i * step);
+        if (isErr(v)) { ok = false; break; }
+        vals.push(v);
+      }
+      if (!ok) continue;
+      any = true;
+      vals.forEach((v, k) => {
+        const p = line[k + 2];
+        sh.cells[p[0] - 1][p[1] - 1] = { raw: plainText(v), fmt: s1.fmt };
+      });
+    }
+    return any;
+  });
+}
+
+/* ---------- names and sheets actions ---------- */
+function defineName() {
+  setMsg(els.nameMsg, '');
+  const nm = els.nameInput.value;
+  if (!validName(nm)) return setMsg(els.nameMsg, 'Invalid name');
+  if (findName(nm)) return setMsg(els.nameMsg, 'Name already used');
+  if (WB.names.length >= 10) return setMsg(els.nameMsg, 'Too many names');
+  transact(() => {
+    const sh = cur();
+    const rc = rectOf(sh);
+    const single = rc.r1 === rc.r2 && rc.c1 === rc.c2;
+    const target = { kind: single ? 'cell' : 'range', sheetId: sh.id, r1: rc.r1, c1: rc.c1, r2: rc.r2, c2: rc.c2 };
+    WB.names.push({ name: nm, target });
+    els.nameInput.value = '';
+    return true;
+  });
+}
+function deleteName() {
+  setMsg(els.nameMsg, '');
+  const d = findName(els.nameInput.value);
+  if (!d) return setMsg(els.nameMsg, 'Unknown name');
+  transact(() => {
+    WB.names = WB.names.filter((x) => x !== d);
+    els.nameInput.value = '';
+    return true;
+  });
+}
+function addSheet() {
+  setMsg(els.sheetMsg, '');
+  if (WB.sheets.length >= 5) return;
+  let n = 1;
+  while (WB.sheets.some((s) => s.name.toUpperCase() === 'SHEET' + n)) n++;
+  const sh = newSheet('Sheet' + n);
+  transact(() => {
+    WB.sheets.push(sh);
+    WB.active = WB.sheets.length - 1;
+    syncSheetName();
+    return true;
+  });
+}
+function renameSheet() {
+  setMsg(els.sheetMsg, '');
+  const v = els.sheetNameInput.value;
+  const sh = cur();
+  if (!validSheetName(v)) return setMsg(els.sheetMsg, 'Invalid sheet name');
+  if (WB.sheets.some((s) => s !== sh && s.name.toUpperCase() === v.toUpperCase())) return setMsg(els.sheetMsg, 'Sheet name already used');
+  if (v === sh.name) return;
+  transact(() => {
+    const old = sh.name.toUpperCase();
+    sh.name = v;
+    rewriteAllFormulas((n) => (n.sheet !== null && n.sheet.toUpperCase() === old ? { ...n, sheet: v } : n));
+    return false;
+  });
+}
+function deleteSheet() {
+  setMsg(els.sheetMsg, '');
+  if (WB.sheets.length <= 1) return;
+  transact(() => {
+    const idx = WB.active;
+    const gone = WB.sheets[idx];
+    const up = gone.name.toUpperCase();
+    WB.sheets.splice(idx, 1);
+    WB.active = Math.min(idx, WB.sheets.length - 1);
+    for (const d of WB.names) {
+      if (d.target.kind !== 'removed' && d.target.sheetId === gone.id) d.target = { kind: 'removed' };
+    }
+    rewriteAllFormulas((n) => (n.sheet !== null && n.sheet.toUpperCase() === up ? { t: 'refErr' } : n));
+    syncSheetName();
+    return true;
+  });
+}
+function switchSheet(i) {
+  WB.active = i;
+  syncSheetName();
+  finish();
+}
+
+/* ---------- find and replace ---------- */
+function asciiUpper(s) { return s.replace(/[a-z]/g, (ch) => ch.toUpperCase()); }
+function findMatches(sh, needle, mc, whole) {
+  const out = [];
+  if (needle === '') return out;
+  const nd = mc ? needle : asciiUpper(needle);
+  for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) {
+    const raw = sh.cells[r - 1][c - 1].raw;
+    if (raw === '') continue;
+    const h = mc ? raw : asciiUpper(raw);
+    if (whole ? h === nd : h.indexOf(nd) >= 0) out.push({ r, c, idx: (r - 1) * COLS + (c - 1) });
+  }
+  return out;
+}
+function replaceOcc(raw, needle, rep, mc) {
+  const h = mc ? raw : asciiUpper(raw);
+  const nd = mc ? needle : asciiUpper(needle);
+  let out = '', last = 0, from = 0, i;
+  while ((i = h.indexOf(nd, from)) >= 0) {
+    out += raw.slice(last, i) + rep;
+    last = i + nd.length;
+    from = last;
+  }
+  return out + raw.slice(last);
+}
+function findNext() {
+  setMsg(els.findStatus, '');
+  const sh = cur();
+  const list = findMatches(sh, els.findInput.value, els.findCase.checked, els.findWhole.checked);
+  setMsg(els.findStatus, 'Matches: ' + list.length);
+  if (list.length) {
+    const ai = (sh.active.r - 1) * COLS + (sh.active.c - 1);
+    const pick = list.find((p) => p.idx > ai) || list[0];
+    sh.anchor = { r: pick.r, c: pick.c };
+    sh.active = { r: pick.r, c: pick.c };
+  }
+  finish();
+  setMsg(els.findStatus, 'Matches: ' + list.length);
+}
+function replaceAll() {
+  setMsg(els.findStatus, '');
+  const sh = cur();
+  const needle = els.findInput.value, rep = els.replaceInput.value;
+  const mc = els.findCase.checked, whole = els.findWhole.checked;
+  const list = findMatches(sh, needle, mc, whole);
+  transact(() => {
+    for (const p of list) {
+      const raw = sh.cells[p.r - 1][p.c - 1].raw;
+      const s = whole ? rep : replaceOcc(raw, needle, rep, mc);
+      commitRaw(sh, p.r, p.c, s);
+    }
+    return false;
+  });
+  setMsg(els.findStatus, 'Replaced: ' + list.length);
+}
+
+/* ---------- CSV ---------- */
+function csvField(s) { return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function csvExport() {
+  setMsg(els.csvMsg, '');
+  computeAll();
+  const sh = cur();
+  const raw = els.csvRaw.checked;
+  let R = 0, C = 0;
+  for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) {
+    if (sh.cells[r - 1][c - 1].raw !== '') { R = Math.max(R, r); C = Math.max(C, c); }
+  }
+  const lines = [];
+  for (let r = 1; r <= R; r++) {
+    const fields = [];
+    for (let c = 1; c <= C; c++) {
+      const cell = sh.cells[r - 1][c - 1];
+      fields.push(csvField(raw ? cell.raw : displayText(valueAt(sh, r, c), cell.fmt)));
+    }
+    lines.push(fields.join(','));
+  }
+  els.csvText.value = lines.join('\n');
+}
+/* reads a CSV text (02, section 2.17.2); null when malformed */
+function parseCsv(t) {
+  const recs = [];
+  let i = 0;
+  const n = t.length;
+  for (;;) {
+    const fields = [];
+    for (;;) {
+      let buf = '';
+      if (t[i] === '"') {
+        i++;
+        for (;;) {
+          if (i >= n) return null;
+          if (t[i] === '"') {
+            if (t[i + 1] === '"') { buf += '"'; i += 2; continue; }
+            i++;
+            break;
+          }
+          if (t[i] === '\r') { buf += ' '; i += t[i + 1] === '\n' ? 2 : 1; continue; }
+          if (t[i] === '\n') { buf += ' '; i++; continue; }
+          buf += t[i];
+          i++;
+        }
+        if (i < n && t[i] !== ',' && t[i] !== '\r' && t[i] !== '\n') return null;
+      } else {
+        while (i < n && t[i] !== ',' && t[i] !== '\r' && t[i] !== '\n') { buf += t[i]; i++; }
+      }
+      fields.push(buf);
+      if (i < n && t[i] === ',') { i++; continue; }
+      break;
+    }
+    recs.push(fields);
+    if (i >= n) break;
+    if (t[i] === '\r') i += t[i + 1] === '\n' ? 2 : 1;
+    else i++;
+    if (i >= n) break;
+  }
+  return recs;
+}
+function csvImport() {
+  setMsg(els.csvMsg, '');
+  const text = els.csvText.value;
+  if (text === '') return setMsg(els.csvMsg, 'Nothing to import');
+  const recs = parseCsv(text);
+  if (!recs) return setMsg(els.csvMsg, 'Invalid CSV');
+  let k = 0, d = 0;
+  transact(() => {
+    const sh = cur();
+    for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) sh.cells[r - 1][c - 1].raw = '';
+    recs.forEach((rec, i) => rec.forEach((f, j) => {
+      if (f === '') return;
+      if (i < ROWS && j < COLS) { commitRaw(sh, i + 1, j + 1, f); k++; }
+      else d++;
+    }));
+    return true;
+  });
+  setMsg(els.csvMsg, 'Imported: ' + k + ' | Dropped: ' + d);
+}
+
+/* ---------- selection and editing ---------- */
+function commitEdit() {
+  const sh = cur();
+  commitRaw(sh, sh.active.r, sh.active.c, els.formulaInput.value);
+}
+function cellClick(e) {
+  const el = e.target.closest('[role=gridcell]');
+  if (!el) return;
+  const r = Number(el.dataset.r), c = Number(el.dataset.c);
+  transact(() => {
+    if (editing) { commitEdit(); editing = false; }
+    const sh = cur();
+    sh.active = { r, c };
+    if (!e.shiftKey) sh.anchor = { r, c };
+  });
+  els.grid.focus();
+}
+function formulaKey(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    editing = false;
+    render();
+    els.grid.focus();
+    return;
+  }
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    if (e.key === 'Tab' && e.shiftKey) return;
+    e.preventDefault();
+    transact(() => {
+      commitEdit();
+      editing = false;
+      const sh = cur();
+      const r = Math.min(ROWS, sh.active.r + (e.key === 'Enter' ? 1 : 0));
+      const c = Math.min(COLS, sh.active.c + (e.key === 'Tab' ? 1 : 0));
+      sh.active = { r, c };
+      sh.anchor = { r, c };
+    });
+    els.formulaInput.focus();
+  }
+}
+function gridKey(e) {
+  const k = e.key;
+  const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  if (arrows[k]) {
+    e.preventDefault();
+    if (!editing) moveSel(arrows[k][0], arrows[k][1], e.shiftKey);
+    return;
+  }
+  if (k === 'Delete' || k === 'Backspace') {
+    e.preventDefault();
+    if (!editing) clearSel();
+    return;
+  }
+  if (k === 'Enter') {
+    e.preventDefault();
+    els.formulaInput.focus();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey) {
+    const kk = k.toLowerCase();
+    if (kk === 'z') { e.preventDefault(); if (!editing) { undo(); syncSheetName(); } }
+    else if (kk === 'y') { e.preventDefault(); if (!editing) { redo(); syncSheetName(); } }
+  }
+}
+
+/* ---------- rendering ---------- */
+function kindOf(v, raw) {
+  if (raw === '' || v === null) return 'empty';
+  if (typeof v === 'number') return 'number';
+  if (typeof v === 'string') return 'text';
+  if (typeof v === 'boolean') return 'logical';
+  return 'error';
+}
+function targetText(t) {
+  if (t.kind === 'removed') return '#REF!';
+  const sh = sheetById(t.sheetId);
+  if (!sh) return '#REF!';
+  const p = quoteSheet(sh.name) + '!';
+  if (t.kind === 'cell') return p + addr(t.r1, t.c1);
+  return p + addr(t.r1, t.c1) + ':' + addr(t.r2, t.c2);
+}
+function summaryText(sh) {
+  const rc = rectOf(sh);
+  let n = 0, sum = 0;
+  for (let r = rc.r1; r <= rc.r2; r++) for (let c = rc.c1; c <= rc.c2; c++) {
+    const v = valueAt(sh, r, c);
+    if (typeof v === 'number') { n++; sum += v; }
+  }
+  if (n === 0) return null;
+  const s = N(sum), a = N(sum / n);
+  const sTxt = isErr(s) ? '#NUM!' : generalText(s);
+  const aTxt = isErr(a) ? '#NUM!' : generalText(a);
+  return 'Sum: ' + sTxt + ' | Average: ' + aTxt + ' | Count: ' + n;
+}
+function buildGrid() {
+  const grid = els.grid;
+  const head = document.createElement('div');
+  head.setAttribute('role', 'row');
+  const corner = document.createElement('div');
+  corner.setAttribute('role', 'presentation');
+  head.appendChild(corner);
+  for (let c = 1; c <= COLS; c++) {
+    const h = document.createElement('div');
+    h.setAttribute('role', 'columnheader');
+    h.dataset.testid = 'col-header-' + colLetters(c);
+    h.textContent = colLetters(c);
+    head.appendChild(h);
+  }
+  grid.appendChild(head);
+  els.cellEls = [];
+  for (let r = 1; r <= ROWS; r++) {
+    const row = document.createElement('div');
+    row.setAttribute('role', 'row');
+    const rh = document.createElement('div');
+    rh.setAttribute('role', 'rowheader');
+    rh.dataset.testid = 'row-header-' + r;
+    rh.textContent = String(r);
+    row.appendChild(rh);
+    els.cellEls[r - 1] = [];
+    for (let c = 1; c <= COLS; c++) {
+      const cell = document.createElement('div');
+      cell.setAttribute('role', 'gridcell');
+      cell.dataset.testid = 'cell-' + addr(r, c);
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      row.appendChild(cell);
+      els.cellEls[r - 1][c - 1] = cell;
+    }
+    grid.appendChild(row);
+  }
+}
+function renderTabs() {
+  const list = els.tabs;
+  const n = WB.sheets.length;
+  els.tabEls = els.tabEls || [];
+  while (els.tabEls.length < n) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    list.appendChild(b);
+    els.tabEls.push(b);
+  }
+  while (els.tabEls.length > n) list.removeChild(els.tabEls.pop());
+  WB.sheets.forEach((s, i) => {
+    const b = els.tabEls[i];
+    b.dataset.testid = 'sheet-tab-' + (i + 1);
+    b.textContent = s.name;
+    b.setAttribute('aria-selected', i === WB.active ? 'true' : 'false');
+    b.onclick = () => { if (!editing) switchSheet(i); };
+  });
+}
+function renderNames() {
+  const list = els.nameList;
+  list.textContent = '';
+  const sorted = WB.names.slice().sort((a, b) => {
+    const x = a.name.toUpperCase(), y = b.name.toUpperCase();
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
+  sorted.forEach((d, i) => {
+    const li = document.createElement('div');
+    li.setAttribute('role', 'listitem');
+    li.dataset.testid = 'name-item-' + (i + 1);
+    li.textContent = d.name + ' = ' + targetText(d.target);
+    list.appendChild(li);
+  });
+}
+function render() {
+  computeAll();
+  const sh = cur();
+  const rc = rectOf(sh);
+  for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) {
+    const el = els.cellEls[r - 1][c - 1];
+    const cell = sh.cells[r - 1][c - 1];
+    const v = valueAt(sh, r, c);
+    el.textContent = displayText(v, cell.fmt);
+    el.setAttribute('data-kind', kindOf(v, cell.raw));
+    el.setAttribute('aria-selected', sh.active.r === r && sh.active.c === c ? 'true' : 'false');
+    const inSel = r >= rc.r1 && r <= rc.r2 && c >= rc.c1 && c <= rc.c2;
+    el.setAttribute('data-in-selection', inSel ? 'true' : 'false');
+  }
+  const single = rc.r1 === rc.r2 && rc.c1 === rc.c2;
+  els.nameBox.textContent = single ? addr(rc.r1, rc.c1) : addr(rc.r1, rc.c1) + ':' + addr(rc.r2, rc.c2);
+  const act = sh.cells[sh.active.r - 1][sh.active.c - 1];
+  if (!editing) els.formulaInput.value = act.raw;
+  els.formulaInput.setAttribute('data-editing', editing ? 'true' : 'false');
+  els.formatSelect.value = act.fmt;
+  const sum = summaryText(sh);
+  setMsg(els.summary, sum);
+  els.summary.hidden = sum === null;
+  renderTabs();
+  renderNames();
+  const ctrls = document.querySelectorAll('button, select, input, textarea');
+  ctrls.forEach((el) => {
+    if (el === els.formulaInput) return;
+    let dis = editing;
+    if (el === els.undo) dis = dis || WB.past.length === 0;
+    else if (el === els.redo) dis = dis || WB.future.length === 0;
+    else if (el === els.paste) dis = dis || !clip;
+    else if (el === els.addSheet) dis = dis || WB.sheets.length >= 5;
+    else if (el === els.deleteSheet) dis = dis || WB.sheets.length <= 1;
+    el.disabled = dis;
+  });
+}
+/* ---------- wiring ---------- */
+function bind(id, fn) { document.querySelector('[data-testid="' + id + '"]').addEventListener('click', (e) => { if (!e.currentTarget.disabled) fn(); }); }
+function init() {
+  const $ = (id) => document.querySelector('[data-testid="' + id + '"]');
+  els.grid = $('grid');
+  els.nameBox = $('name-box');
+  els.formulaInput = $('formula-input');
+  els.formatSelect = $('format-select');
+  els.summary = $('selection-summary');
+  els.tabs = $('sheet-tabs');
+  els.sheetNameInput = $('sheet-name-input');
+  els.sheetMsg = $('sheet-message');
+  els.addSheet = $('add-sheet');
+  els.deleteSheet = $('delete-sheet');
+  els.nameInput = $('name-input');
+  els.nameMsg = $('name-message');
+  els.nameList = $('name-list');
+  els.findInput = $('find-input');
+  els.replaceInput = $('replace-input');
+  els.findCase = $('find-case');
+  els.findWhole = $('find-whole');
+  els.findStatus = $('find-status');
+  els.csvRaw = $('csv-raw');
+  els.csvText = $('csv-text');
+  els.csvMsg = $('csv-message');
+  els.undo = $('undo-button');
+  els.redo = $('redo-button');
+  els.paste = $('paste-button');
+  buildGrid();
+  load();
+  els.findInput.value = '';
+  els.replaceInput.value = '';
+  els.findCase.checked = false;
+  els.findWhole.checked = false;
+  els.csvRaw.checked = false;
+  els.csvText.value = '';
+  els.nameInput.value = '';
+  setMsg(els.sheetMsg, '');
+  setMsg(els.nameMsg, '');
+  setMsg(els.findStatus, '');
+  setMsg(els.csvMsg, '');
+  syncSheetName();
+
+  els.grid.addEventListener('click', cellClick);
+  els.grid.addEventListener('keydown', gridKey);
+  els.formulaInput.addEventListener('input', () => { editing = true; render(); });
+  els.formulaInput.addEventListener('keydown', formulaKey);
+  els.formatSelect.addEventListener('change', () => applyFormat(els.formatSelect.value));
+
+  bind('undo-button', () => { undo(); syncSheetName(); });
+  bind('redo-button', () => { redo(); syncSheetName(); });
+  bind('copy-button', () => doCopy('copy'));
+  bind('cut-button', () => doCopy('cut'));
+  bind('paste-button', doPaste);
+  bind('clear-button', clearSel);
+  bind('insert-row', () => structureAction('row', true));
+  bind('delete-row', () => structureAction('row', false));
+  bind('insert-col', () => structureAction('col', true));
+  bind('delete-col', () => structureAction('col', false));
+  bind('sort-asc', () => sortRows(false));
+  bind('sort-desc', () => sortRows(true));
+  bind('fill-down', () => fillDir(true));
+  bind('fill-right', () => fillDir(false));
+  bind('fill-series', fillSeries);
+  bind('add-sheet', addSheet);
+  bind('rename-sheet', renameSheet);
+  bind('delete-sheet', deleteSheet);
+  bind('define-name', defineName);
+  bind('delete-name', deleteName);
+  bind('find-next', findNext);
+  bind('replace-all', replaceAll);
+  bind('csv-export', csvExport);
+  bind('csv-import', csvImport);
+  render();
+}
+init();
+</script>
+</body>
+</html>

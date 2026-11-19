@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator 3D — 07-fr-pricing</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator-3d">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <strong>07-fr-pricing</strong> · <a href="08-fr-order.html">08-fr-order</a> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a> · <a href="11-fr-preview-3d.html">11-fr-preview-3d</a></nav>
+<h1 id="7-functional-requirements--quantity-promo-code-price-summary-delivery">7. Functional requirements — Quantity, promo code, price, summary, delivery</h1>
+<h2 id="71-quantity">7.1 Quantity</h2>
+<h3 id="FR-QTY-01">FR-QTY-01 Quantity stepper</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>qty-increase</code> or <code>qty-decrease</code>, the system shall add or subtract 1 to the quantity and show it in <code>qty-value</code>.</li>
+<li><strong>Rationale:</strong> A customer may order the same bike for several riders.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Stepping
+  When the page loads
+  Then qty-value reads &quot;1&quot;
+  When the user activates qty-increase twice
+  Then qty-value reads &quot;3&quot;
+  When the user activates qty-decrease
+  Then qty-value reads &quot;2&quot;
+</code></pre>
+<h3 id="FR-QTY-02">FR-QTY-02 Quantity limits</h3>
+<ul>
+<li><strong>Statement:</strong> While the quantity is 1, the system shall disable <code>qty-decrease</code>; while it is 5, the system shall disable <code>qty-increase</code>.</li>
+<li><strong>Rationale:</strong> The workshop builds 1 to 5 identical bikes per order.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Bounds
+  When the page loads
+  Then qty-decrease is disabled and qty-increase is enabled
+  When the user activates qty-increase four times
+  Then qty-value reads &quot;5&quot; and qty-increase is disabled
+</code></pre>
+<h2 id="72-promo-code">7.2 Promo code</h2>
+<h3 id="FR-PRM-01">FR-PRM-01 Promo field and Apply button</h3>
+<ul>
+<li><strong>Statement:</strong> While the content of <code>promo-input</code> is empty after removing leading and trailing whitespace, the system shall disable <code>promo-apply</code>. When the user presses Enter in <code>promo-input</code> while <code>promo-apply</code> is enabled, the system shall act as <code>promo-apply</code>.</li>
+<li><strong>Rationale:</strong> An empty code cannot be applied by mistake.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Empty field
+  When the user fills promo-input with &quot;   &quot;
+  Then promo-apply is disabled
+
+Scenario: Enter applies
+  When the user types &quot;FREESHIP&quot; in promo-input and presses Enter
+  Then promo-status shows &quot;Code FREESHIP applied.&quot;
+</code></pre>
+<h3 id="FR-PRM-02">FR-PRM-02 Code normalization</h3>
+<ul>
+<li><strong>Statement:</strong> When a code is applied, the system shall compare it with the catalog codes after removing leading and trailing whitespace, ignoring letter case.</li>
+<li><strong>Rationale:</strong> Customers type codes in any case.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Lower case with spaces
+  Given the user selected card-frame-XL and card-drivetrain-pro
+  When the user applies &quot;  spring10 &quot;
+  Then promo-status shows &quot;Code SPRING10 applied.&quot;
+  And promo-input is empty
+  And the value of summary-line-promo reads &quot;−€198.00&quot;
+</code></pre>
+<h3 id="FR-PRM-03">FR-PRM-03 Unknown code</h3>
+<ul>
+<li><strong>Statement:</strong> If the code applied is not a catalog code, then the system shall show <code>promo-error</code> with MSG-10, keep the content of <code>promo-input</code>, and keep the previously applied code, if any, unchanged. <code>promo-error</code> shall be hidden on the first <code>input</code> event of <code>promo-input</code> after it is shown (without waiting for the field to lose focus), or when a code is applied.</li>
+<li><strong>Rationale:</strong> A typo never removes a valid code already applied.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Typo after a valid code
+  Given FREESHIP is applied
+  When the user applies &quot;FREESHPI&quot;
+  Then promo-error shows &quot;This code is not valid.&quot;
+  And promo-input still contains &quot;FREESHPI&quot;
+  And promo-status shows &quot;Code FREESHIP applied.&quot;
+  When the user types one more character in promo-input
+  Then promo-error is not visible
+</code></pre>
+<h3 id="FR-PRM-04">FR-PRM-04 Applying a known code</h3>
+<ul>
+<li><strong>Statement:</strong> When a catalog code is applied, the system shall make it the applied code, replacing any previous one, and clear <code>promo-input</code>.</li>
+<li><strong>Rationale:</strong> Codes do not stack; the last one wins.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Replacement
+  Given WELCOME50 is applied
+  When the user applies &quot;FREESHIP&quot;
+  Then promo-status shows &quot;Code FREESHIP applied.&quot;
+  And promo-input is empty
+  And summary-line-promo is not visible
+</code></pre>
+<h3 id="FR-PRM-05">FR-PRM-05 Applied code status</h3>
+<ul>
+<li><strong>Statement:</strong> While a code is applied, the system shall show <code>promo-remove</code> and show <code>promo-status</code> with MSG-11 while the code is active, MSG-12 while <code>SPRING10</code> is applied but not active, or MSG-13 while <code>WELCOME50</code> is applied but not active. The status shall follow every configuration change without a new application of the code; a code that becomes active again applies its discount again. While no frame is selected, <code>SPRING10</code> is not active. While no code is applied, <code>promo-status</code> and <code>promo-remove</code> shall not be visible.</li>
+<li><strong>Rationale:</strong> A code stays with the order; the customer sees when its condition stops or starts being met.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: SPRING10 crosses its threshold
+  Given the configuration of example P6 and SPRING10 applied
+  Then promo-status shows &quot;SPRING10 requires €1,500.00 or more after the quantity discount.&quot;
+  When the user checks &quot;Kickstand&quot;
+  Then promo-status shows &quot;Code SPRING10 applied.&quot;
+  And the value of summary-line-promo reads &quot;−€150.45&quot;
+  When the user unchecks &quot;Kickstand&quot;
+  Then summary-line-promo is not visible
+
+Scenario: WELCOME50 and quantity 3
+  Given WELCOME50 is applied and the quantity is 2
+  When the user activates qty-increase
+  Then promo-status shows &quot;WELCOME50 cannot be combined with the quantity discount.&quot;
+</code></pre>
+<h3 id="FR-PRM-06">FR-PRM-06 Removing a code</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>promo-remove</code>, the system shall remove the applied code and hide <code>promo-status</code> and <code>promo-remove</code>.</li>
+<li><strong>Rationale:</strong> The customer can go back to the price without code.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Remove
+  Given WELCOME50 is applied
+  When the user activates promo-remove
+  Then promo-status and promo-remove are not visible
+  And summary-line-promo is not visible
+</code></pre>
+<h2 id="73-price">7.3 Price</h2>
+<h3 id="FR-PRC-01">FR-PRC-01 Price calculation</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall compute every amount of the summary with the steps, rounding and rules of 02-catalog-and-rules, section 2.4, and shall produce the values of the worked examples P1 to P7 of section 2.7.</li>
+<li><strong>Rationale:</strong> The price shown is the price charged, to the cent.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario Outline: Worked examples
+  Given the configuration of example &lt;example&gt;
+  Then the summary values equal the row &lt;example&gt; of section 2.7
+
+  Examples:
+    | example |
+    | P1      |
+    | P2      |
+    | P3      |
+    | P4      |
+    | P5      |
+    | P6      |
+    | P7      |
+</code></pre>
+<h3 id="FR-PRC-02">FR-PRC-02 Live recalculation</h3>
+<ul>
+<li><strong>Statement:</strong> When any part of the configuration changes, the system shall update the summary, the bike preview and the delivery date immediately, without any confirmation button.</li>
+<li><strong>Rationale:</strong> The customer sees the effect of each choice as they make it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Immediate update
+  Given the user selected card-frame-M
+  When the user checks &quot;Lights&quot;
+  Then the value of summary-line-unit reads &quot;€1,229.90&quot; without any other action
+</code></pre>
+<h3 id="FR-PRC-03">FR-PRC-03 No frame selected</h3>
+<ul>
+<li><strong>Statement:</strong> While no frame is selected, the system shall show in <code>summary-line-frame</code> the label <code>Frame</code> and the value <code>—</code> (U+2014 EM DASH), show <code>—</code> as the value of <code>summary-line-unit</code>, <code>summary-line-subtotal</code>, <code>summary-line-shipping</code>, <code>summary-line-total</code> and <code>summary-line-vat</code>, and hide <code>summary-line-qty-discount</code> and <code>summary-line-promo</code>.</li>
+<li><strong>Rationale:</strong> A bike without frame has no price.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Before any frame
+  When the page loads
+  Then the label of summary-line-frame reads &quot;Frame&quot; and its value reads &quot;—&quot;
+  And the value of summary-line-total reads &quot;—&quot;
+  And summary-line-delivery shows a date
+</code></pre>
+<h2 id="74-summary">7.4 Summary</h2>
+<h3 id="FR-SUM-01">FR-SUM-01 Summary lines</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall display the summary lines in the order of 03-ui-contract, section 3.2, with the texts below. While no frame is selected, FR-PRC-03 replaces the frame line and the amounts.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th><code>[data-role=&quot;label&quot;]</code></th>
+<th><code>[data-role=&quot;value&quot;]</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>frame</code></td>
+<td><code>Frame {size}</code></td>
+<td>frame price, amount format</td>
+</tr>
+<tr>
+<td><code>wheels</code></td>
+<td>accessible name of the wheels</td>
+<td>surcharge, signed format</td>
+</tr>
+<tr>
+<td><code>drivetrain</code></td>
+<td>accessible name of the drivetrain</td>
+<td>surcharge, signed format</td>
+</tr>
+<tr>
+<td><code>color</code></td>
+<td>accessible name of the color</td>
+<td>surcharge, signed format (<code>Included</code> while waived)</td>
+</tr>
+<tr>
+<td><code>accessory-&lt;id&gt;</code></td>
+<td>accessible name of the accessory</td>
+<td>price, signed format</td>
+</tr>
+<tr>
+<td><code>unit</code></td>
+<td><code>Unit price</code></td>
+<td>amount format</td>
+</tr>
+<tr>
+<td><code>quantity</code></td>
+<td><code>Quantity</code></td>
+<td><code>× {n}</code> (U+00D7, one space, the quantity)</td>
+</tr>
+<tr>
+<td><code>subtotal</code></td>
+<td><code>Subtotal</code></td>
+<td>amount format</td>
+</tr>
+<tr>
+<td><code>qty-discount</code></td>
+<td><code>Quantity discount (5%)</code></td>
+<td>discount format</td>
+</tr>
+<tr>
+<td><code>promo</code></td>
+<td><code>Code {code}</code></td>
+<td>discount format</td>
+</tr>
+<tr>
+<td><code>shipping</code></td>
+<td><code>Shipping</code></td>
+<td><code>Free</code> when zero, otherwise amount format</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td><code>Total</code></td>
+<td>amount format</td>
+</tr>
+<tr>
+<td><code>vat</code></td>
+<td><code>Including VAT (20%)</code></td>
+<td>amount format</td>
+</tr>
+<tr>
+<td><code>delivery</code></td>
+<td><code>Estimated delivery</code></td>
+<td>date format</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Rationale:</strong> The customer can check every line of the price.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Example P1
+  Given the configuration of example P1
+  Then the summary lines read, in order:
+    | label                   | value       |
+    | Frame L                 | €1,240.00   |
+    | 29&quot; wheels              | +€120.00    |
+    | Sport 1×12              | +€240.00    |
+    | Racing Red              | +€60.00     |
+    | Mudguards               | +€45.00     |
+    | Rear rack               | +€69.00     |
+    | Unit price              | €1,774.00   |
+    | Quantity                | × 3         |
+    | Subtotal                | €5,322.00   |
+    | Quantity discount (5%)  | −€266.10    |
+    | Code SPRING10           | −€505.59    |
+    | Shipping                | Free        |
+    | Total                   | €4,550.31   |
+    | Including VAT (20%)     | €758.39     |
+    | Estimated delivery      | (date)      |
+</code></pre>
+<h3 id="FR-SUM-02">FR-SUM-02 Conditional summary lines</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show <code>summary-line-accessory-&lt;id&gt;</code> only for selected accessories, <code>summary-line-qty-discount</code> only while the quantity is 3 or more and a frame is selected, and <code>summary-line-promo</code> only while a frame is selected and the applied code is active with a promo discount greater than zero. <code>FREESHIP</code> therefore never shows a promo line.</li>
+<li><strong>Rationale:</strong> The summary lists what applies, nothing else.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: FREESHIP
+  Given the user selected card-frame-M and applied FREESHIP
+  Then summary-line-promo is not visible
+  And the value of summary-line-shipping reads &quot;Free&quot;
+</code></pre>
+<h3 id="FR-SUM-03">FR-SUM-03 Summary value formats</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall format every summary value with the formats of 02-catalog-and-rules, section 2.6.</li>
+<li><strong>Rationale:</strong> One reading format for every price.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Minus sign
+  Given the configuration of example P3
+  Then the value of summary-line-promo is &quot;−€50.00&quot; written with U+2212
+</code></pre>
+<h2 id="75-delivery">7.5 Delivery</h2>
+<h3 id="FR-DLV-01">FR-DLV-01 Lead time</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall compute the lead time with 02-catalog-and-rules, section 2.5, step 1. The lead time is not displayed; it is verified through the delivery date of FR-DLV-02.</li>
+<li><strong>Rationale:</strong> Build time depends on parts, paint and volume.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Example D2 (lead time 17)
+  Given today is 2026-12-18
+  When the user selects card-drivetrain-pro and card-color-red and activates qty-increase twice
+  Then the value of summary-line-delivery reads &quot;Monday, 18 January 2027&quot;
+</code></pre>
+<h3 id="FR-DLV-02">FR-DLV-02 Delivery date</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in <code>summary-line-delivery</code> the delivery date of 02-catalog-and-rules, section 2.5, step 2, in date format, whether a frame is selected or not, and shall produce the worked examples D1 to D3.</li>
+<li><strong>Rationale:</strong> The customer knows when the bike arrives before ordering.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Closed days are skipped
+  Given today is 2026-12-18
+  When the page loads
+  Then the value of summary-line-delivery reads &quot;Tuesday, 29 December 2026&quot;
+
+Scenario: Counting starts after a Saturday
+  Given today is 2026-11-14
+  When the user selects card-drivetrain-sport and card-color-sand
+  Then the value of summary-line-delivery reads &quot;Tuesday, 24 November 2026&quot;
+</code></pre>
+
+</main>
+</body>
+</html>

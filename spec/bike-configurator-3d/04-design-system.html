@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator 3D — 04-design-system</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator-3d">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <strong>04-design-system</strong> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <a href="08-fr-order.html">08-fr-order</a> · <a href="09-dr-design.html">09-dr-design</a> · <a href="10-non-functional.html">10-non-functional</a> · <a href="11-fr-preview-3d.html">11-fr-preview-3d</a></nav>
+<h1 id="4-design-system">4. Design system</h1>
+<h2 id="41-tokens">4.1 Tokens</h2>
+<p>Tokens are CSS custom properties declared on <code>:root</code>. Their names and values are fixed and shall be written exactly as in the tables below, letter case aside: <code>#FFFFFF</code> may be written <code>#ffffff</code>, but not <code>#fff</code>, <code>white</code> or <code>rgb(255, 255, 255)</code>; <code>150ms</code> shall not be written <code>0.15s</code>.</p>
+<h3 id="colors">Colors</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Light theme</th>
+<th>Dark theme</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--color-bg</code></td>
+<td><code>#F6F4F0</code></td>
+<td><code>#121110</code></td>
+<td>Page background</td>
+</tr>
+<tr>
+<td><code>--color-surface</code></td>
+<td><code>#FFFFFF</code></td>
+<td><code>#1D1B19</code></td>
+<td>Panels, cards, summary</td>
+</tr>
+<tr>
+<td><code>--color-text</code></td>
+<td><code>#1B1A18</code></td>
+<td><code>#F3F0EA</code></td>
+<td>Main text</td>
+</tr>
+<tr>
+<td><code>--color-muted</code></td>
+<td><code>#67625B</code></td>
+<td><code>#A59F96</code></td>
+<td>Secondary text, prices on cards, hover border</td>
+</tr>
+<tr>
+<td><code>--color-border</code></td>
+<td><code>#DCD6CC</code></td>
+<td><code>#38342F</code></td>
+<td>Borders</td>
+</tr>
+<tr>
+<td><code>--color-accent</code></td>
+<td><code>#0E6B58</code></td>
+<td><code>#3BC4A5</code></td>
+<td>Selection, primary button, focus ring, discounts</td>
+</tr>
+<tr>
+<td><code>--color-accent-contrast</code></td>
+<td><code>#FFFFFF</code></td>
+<td><code>#0B0A09</code></td>
+<td>Text on accent</td>
+</tr>
+<tr>
+<td><code>--color-danger</code></td>
+<td><code>#B42318</code></td>
+<td><code>#F97066</code></td>
+<td>Errors</td>
+</tr>
+<tr>
+<td><code>--color-disabled-bg</code></td>
+<td><code>#ECE8E1</code></td>
+<td><code>#2A2724</code></td>
+<td>Background of a disabled primary button</td>
+</tr>
+</tbody></table>
+<p>The dark values apply while the media query <code>(prefers-color-scheme: dark)</code> matches (DR-THM-01).</p>
+<h3 id="spacing">Spacing</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--space-1</code></td>
+<td><code>4px</code></td>
+</tr>
+<tr>
+<td><code>--space-2</code></td>
+<td><code>8px</code></td>
+</tr>
+<tr>
+<td><code>--space-3</code></td>
+<td><code>12px</code></td>
+</tr>
+<tr>
+<td><code>--space-4</code></td>
+<td><code>16px</code></td>
+</tr>
+<tr>
+<td><code>--space-5</code></td>
+<td><code>24px</code></td>
+</tr>
+<tr>
+<td><code>--space-6</code></td>
+<td><code>32px</code></td>
+</tr>
+</tbody></table>
+<h3 id="radii">Radii</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--radius-control</code></td>
+<td><code>8px</code></td>
+</tr>
+<tr>
+<td><code>--radius-card</code></td>
+<td><code>12px</code></td>
+</tr>
+<tr>
+<td><code>--radius-pill</code></td>
+<td><code>999px</code></td>
+</tr>
+</tbody></table>
+<h3 id="type-sizes">Type sizes</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--text-sm</code></td>
+<td><code>14px</code></td>
+</tr>
+<tr>
+<td><code>--text-md</code></td>
+<td><code>16px</code></td>
+</tr>
+<tr>
+<td><code>--text-lg</code></td>
+<td><code>20px</code></td>
+</tr>
+<tr>
+<td><code>--text-xl</code></td>
+<td><code>28px</code></td>
+</tr>
+</tbody></table>
+<h3 id="motion">Motion</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--duration-fast</code></td>
+<td><code>150ms</code></td>
+</tr>
+</tbody></table>
+<h2 id="42-how-values-are-checked">4.2 How values are checked</h2>
+<p>Design requirements are checked on the rendered page with <code>getComputedStyle</code> and element bounding boxes. Consequences for the implementer:</p>
+<ul>
+<li>A color requirement is met when the computed color equals the token value (computed colors are reported as <code>rgb(...)</code>; <code>#0E6B58</code> is <code>rgb(14, 107, 88)</code>).</li>
+<li>A length requirement is met when the computed length equals the stated value in pixels.</li>
+<li>A requirement written with a shorthand property (<code>border</code>, <code>outline</code>, <code>padding</code>) is checked through its longhands (README, section 2.5). Chromium serializes some shorthands in another order (<code>outline</code> reads <code>rgb(14, 107, 88) solid 2px</code>), so the shorthand string itself is never compared.</li>
+<li>Visual effects that change the computed values listed in 09-dr-design (for example a semi-transparent overlay that changes a card&#39;s computed background) are not allowed.</li>
+<li>The font family is free. Use a system font stack; no web font may be loaded (NFR-NET-01).</li>
+</ul>
+
+</main>
+</body>
+</html>

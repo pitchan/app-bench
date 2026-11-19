@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 05-fr-order-lines</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-configurator.html">04-fr-configurator</a> · <strong>05-fr-order-lines</strong> · <a href="06-fr-pricing.html">06-fr-pricing</a> · <a href="07-fr-checkout.html">07-fr-checkout</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a></nav>
+<h1 id="5-functional-requirements--order-lines">5. Functional requirements — Order lines</h1>
+<h3 id="FR-LIN-01">FR-LIN-01 Add to order</h3>
+<ul>
+<li><strong>Statement:</strong> While no line is being edited and the height is not valid, the system shall disable <code>add-to-order</code> and show <code>add-hint</code> with MSG-03. While no line is being edited, the height is valid and no frame is selected, the system shall disable <code>add-to-order</code>, and <code>add-hint</code> shall not be visible. When the user activates the enabled <code>add-to-order</code> while no line is being edited, the system shall add the current bike configuration with its quantity to the order as a new last line, unless FR-LIN-02 merges it or FR-LIN-04 refuses it, and then reset the configurator: the options and quantity of FR-OPT-01, automatic frame mode on (so that the recommended frame of the height is selected), the height field unchanged, the undo history empty, <code>notice</code> hidden.</li>
+<li><strong>Rationale:</strong> The customer adds bikes one after another, each starting from the defaults, for the same or another rider.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Adding a bike resets the configurator
+  When the user fills height-input with &quot;180&quot;
+  And the user selects card-color-red
+  And the user clicks add-to-order
+  Then order-line-1 is visible
+  And the description of order-line-1 reads &quot;Frame L · 27.5\&quot; wheels · Essential 1×10 · Racing Red&quot;
+  And the radio &quot;Graphite&quot; is checked
+  And the radio &quot;Frame L&quot; is checked
+  And height-input has the value &quot;180&quot;
+</code></pre>
+<h3 id="FR-LIN-02">FR-LIN-02 Merging identical bikes</h3>
+<ul>
+<li><strong>Statement:</strong> When a bike is added and the order already holds a line with the same bike configuration (same frame, wheels, drivetrain, color and set of accessories), the system shall add the quantity to that line instead of creating a new line, keeping the line&#39;s position.</li>
+<li><strong>Rationale:</strong> One line per distinct bike keeps the order readable.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Same bike twice
+  When the user adds a bike &quot;Frame M, quantity 2&quot;
+  And the user adds a bike &quot;Frame L&quot;
+  And the user adds a bike &quot;Frame M&quot;
+  Then the qty of order-line-1 reads &quot;3&quot;
+  And order-line-3 is not visible
+</code></pre>
+<h3 id="FR-LIN-03">FR-LIN-03 Order line content</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show one <code>order-line-&lt;n&gt;</code> per order line, numbered from 1 in the order of the lines, each with the bike description, the accessory list, the quantity and the line amount of 02-catalog-and-rules, sections 2.5 and 2.7, and its <code>Edit</code> and <code>Remove</code> buttons. While the order has no line, the system shall show <code>order-empty</code> with MSG-19.</li>
+<li><strong>Rationale:</strong> Each bike of the order can be checked and acted on.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Line with accessories
+  When the user adds a bike &quot;Frame M, Sport 1×12, Lights, Mudguards, quantity 2&quot;
+  Then the accessories of order-line-1 read &quot;Mudguards, Lights&quot;
+  And the qty of order-line-1 reads &quot;2&quot;
+  And the amount of order-line-1 reads &quot;€3,029.80&quot;
+  And order-empty is not visible
+</code></pre>
+<h3 id="FR-LIN-04">FR-LIN-04 Line limits</h3>
+<ul>
+<li><strong>Statement:</strong> If adding or saving a bike would make a line hold more than 5 bikes, then the system shall change nothing in the order and show <code>line-error</code> with MSG-16. Otherwise, if it would make the order hold more than 4 lines, then the system shall change nothing in the order and show <code>line-error</code> with MSG-17. Otherwise, if it would make <em>B</em> greater than 10, then the system shall change nothing in the order and show <code>line-error</code> with MSG-18. A refused add or save shall leave the configurator unchanged. <code>line-error</code> shall be hidden at the next user action, at the next successful add or save, at a cancelled edit and when a line is removed.</li>
+<li><strong>Rationale:</strong> The workshop builds at most five identical bikes, four different bikes and ten bikes per order.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Fifth line refused
+  Given the order holds four lines with different bikes
+  When the user adds a bike &quot;Frame XL, Kickstand&quot;
+  Then line-error reads &quot;An order cannot hold more than 4 lines.&quot;
+  And order-line-5 is not visible
+  And the checkbox &quot;Kickstand&quot; is checked
+</code></pre>
+<h3 id="FR-LIN-05">FR-LIN-05 Editing a line</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates the <code>Edit</code> button of a line, the system shall load that line&#39;s bike configuration and quantity into the configurator, turn automatic frame mode off, empty the undo history, hide <code>notice</code>, show <code>cancel-edit</code>, show in <code>add-to-order</code> the text <code>Update line {n}</code> for that line, disable <code>place-order</code> and show <code>place-hint</code> with MSG-31. The height field shall stay unchanged. While a line is being edited, the <code>Edit</code> button of another line shall load that other line instead, as if the first edit had been cancelled.</li>
+<li><strong>Rationale:</strong> A bike already in the order can be changed without rebuilding it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Editing loads the line
+  When the user adds a bike &quot;Frame XL, Pro Electronic 2×12, quantity 2&quot;
+  And the user clicks the Edit button of order-line-1
+  Then the radio &quot;Pro Electronic 2×12&quot; is checked
+  And the radio &quot;29\&quot; wheels&quot; is checked
+  And qty-value reads &quot;2&quot;
+  And add-to-order reads &quot;Update line 1&quot;
+  And place-order is disabled
+</code></pre>
+<h3 id="FR-LIN-06">FR-LIN-06 Saving an edited line</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>add-to-order</code> while a line is being edited, the system shall replace that line&#39;s bike configuration and quantity with those of the current bike, keeping its position, then end the edit and reset the configurator as in FR-LIN-01. If the new bike configuration equals that of another line, the system shall instead add the quantity to the line with the smaller number and remove the other one, the following lines being renumbered. FR-LIN-04 applies to the result. The height field need not be valid to save an edit.</li>
+<li><strong>Rationale:</strong> An edit changes one bike and never leaves two identical lines.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Edit that makes two lines identical
+  When the user adds a bike &quot;Frame M&quot;
+  And the user adds a bike &quot;Frame L&quot;
+  And the user clicks the Edit button of order-line-2
+  And the user selects card-frame-M
+  And the user clicks add-to-order
+  Then the qty of order-line-1 reads &quot;2&quot;
+  And order-line-2 is not visible
+</code></pre>
+<h3 id="FR-LIN-07">FR-LIN-07 Cancelling an edit</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates <code>cancel-edit</code>, the system shall leave the order unchanged, end the edit, hide <code>cancel-edit</code> and <code>place-hint</code>, and reset the configurator as in FR-LIN-01.</li>
+<li><strong>Rationale:</strong> An edit can be abandoned without effect.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Cancel keeps the line
+  When the user adds a bike &quot;Frame L, Racing Red&quot;
+  And the user clicks the Edit button of order-line-1
+  And the user selects card-color-sand
+  And the user clicks cancel-edit
+  Then the description of order-line-1 reads &quot;Frame L · 27.5\&quot; wheels · Essential 1×10 · Racing Red&quot;
+  And add-to-order reads &quot;Add to order&quot;
+</code></pre>
+<h3 id="FR-LIN-08">FR-LIN-08 Removing a line</h3>
+<ul>
+<li><strong>Statement:</strong> When the user activates the <code>Remove</code> button of a line, the system shall remove it from the order and renumber the following lines. If that line was being edited, the edit shall end and the configurator shall be reset as in FR-LIN-01; if another line was being edited, that edit shall continue with its line&#39;s new number.</li>
+<li><strong>Rationale:</strong> A bike can be taken out of the order at any time.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Remove the first of two lines
+  When the user adds a bike &quot;Frame M&quot;
+  And the user adds a bike &quot;Frame XL&quot;
+  And the user clicks the Remove button of order-line-1
+  Then the description of order-line-1 reads &quot;Frame XL · 27.5\&quot; wheels · Essential 1×10 · Graphite&quot;
+  And order-line-2 is not visible
+</code></pre>
+
+</main>
+</body>
+</html>

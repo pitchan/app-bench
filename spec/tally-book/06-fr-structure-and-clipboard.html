@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Book — 06-fr-structure-and-clipboard</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-book">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <strong>06-fr-structure-and-clipboard</strong> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a> · <a href="10-fr-sheets-and-names.html">10-fr-sheets-and-names</a> · <a href="11-fr-sort-fill-find-csv.html">11-fr-sort-fill-find-csv</a> · <a href="12-fr-persistence.html">12-fr-persistence</a></nav>
+<h1 id="6-functional-requirements--rows-columns-and-clipboard">6. Functional requirements — Rows, columns and clipboard</h1>
+<h2 id="61-rows-and-columns">6.1 Rows and columns</h2>
+<p>The four actions below act on the active sheet, on the row or the column of its <strong>active cell</strong>, whatever the selection. They never change the selection: the anchor and the active cell keep their addresses. The cells of the other sheets do not move; their formulas are rewritten when they point to the active sheet (FR-STR-05).</p>
+<h3 id="FR-STR-01">FR-STR-01 Inserting a row or a column</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>insert-row</code>, the system shall, without changing the selection, for <em>r</em> the row of the active cell: move the raw content and the format of every cell of rows <em>r</em> to 11 one row down, drop the contents and formats of row 12, and make every cell of row <em>r</em> empty with the format <code>general</code>. When the user clicks <code>insert-col</code>, the system shall do the same with columns: for <em>c</em> the column of the active cell, the cells of columns <em>c</em> to <code>G</code> move one column right, column <code>H</code> is dropped and column <em>c</em> becomes empty with the format <code>general</code>.</li>
+<li><strong>Rationale:</strong> Room is made inside a sheet of fixed size; what is pushed out is lost.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Insert a row
+  Given the user enters &quot;top&quot; in A1
+  And the user enters &quot;mid&quot; in A2
+  And the user enters &quot;last&quot; in A12
+  And the user clicks cell A2
+  And the user sets the format to &quot;fixed2&quot;
+  When the user clicks button insert-row
+  Then cell-A1 reads &quot;top&quot;
+  And cell-A2 shows nothing
+  And cell-A3 reads &quot;mid&quot;
+  And cell-A12 shows nothing
+  And the selection is &quot;A2&quot;
+  And format-select has the value &quot;general&quot;
+  When the user clicks cell A3
+  Then format-select has the value &quot;fixed2&quot;
+</code></pre>
+<h3 id="FR-STR-02">FR-STR-02 Deleting a row or a column</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>delete-row</code>, the system shall, without changing the selection, for <em>r</em> the row of the active cell: drop the contents and formats of row <em>r</em>, move the raw content and the format of every cell of rows <em>r</em> + 1 to 12 one row up, and make every cell of row 12 empty with the format <code>general</code>. When the user clicks <code>delete-col</code>, the system shall do the same with columns: column <em>c</em> is dropped, the cells of the columns after <em>c</em> move one column left, and column <code>H</code> becomes empty with the format <code>general</code>.</li>
+<li><strong>Rationale:</strong> A row or a column is removed without leaving a hole.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Delete a column
+  Given the user enters &quot;a&quot; in A1
+  And the user enters &quot;b&quot; in B1
+  And the user enters &quot;c&quot; in C1
+  And the user enters &quot;h&quot; in H1
+  And the user clicks cell B5
+  When the user clicks button delete-col
+  Then cell-A1 reads &quot;a&quot;
+  And cell-B1 reads &quot;c&quot;
+  And cell-G1 reads &quot;h&quot;
+  And cell-H1 shows nothing
+  And the selection is &quot;B5&quot;
+</code></pre>
+<h3 id="FR-STR-03">FR-STR-03 References after an insertion</h3>
+<ul>
+<li><strong>Statement:</strong> When a row or a column is inserted, the system shall rewrite the valid formulas as 02, section 2.10.1 states, and store them in canonical form: references to the cells that moved follow them, <code>$</code> signs included; a reference pushed out of the grid becomes <code>#REF!</code>; a range grows when the insertion is inside it and is cut at the edge of the grid.</li>
+<li><strong>Rationale:</strong> A formula keeps pointing at the same data after the data moved.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Row inserted at row 3
+  Given the user enters &quot;=A2+A3&quot; in C1
+  And the user enters &quot;=$A$12&quot; in C2
+  And the user enters &quot;=SUM(A1:A12)&quot; in D1
+  And the user enters &quot;=SUM(A3:B12)&quot; in D2
+  And the user enters &quot;=SUM(A12:B12)&quot; in E1
+  And the user enters &quot;=C1+1&quot; in E5
+  And the user enters &quot;=Z9+A40&quot; in F1
+  And the user clicks cell H3
+  When the user clicks button insert-row
+  Then the raw content of C1 is &quot;=A2+A4&quot;
+  And the raw content of C2 is &quot;=#REF!&quot;
+  And cell-C2 reads &quot;#REF!&quot;
+  And the raw content of D1 is &quot;=SUM(A1:A12)&quot;
+  And the raw content of D2 is &quot;=SUM(A4:B12)&quot;
+  And the raw content of E1 is &quot;=SUM(#REF!)&quot;
+  And the raw content of E6 is &quot;=C1+1&quot;
+  And the raw content of F1 is &quot;=Z9+A40&quot;
+
+Scenario: Column inserted at column B
+  Given the user enters &quot;=B1+$G$1+H1&quot; in A2
+  And the user enters &quot;=SUM(A1:H1)&quot; in A3
+  And the user clicks cell B7
+  When the user clicks button insert-col
+  Then the raw content of A2 is &quot;=C1+$H$1+#REF!&quot;
+  And the raw content of A3 is &quot;=SUM(A1:H1)&quot;
+</code></pre>
+<h3 id="FR-STR-04">FR-STR-04 References after a deletion</h3>
+<ul>
+<li><strong>Statement:</strong> When a row or a column is deleted, the system shall rewrite the valid formulas as 02, section 2.10.2 states, and store them in canonical form: a reference to a deleted cell becomes <code>#REF!</code>; references to the cells that moved follow them; a range shrinks when the deletion is inside it and becomes <code>#REF!</code> when nothing of it remains.</li>
+<li><strong>Rationale:</strong> A formula that lost its data says so; the others keep pointing at theirs.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Row 3 deleted
+  Given the user enters &quot;=A2+A4&quot; in C1
+  And the user enters &quot;=A3*2&quot; in C2
+  And the user enters &quot;=SUM(A1:A5)&quot; in D1
+  And the user enters &quot;=SUM(A3:B3)&quot; in D2
+  And the user enters &quot;=SUM(A3:A4)&quot; in E1
+  And the user enters &quot;=SUM($A$4:A$6)&quot; in E2
+  And the user clicks cell B3
+  When the user clicks button delete-row
+  Then the raw content of C1 is &quot;=A2+A3&quot;
+  And the raw content of C2 is &quot;=#REF!*2&quot;
+  And cell-C2 reads &quot;#REF!&quot;
+  And the raw content of D1 is &quot;=SUM(A1:A4)&quot;
+  And the raw content of D2 is &quot;=SUM(#REF!)&quot;
+  And the raw content of E1 is &quot;=SUM(A3:A3)&quot;
+  And the raw content of E2 is &quot;=SUM($A$3:A$5)&quot;
+</code></pre>
+<h3 id="FR-STR-05">FR-STR-05 References from other sheets</h3>
+<ul>
+<li><strong>Statement:</strong> When a row or a column is inserted or deleted in a sheet, the system shall rewrite, in every valid formula of every sheet of the workbook, the references and ranges that point to that sheet (02, section 2.10): those that have a sheet prefix naming it, wherever they are, and those without prefix in its own formulas. The system shall leave unchanged every reference that points to another sheet or to no sheet, in particular the references without prefix of the other sheets, even when they have the same address. Each sheet prefix shall be kept as it is stored; a reference that is removed becomes <code>#REF!</code> with its prefix removed.</li>
+<li><strong>Rationale:</strong> A formula of another sheet keeps pointing at the same data, and a formula that never looked at the changed sheet is not touched.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Row inserted in Sheet2
+  Given the user enters &quot;=A3+Sheet2!A3+SUM(sheet2!A1:A5)+Other!A3&quot; in C1
+  And the user enters &quot;=Sheet2!$A$12+Sheet2!B3&quot; in C2
+  And the user clicks button add-sheet
+  And the user enters &quot;=A3+Sheet1!A3+Sheet2!A12&quot; in C1
+  And the user enters &quot;5&quot; in A3
+  And the user clicks cell H3
+  When the user clicks button insert-row
+  Then the raw content of C1 is &quot;=A4+Sheet1!A3+#REF!&quot;
+  And cell-A4 reads &quot;5&quot;
+  When the user clicks sheet tab 1
+  Then the raw content of C1 is &quot;=A3+Sheet2!A4+SUM(sheet2!A1:A6)+Other!A3&quot;
+  And the raw content of C2 is &quot;=#REF!+Sheet2!B4&quot;
+  And cell-C1 reads &quot;#REF!&quot;
+
+Scenario: Column deleted in Sheet1
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;2&quot; in B1
+  And the user enters &quot;3&quot; in C1
+  And the user enters &quot;=B1+C1&quot; in D1
+  And the user clicks button add-sheet
+  And the user enters &quot;=Sheet1!B1+Sheet1!C1+B1&quot; in A2
+  And the user enters &quot;=SUM(Sheet1!A1:C1)&quot; in A3
+  And the user enters &quot;=SUM(Sheet1!B1:B2)&quot; in A4
+  And the user enters &quot;=SUM(B1:B2)&quot; in A5
+  When the user clicks sheet tab 1
+  And the user clicks cell B5
+  And the user clicks button delete-col
+  Then the raw content of C1 is &quot;=#REF!+B1&quot;
+  When the user clicks sheet tab 2
+  Then the raw content of A2 is &quot;=#REF!+Sheet1!B1+B1&quot;
+  And the raw content of A3 is &quot;=SUM(Sheet1!A1:B1)&quot;
+  And cell-A3 reads &quot;4&quot;
+  And the raw content of A4 is &quot;=SUM(#REF!)&quot;
+  And the raw content of A5 is &quot;=SUM(B1:B2)&quot;
+</code></pre>
+<h2 id="62-clipboard">6.2 Clipboard</h2>
+<p>The clipboard is internal to the page, and there is one for the whole workbook. It is empty when the page loads: on a new workbook and after every reload (FR-PER-03). It holds one <strong>block</strong>: the raw contents and the formats of the cells of a rectangle, as they were when the block was taken, the address of that rectangle, the name that the sheet of that rectangle had when the block was taken, and a mode, <code>copy</code> or <code>cut</code>. Later changes of the workbook do not change the block (FR-CLP-05). The history (file 07) does not change the clipboard.</p>
+<h3 id="FR-CLP-01">FR-CLP-01 Copy and paste</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>copy-button</code>, the system shall put in the clipboard the block of the selection, in mode <code>copy</code>, and shall change nothing in the sheet. When the user clicks <code>paste-button</code> with a block in mode <code>copy</code>, the system shall write the block in the active sheet, with its top-left cell on the top-left cell of the selection: each cell of the block gives its raw content (adjusted for valid formulas, FR-CLP-02) and its format to the cell at the same offset; the cells of the block that fall outside the grid are dropped; an empty cell of the block makes its destination empty. The system shall then make the top-left cell of the destination both the anchor and the active cell. The clipboard shall keep its block, which can be pasted again. While the clipboard is empty, the system shall disable <code>paste-button</code>.</li>
+<li><strong>Rationale:</strong> A block of cells is repeated elsewhere, any number of times.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Copy a block twice
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;x&quot; in B1
+  And the user enters &quot;0.5&quot; in A2
+  And the user clicks cell A2
+  And the user sets the format to &quot;percent1&quot;
+  And the user enters &quot;old&quot; in D2
+  When the user clicks cell A1
+  And the user shift-clicks cell B2
+  And the user clicks button copy-button
+  And the user enters &quot;9&quot; in A1
+  And the user clicks cell C1
+  And the user clicks button paste-button
+  Then cell-C1 reads &quot;1&quot;
+  And cell-D1 reads &quot;x&quot;
+  And cell-C2 reads &quot;50.0%&quot;
+  And cell-D2 shows nothing
+  And the selection is &quot;C1&quot;
+  When the user clicks cell H12
+  And the user clicks button paste-button
+  Then cell-H12 reads &quot;1&quot;
+  And cell-A1 reads &quot;9&quot;
+</code></pre>
+<h3 id="FR-CLP-02">FR-CLP-02 Reference adjustment on paste</h3>
+<ul>
+<li><strong>Statement:</strong> When a block in mode <code>copy</code> is pasted, the system shall adjust each valid formula of the block as 02, section 2.10.3 states, by the offset between the cell it was copied from and the cell it is written to, and store it in canonical form: parts without <code>$</code> move, parts with <code>$</code> do not, a reference that leaves the grid becomes <code>#REF!</code>, a range with a corner that leaves the grid becomes <code>#REF!</code> as a whole. Formulas that are not valid and contents that are not formulas shall be written unchanged.</li>
+<li><strong>Rationale:</strong> A copied formula does the same calculation at its new place.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: From B2 to D5 and to A1
+  Given the user enters &quot;=A1+$A1+A$1+$A$1&quot; in B2
+  When the user clicks cell B2
+  And the user clicks button copy-button
+  And the user clicks cell D5
+  And the user clicks button paste-button
+  Then the raw content of D5 is &quot;=C4+$A4+C$1+$A$1&quot;
+  When the user clicks cell A1
+  And the user clicks button paste-button
+  Then the raw content of A1 is &quot;=#REF!+#REF!+#REF!+$A$1&quot;
+
+Scenario: Ranges
+  Given the user enters &quot;=SUM(A1:$B2)&quot; in B2
+  And the user enters &quot;=SUM(A1:G1)&quot; in B3
+  And the user enters &quot;=1+&quot; in B4
+  When the user clicks cell B2
+  And the user shift-clicks cell B4
+  And the user clicks button copy-button
+  And the user clicks cell D5
+  And the user clicks button paste-button
+  Then the raw content of D5 is &quot;=SUM($B4:C5)&quot;
+  And the raw content of D6 is &quot;=SUM(#REF!)&quot;
+  And the raw content of D7 is &quot;=1+&quot;
+</code></pre>
+<h3 id="FR-CLP-03">FR-CLP-03 Cut and paste</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>cut-button</code>, the system shall put in the clipboard the block of the selection, in mode <code>cut</code>, and shall change nothing in the sheet. When the user clicks <code>paste-button</code> with a block in mode <code>cut</code>, the system shall, in this order: (1) make every cell of the rectangle the block was taken from empty, with the format <code>general</code>, in the sheet that has the name recorded in the block (FR-CLP-05); (2) write the block in the active sheet as FR-CLP-01 states for a block in mode <code>copy</code> (same destination, cells outside the grid dropped, formats written, an empty cell of the block makes its destination empty), its formulas <strong>unchanged</strong> (no adjustment), then make the top-left cell of the destination both the anchor and the active cell; (3) empty the clipboard. The formulas of the other cells of the workbook shall not be rewritten, and the targets of the defined names shall not change.</li>
+<li><strong>Rationale:</strong> A block of cells is moved as it is.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Move a block
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;=A1*2&quot; in A2
+  And the user enters &quot;=A2+1&quot; in C1
+  When the user clicks cell A1
+  And the user shift-clicks cell A2
+  And the user clicks button cut-button
+  Then cell-A1 reads &quot;5&quot;
+  When the user clicks cell A2
+  And the user clicks button paste-button
+  Then cell-A1 shows nothing
+  And cell-A2 reads &quot;5&quot;
+  And the selection is &quot;A2&quot;
+  And the raw content of A3 is &quot;=A1*2&quot;
+  And cell-A3 reads &quot;0&quot;
+  And the raw content of C1 is &quot;=A2+1&quot;
+  And cell-C1 reads &quot;6&quot;
+  And paste-button is disabled
+
+Scenario: Paste on a selection of several cells
+  Given the user enters &quot;5&quot; in A1
+  When the user clicks cell A1
+  And the user clicks button cut-button
+  And the user clicks cell C1
+  And the user shift-clicks cell D4
+  And the user clicks button paste-button
+  Then cell-C1 reads &quot;5&quot;
+  And the selection is &quot;C1&quot;
+</code></pre>
+<h3 id="FR-CLP-04">FR-CLP-04 Clipboard across sheets</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall keep one clipboard for the whole workbook: a block taken in one sheet can be pasted in any sheet, and switching sheets shall not change the clipboard. When a block in mode <code>copy</code> is pasted, the system shall adjust its valid formulas by the offset between the addresses of the source cell and of the destination cell (02, section 2.10.3), whatever their sheets: a reference without sheet prefix then names a cell of the sheet it is pasted in; a reference with a sheet prefix keeps its prefix and moves in the same way. When a block in mode <code>cut</code> is pasted in another sheet, the system shall empty the rectangle it was taken from in its own sheet (FR-CLP-03) and write the formulas unchanged.</li>
+<li><strong>Rationale:</strong> Cells are copied and moved from one sheet to another with the rules of one sheet.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Copy to another sheet
+  Given the user enters &quot;10&quot; in A1
+  And the user enters &quot;=A1*2+Sheet1!A1+Sheet1!$A$1&quot; in B2
+  And the user clicks cell B2
+  And the user clicks button copy-button
+  And the user clicks button add-sheet
+  When the user clicks cell C3
+  And the user clicks button paste-button
+  Then the raw content of C3 is &quot;=B2*2+Sheet1!B2+Sheet1!$A$1&quot;
+  And cell-C3 reads &quot;50&quot;
+  When the user clicks cell B2
+  And the user clicks button paste-button
+  Then the raw content of B2 is &quot;=A1*2+Sheet1!A1+Sheet1!$A$1&quot;
+  And cell-B2 reads &quot;20&quot;
+  And cell-C3 reads &quot;90&quot;
+
+Scenario: Cut to another sheet
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;=A1+1&quot; in A2
+  And the user clicks cell A1
+  And the user shift-clicks cell A2
+  And the user clicks button cut-button
+  And the user clicks button add-sheet
+  When the user clicks cell B1
+  And the user clicks button paste-button
+  Then cell-B1 reads &quot;5&quot;
+  And the raw content of B2 is &quot;=A1+1&quot;
+  And cell-B2 reads &quot;1&quot;
+  And paste-button is disabled
+  When the user clicks sheet tab 1
+  Then cell-A1 and cell-A2 show nothing
+</code></pre>
+<h3 id="FR-CLP-05">FR-CLP-05 Clipboard after sheet changes</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall never rewrite the block of the clipboard: when a sheet is renamed or deleted, or when rows or columns are inserted or deleted, the block shall keep its raw contents as they were taken, the address of its rectangle, and the name its sheet had when it was taken. A formula pasted afterwards carries the sheet prefixes of the block: a prefix whose sheet was renamed or deleted names no sheet and gives <code>#REF!</code>, until a sheet takes that name. When a block in mode <code>cut</code> is pasted, the system shall empty its rectangle in the sheet that has, at that moment, the name recorded in the block (same name, 02, section 2.12); if no sheet has that name, then the system shall skip that step and still write the block and empty the clipboard.</li>
+<li><strong>Rationale:</strong> The clipboard is a picture taken at one moment; what it does later depends only on that picture and on the workbook as it is.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Renamed after the copy
+  Given the user clicks button add-sheet
+  And the user enters &quot;7&quot; in A1
+  And the user clicks sheet tab 1
+  And the user enters &quot;=Sheet2!A1+1&quot; in B1
+  And the user clicks cell B1
+  And the user clicks button copy-button
+  And the user clicks sheet tab 2
+  And the user renames the sheet to &quot;Data&quot;
+  And the user clicks sheet tab 1
+  Then the raw content of B1 is &quot;=Data!A1+1&quot;
+  When the user clicks cell B2
+  And the user clicks button paste-button
+  Then the raw content of B2 is &quot;=Sheet2!A2+1&quot;
+  And cell-B2 reads &quot;#REF!&quot;
+  When the user clicks button add-sheet
+  And the user enters &quot;3&quot; in A2
+  And the user clicks sheet tab 1
+  Then sheet-tab-3 reads &quot;Sheet2&quot;
+  And cell-B2 reads &quot;4&quot;
+
+Scenario: Cut, then the source sheet is renamed
+  Given the user enters &quot;5&quot; in A1
+  And the user clicks cell A1
+  And the user clicks button cut-button
+  And the user renames the sheet to &quot;Old&quot;
+  And the user clicks button add-sheet
+  When the user clicks cell B1
+  And the user clicks button paste-button
+  Then the active sheet is &quot;Sheet1&quot;
+  And cell-B1 reads &quot;5&quot;
+  And paste-button is disabled
+  When the user clicks sheet tab 1
+  Then cell-A1 reads &quot;5&quot;
+
+Scenario: Cut, then the source sheet is deleted
+  Given the user clicks button add-sheet
+  And the user enters &quot;=Sheet1!A1+1&quot; in C3
+  And the user clicks cell C3
+  And the user clicks button cut-button
+  And the user clicks button delete-sheet
+  When the user clicks cell A2
+  And the user clicks button paste-button
+  Then the active sheet is &quot;Sheet1&quot;
+  And the raw content of A2 is &quot;=Sheet1!A1+1&quot;
+  And cell-A2 reads &quot;1&quot;
+  And paste-button is disabled
+</code></pre>
+<p>In the second scenario the sheet added after the renaming takes the name <code>Sheet1</code>, which is the name recorded in the block: the paste empties <code>A1</code> of that new sheet, which was empty already, and the <code>5</code> of the sheet now named <code>Old</code> stays.</p>
+
+</main>
+</body>
+</html>

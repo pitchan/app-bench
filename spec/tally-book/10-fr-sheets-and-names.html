@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Book — 10-fr-sheets-and-names</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-book">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a> · <strong>10-fr-sheets-and-names</strong> · <a href="11-fr-sort-fill-find-csv.html">11-fr-sort-fill-find-csv</a> · <a href="12-fr-persistence.html">12-fr-persistence</a></nav>
+<h1 id="10-functional-requirements--sheets-and-defined-names">10. Functional requirements — Sheets and defined names</h1>
+<h2 id="101-sheets">10.1 Sheets</h2>
+<p>The rules on sheet names are in 02, section 2.12. The sheet controls are in <code>sheet-bar</code> (03, section 3.2). Adding, renaming and deleting a sheet are steps of the history (FR-HIS-05); switching sheets is not.</p>
+<h3 id="FR-SHT-01">FR-SHT-01 Sheet tabs</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show, inside <code>sheet-tabs</code>, one <code>sheet-tab-&lt;n&gt;</code> per sheet of the workbook, numbered from 1 in the order of the sheets, each showing the name of its sheet and nothing else, with <code>aria-selected=&quot;true&quot;</code> on the tab of the active sheet and <code>aria-selected=&quot;false&quot;</code> on the others. The system shall keep the tabs up to date after every change of the sheets or of the active sheet. On a new workbook there is one sheet, named <code>Sheet1</code>, and it is active.</li>
+<li><strong>Rationale:</strong> The user sees which sheets exist and which one the grid shows.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: New workbook
+  When the page loads
+  Then there is 1 sheet tab
+  And sheet-tab-1 reads &quot;Sheet1&quot;
+  And sheet-tab-1 has aria-selected &quot;true&quot;
+  And sheet-name-input has the value &quot;Sheet1&quot;
+  And add-sheet is enabled
+  And delete-sheet is disabled
+  And sheet-message is not visible
+</code></pre>
+<h3 id="FR-SHT-02">FR-SHT-02 Adding a sheet</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>add-sheet</code> while the workbook has fewer than five sheets, the system shall add a sheet after the last one, with the default name of 02, section 2.12, every cell empty with the format <code>general</code>, and <code>A1</code> as anchor and active cell, and shall make it the active sheet. While the workbook has five sheets, the system shall disable <code>add-sheet</code>.</li>
+<li><strong>Rationale:</strong> A workbook grows one sheet at a time, up to a fixed number.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Up to five sheets
+  Given the user enters &quot;1&quot; in C3
+  When the user clicks button add-sheet
+  Then there are 2 sheet tabs
+  And sheet-tab-2 reads &quot;Sheet2&quot;
+  And sheet-tab-2 has aria-selected &quot;true&quot;
+  And sheet-tab-1 has aria-selected &quot;false&quot;
+  And the selection is &quot;A1&quot;
+  And cell-C3 shows nothing
+  And sheet-name-input has the value &quot;Sheet2&quot;
+  When the user clicks button add-sheet 3 times
+  Then there are 5 sheet tabs
+  And sheet-tab-5 reads &quot;Sheet5&quot;
+  And the active sheet is &quot;Sheet5&quot;
+  And add-sheet is disabled
+
+Scenario: Default names
+  Given the user renames the sheet to &quot;sheet2&quot;
+  When the user clicks button add-sheet
+  And the user clicks button add-sheet
+  Then sheet-tab-1 reads &quot;sheet2&quot;
+  And sheet-tab-2 reads &quot;Sheet1&quot;
+  And sheet-tab-3 reads &quot;Sheet3&quot;
+</code></pre>
+<p>In the second scenario the second sheet added cannot be <code>Sheet2</code>: the first sheet has that name, letter case ignored.</p>
+<h3 id="FR-SHT-03">FR-SHT-03 Switching sheets</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks the tab of a sheet, the system shall make that sheet the active sheet: the grid shall show its cells, and <code>name-box</code>, <code>formula-input</code>, <code>format-select</code>, <code>selection-summary</code>, <code>aria-selected</code> and <code>data-in-selection</code> shall follow the anchor and the active cell of that sheet, which are those it had when it was last active. The system shall set <code>sheet-name-input</code> to the name of that sheet. Switching sheets shall change neither the contents, nor the formats, nor the selection of any sheet, nor the clipboard, and shall create no history step. Clicking the tab of the active sheet shall change nothing but the value of <code>sheet-name-input</code>, set again to its name.</li>
+<li><strong>Rationale:</strong> Each sheet is found again as the user left it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Each sheet keeps its cells, its selection and its formats
+  Given the user enters &quot;1234.5&quot; in A1
+  And the user clicks cell A1
+  And the user sets the format to &quot;fixed2&quot;
+  And the user clicks cell C3
+  And the user shift-clicks cell E5
+  When the user clicks button add-sheet
+  And the user enters &quot;x&quot; in B2
+  And the user enters &quot;1234.5&quot; in A1
+  And the user clicks cell D4
+  And the user clicks sheet tab 1
+  Then the selection is &quot;C3:E5&quot;
+  And cell-A1 reads &quot;1,234.50&quot;
+  And cell-B2 shows nothing
+  And cell-E5 has data-in-selection &quot;true&quot;
+  And sheet-name-input has the value &quot;Sheet1&quot;
+  When the user clicks sheet tab 2
+  Then the selection is &quot;D4&quot;
+  And cell-A1 reads &quot;1234.5&quot;
+  And cell-B2 reads &quot;x&quot;
+  And cell-D4 has aria-selected &quot;true&quot;
+  And cell-E5 has data-in-selection &quot;false&quot;
+
+Scenario: Switching is not a step
+  Given the user clicks button add-sheet
+  And the user clicks sheet tab 1
+  When the user clicks button undo-button
+  Then there is 1 sheet tab
+  And undo-button is disabled
+</code></pre>
+<h3 id="FR-SHT-04">FR-SHT-04 Renaming a sheet</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>rename-sheet</code> while the value of <code>sheet-name-input</code> is a valid sheet name (02, section 2.12) that no other sheet has, the system shall give that name, exactly as typed, to the active sheet, show it on its tab, and rewrite the formulas as FR-SHT-07 states. The name of the active sheet itself is not &quot;another sheet&quot;: a renaming that changes only the letter case of the name is accepted. If the value is exactly the current name of the active sheet, then the system shall change nothing and create no history step. Pressing Enter in <code>sheet-name-input</code> shall start no action, and shall neither reload the page nor navigate.</li>
+<li><strong>Rationale:</strong> A sheet is called by what it holds.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: New name, same name, other letter case
+  When the user renames the sheet to &quot;Budget 2024&quot;
+  Then sheet-tab-1 reads &quot;Budget 2024&quot;
+  And sheet-name-input has the value &quot;Budget 2024&quot;
+  And sheet-message is not visible
+  When the user renames the sheet to &quot;Budget 2024&quot;
+  And the user renames the sheet to &quot;BUDGET 2024&quot;
+  Then sheet-tab-1 reads &quot;BUDGET 2024&quot;
+  And sheet-message is not visible
+  When the user clicks button undo-button
+  Then sheet-tab-1 reads &quot;Budget 2024&quot;
+  When the user clicks button undo-button
+  Then sheet-tab-1 reads &quot;Sheet1&quot;
+  And sheet-name-input has the value &quot;Sheet1&quot;
+  And undo-button is disabled
+</code></pre>
+<h3 id="FR-SHT-05">FR-SHT-05 Sheet name rules</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>rename-sheet</code>, the system shall check the value of <code>sheet-name-input</code> in this order. (1) If it is not a valid sheet name under rules 1 to 3 of 02, section 2.12, then the system shall change nothing in the workbook and show TXT-02 in <code>sheet-message</code>. (2) Otherwise, if another sheet has the same name, letter case ignored, then the system shall change nothing in the workbook and show TXT-03 in <code>sheet-message</code>. In both cases <code>sheet-name-input</code> shall keep the value typed and no history step shall be created. The value is taken as typed: spaces are not removed. <code>sheet-message</code> follows 03, section 3.5: the next click on <code>add-sheet</code>, <code>rename-sheet</code> or <code>delete-sheet</code> removes its text.</li>
+<li><strong>Rationale:</strong> Every sheet name can be written in a formula, and names one sheet only.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Refused and accepted names
+  When the user renames the sheet to &quot;&quot;
+  Then sheet-message reads &quot;Invalid sheet name&quot;
+  And sheet-tab-1 reads &quot;Sheet1&quot;
+  When the user renames the sheet to &quot; Q1&quot;
+  Then sheet-message reads &quot;Invalid sheet name&quot;
+  And sheet-name-input has the value &quot; Q1&quot;
+  When the user renames the sheet to &quot;Q1 &quot;
+  Then sheet-message reads &quot;Invalid sheet name&quot;
+  When the user renames the sheet to &quot;Q1/Q2&quot;
+  Then sheet-message reads &quot;Invalid sheet name&quot;
+  When the user renames the sheet to &quot;ABCDEFGHIJKLMNOPQRSTU&quot;
+  Then sheet-message reads &quot;Invalid sheet name&quot;
+  And undo-button is disabled
+  When the user renames the sheet to &quot;ABCDEFGHIJKLMNOPQRST&quot;
+  Then sheet-message is not visible
+  And sheet-tab-1 reads &quot;ABCDEFGHIJKLMNOPQRST&quot;
+  When the user clicks button add-sheet
+  And the user renames the sheet to &quot;abcdefghijklmnopqrst&quot;
+  Then sheet-message reads &quot;Sheet name already used&quot;
+  And sheet-tab-2 reads &quot;Sheet1&quot;
+  And sheet-name-input has the value &quot;abcdefghijklmnopqrst&quot;
+  When the user renames the sheet to &quot;It&#39;s_a-b.c 2&quot;
+  Then sheet-message is not visible
+  And sheet-tab-2 reads &quot;It&#39;s_a-b.c 2&quot;
+  When the user renames the sheet to &quot;Q1/Q2&quot;
+  And the user clicks button add-sheet
+  Then sheet-message is not visible
+  And sheet-tab-3 reads &quot;Sheet1&quot;
+</code></pre>
+<h3 id="FR-SHT-06">FR-SHT-06 Deleting a sheet</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>delete-sheet</code> while the workbook has more than one sheet, the system shall remove the active sheet with its cells, its formats and its selection, and shall make active the sheet that takes its position in the order, or the last sheet when the deleted sheet was the last one. The other sheets keep their order, their contents and their selections. The formulas and the defined names that pointed to the deleted sheet change as FR-SHT-08 and FR-NAM-08 state. While the workbook has one sheet, the system shall disable <code>delete-sheet</code>.</li>
+<li><strong>Rationale:</strong> A sheet that is no longer needed is removed, and the workbook always keeps one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Middle sheet, then last sheet
+  Given the user enters &quot;one&quot; in A1
+  And the user clicks button add-sheet
+  And the user enters &quot;two&quot; in A1
+  And the user clicks button add-sheet
+  And the user enters &quot;three&quot; in A1
+  And the user clicks cell B2
+  And the user clicks sheet tab 2
+  When the user clicks button delete-sheet
+  Then there are 2 sheet tabs
+  And sheet-tab-1 reads &quot;Sheet1&quot;
+  And sheet-tab-2 reads &quot;Sheet3&quot;
+  And sheet-tab-2 has aria-selected &quot;true&quot;
+  And cell-A1 reads &quot;three&quot;
+  And the selection is &quot;B2&quot;
+  When the user clicks button delete-sheet
+  Then there is 1 sheet tab
+  And the active sheet is &quot;Sheet1&quot;
+  And cell-A1 reads &quot;one&quot;
+  And delete-sheet is disabled
+  When the user clicks button undo-button
+  Then there are 2 sheet tabs
+  And the active sheet is &quot;Sheet3&quot;
+  And cell-A1 reads &quot;three&quot;
+</code></pre>
+<h3 id="FR-SHT-07">FR-SHT-07 Formulas after a renaming</h3>
+<ul>
+<li><strong>Statement:</strong> When a sheet is renamed, the system shall replace, in every valid formula of every sheet, each sheet prefix that names that sheet under its old name, letter case ignored, by the prefix of the new name, quoted when the new name needs it (02, sections 2.6.4 and 2.10.4), so that every formula keeps its value. The system shall change nothing else: not the formulas that are not valid, not the texts, not the prefixes that named no sheet before the renaming, not the clipboard.</li>
+<li><strong>Rationale:</strong> Renaming a sheet breaks no formula.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Prefixes follow the sheet
+  Given the user enters &quot;=sheet2!A1*2&quot; in B1
+  And the user enters &quot;=Data!A1&quot; in B2
+  And the user clicks button add-sheet
+  And the user enters &quot;4&quot; in A1
+  And the user enters &quot;=A1+Sheet2!A1&quot; in C1
+  And the user clicks sheet tab 1
+  And the user enters &quot;=Sheet2!A1+SUM(Sheet2!A1:B2)&quot; in B3
+  And the user enters &quot;&#39;=Sheet2!A1&quot; in B4
+  And the user enters &quot;=Sheet2!A1+&quot; in B5
+  When the user clicks sheet tab 2
+  And the user renames the sheet to &quot;Q1 data&quot;
+  Then the raw content of C1 is &quot;=A1+&#39;Q1 data&#39;!A1&quot;
+  And cell-C1 reads &quot;8&quot;
+  When the user clicks sheet tab 1
+  Then the raw content of B1 is &quot;=&#39;Q1 data&#39;!A1*2&quot;
+  And cell-B1 reads &quot;8&quot;
+  And the raw content of B2 is &quot;=Data!A1&quot;
+  And cell-B2 reads &quot;#REF!&quot;
+  And the raw content of B3 is &quot;=&#39;Q1 data&#39;!A1+SUM(&#39;Q1 data&#39;!A1:B2)&quot;
+  And cell-B3 reads &quot;8&quot;
+  And the raw content of B4 is &quot;&#39;=Sheet2!A1&quot;
+  And the raw content of B5 is &quot;=Sheet2!A1+&quot;
+  When the user clicks sheet tab 2
+  And the user renames the sheet to &quot;Data&quot;
+  And the user clicks sheet tab 1
+  Then the raw content of B1 is &quot;=Data!A1*2&quot;
+  And the raw content of B2 is &quot;=Data!A1&quot;
+  And cell-B2 reads &quot;4&quot;
+</code></pre>
+<p>In this scenario <code>B1</code> was committed before <code>Sheet2</code> existed and is stored <code>=sheet2!A1*2</code>; its prefix names <code>Sheet2</code>, so the renaming rewrites it. <code>B2</code> named no sheet until the second renaming; it is never rewritten, and it reads <code>4</code> once a sheet is named <code>Data</code>.</p>
+<h3 id="FR-SHT-08">FR-SHT-08 Formulas after a sheet deletion</h3>
+<ul>
+<li><strong>Statement:</strong> When a sheet is deleted, the system shall replace, in every valid formula of the remaining sheets, each reference and each range whose sheet prefix names the deleted sheet by the token <code>#REF!</code>, prefix included (02, section 2.10.5), and shall store the formula in canonical form. The system shall change nothing else. A sheet added later with the same name shall not bring these references back.</li>
+<li><strong>Rationale:</strong> A formula that lost its sheet says so, for good.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: References to a deleted sheet
+  Given the user clicks button add-sheet
+  And the user enters &quot;4&quot; in A1
+  And the user clicks sheet tab 1
+  And the user enters &quot;=Sheet2!A1+SUM(Sheet2!A1:B2)+A1&quot; in B1
+  And the user enters &quot;=IFERROR(sheet2!$A$1,&quot;&quot;gone&quot;&quot;)&quot; in B2
+  And the user enters &quot;&#39;Sheet2!A1&quot; in B3
+  When the user clicks sheet tab 2
+  And the user clicks button delete-sheet
+  Then the active sheet is &quot;Sheet1&quot;
+  And the raw content of B1 is &quot;=#REF!+SUM(#REF!)+A1&quot;
+  And cell-B1 reads &quot;#REF!&quot;
+  And the raw content of B2 is &quot;=IFERROR(#REF!,&quot;&quot;gone&quot;&quot;)&quot;
+  And cell-B2 reads &quot;gone&quot;
+  And the raw content of B3 is &quot;&#39;Sheet2!A1&quot;
+  When the user clicks button add-sheet
+  And the user enters &quot;4&quot; in A1
+  And the user clicks sheet tab 1
+  Then sheet-tab-2 reads &quot;Sheet2&quot;
+  And cell-B1 reads &quot;#REF!&quot;
+  When the user clicks button undo-button 3 times
+  Then the active sheet is &quot;Sheet2&quot;
+  And cell-A1 reads &quot;4&quot;
+  When the user clicks sheet tab 1
+  Then the raw content of B1 is &quot;=Sheet2!A1+SUM(Sheet2!A1:B2)+A1&quot;
+  And cell-B1 reads &quot;8&quot;
+</code></pre>
+<p>In this scenario the three undos take back the commit of <code>4</code> in the new sheet, the adding of that sheet and the deletion of the first <code>Sheet2</code>.</p>
+<h2 id="102-defined-names">10.2 Defined names</h2>
+<p>The rules on defined names are in 02, section 2.13. The name controls are in <code>names-panel</code> (03, section 3.2). Defining and deleting a name are steps of the history (FR-HIS-05). The defined names belong to the workbook: they are the same whatever the active sheet.</p>
+<h3 id="FR-NAM-01">FR-NAM-01 Defining a name</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>define-name</code> while the value of <code>name-input</code> passes the checks of FR-NAM-02, the system shall add a defined name to the workbook: its name is the value of <code>name-input</code> as typed; its target is the selection of the active sheet, a cell target when the selection is one cell and a range target otherwise. The system shall then empty <code>name-input</code>, and shall evaluate again the formulas that use that name. The selection shall not change. Pressing Enter in <code>name-input</code> shall start no action, and shall neither reload the page nor navigate.</li>
+<li><strong>Rationale:</strong> A block of cells gets a name that formulas can use from any sheet.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: A range and a cell
+  Given the user enters &quot;10&quot; in B2
+  And the user enters &quot;20&quot; in B3
+  And the user enters &quot;0.5&quot; in C1
+  And the user enters &quot;=SUM(Total)*Rate&quot; in D1
+  And the user clicks cell B2
+  And the user shift-clicks cell B4
+  When the user defines the name &quot;Total&quot;
+  Then there is 1 name item
+  And name-item-1 reads &quot;Total = Sheet1!B2:B4&quot;
+  And name-input has the value &quot;&quot;
+  And name-message is not visible
+  And the selection is &quot;B2:B4&quot;
+  And cell-D1 reads &quot;#NAME?&quot;
+  When the user clicks cell C1
+  And the user defines the name &quot;Rate&quot;
+  Then there are 2 name items
+  And name-item-1 reads &quot;Rate = Sheet1!C1&quot;
+  And name-item-2 reads &quot;Total = Sheet1!B2:B4&quot;
+  And cell-D1 reads &quot;15&quot;
+</code></pre>
+<h3 id="FR-NAM-02">FR-NAM-02 Name rules</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>define-name</code>, the system shall check the value of <code>name-input</code> in this order. (1) If it is not a valid name under rules 1 to 4 of 02, section 2.13, then the system shall show TXT-04 in <code>name-message</code>. (2) Otherwise, if a defined name is the same name, letter case ignored, then the system shall show TXT-05. (3) Otherwise, if the workbook holds ten defined names, then the system shall show TXT-06. In these three cases the system shall change nothing in the workbook, keep the value of <code>name-input</code> and create no history step. <code>name-message</code> follows 03, section 3.5.</li>
+<li><strong>Rationale:</strong> A name is never mistaken for a function, a cell address or a logical value, and stands for one target.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Refused names
+  When the user defines the name &quot;&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user defines the name &quot;1abc&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user defines the name &quot;my name&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user defines the name &quot;true&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user defines the name &quot;Sum&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user defines the name &quot;A1&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user defines the name &quot;Rate2&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  And name-input has the value &quot;Rate2&quot;
+  When the user defines the name &quot;ABCDEFGHIJKLMNOPQRSTU&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  And there are no name items
+  And undo-button is disabled
+  When the user defines the name &quot;Rate_2&quot;
+  Then name-message is not visible
+  And name-item-1 reads &quot;Rate_2 = Sheet1!A1&quot;
+  When the user defines the name &quot;RATE_2&quot;
+  Then name-message reads &quot;Name already used&quot;
+  And there is 1 name item
+  When the user defines the name &quot;ABCDEFGHIJKLMNOPQRST&quot;
+  Then name-message is not visible
+  And there are 2 name items
+
+Scenario: Ten names at most
+  Given the user defines the name &quot;n_1&quot;
+  And the user defines the name &quot;n_2&quot;
+  And the user defines the name &quot;n_3&quot;
+  And the user defines the name &quot;n_4&quot;
+  And the user defines the name &quot;n_5&quot;
+  And the user defines the name &quot;n_6&quot;
+  And the user defines the name &quot;n_7&quot;
+  And the user defines the name &quot;n_8&quot;
+  And the user defines the name &quot;n_9&quot;
+  And the user defines the name &quot;n_10&quot;
+  When the user defines the name &quot;n_11&quot;
+  Then name-message reads &quot;Too many names&quot;
+  And there are 10 name items
+  And name-item-2 reads &quot;n_10 = Sheet1!A1&quot;
+  When the user defines the name &quot;N_3&quot;
+  Then name-message reads &quot;Name already used&quot;
+  When the user defines the name &quot;n 12&quot;
+  Then name-message reads &quot;Invalid name&quot;
+  When the user deletes the name &quot;n_1&quot;
+  And the user defines the name &quot;n_11&quot;
+  Then name-message is not visible
+  And there are 10 name items
+</code></pre>
+<h3 id="FR-NAM-03">FR-NAM-03 Name list</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show in <code>name-list</code> one <code>name-item-&lt;n&gt;</code> per defined name, numbered from 1 in the order of 02, section 2.13 (the names converted to capitals, compared code unit by code unit), each reading TXT-08: the name as it was typed when defined, <code>=</code>, and its target text. The system shall keep the list up to date after every change of the names, of their targets or of the names of the sheets.</li>
+<li><strong>Rationale:</strong> The user reads which names exist and what each one stands for.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Order and target texts
+  Given the user defines the name &quot;zeta&quot;
+  And the user clicks cell B2
+  And the user shift-clicks cell C3
+  And the user defines the name &quot;Alpha&quot;
+  And the user defines the name &quot;_tmp&quot;
+  And the user clicks cell D4
+  And the user shift-clicks cell D4
+  And the user defines the name &quot;beta&quot;
+  Then there are 4 name items
+  And name-item-1 reads &quot;Alpha = Sheet1!B2:C3&quot;
+  And name-item-2 reads &quot;beta = Sheet1!D4&quot;
+  And name-item-3 reads &quot;zeta = Sheet1!A1&quot;
+  And name-item-4 reads &quot;_tmp = Sheet1!B2:C3&quot;
+  When the user renames the sheet to &quot;Bob&#39;s data&quot;
+  Then name-item-1 reads &quot;Alpha = &#39;Bob&#39;&#39;s data&#39;!B2:C3&quot;
+  And name-item-2 reads &quot;beta = &#39;Bob&#39;&#39;s data&#39;!D4&quot;
+</code></pre>
+<p>In this scenario <code>_tmp</code> comes last: the code unit of <code>_</code> (U+005F) is greater than those of the capital letters.</p>
+<h3 id="FR-NAM-04">FR-NAM-04 Deleting a name</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>delete-name</code> while the value of <code>name-input</code> is the same name as a defined name, letter case ignored, the system shall remove that defined name, empty <code>name-input</code>, and evaluate again the formulas that used it, which then read <code>#NAME?</code>; their raw contents shall not change. If no defined name is the same name, then the system shall change nothing in the workbook, keep the value of <code>name-input</code> and show TXT-07 in <code>name-message</code>.</li>
+<li><strong>Rationale:</strong> A name that is no longer wanted is removed, and the formulas that still use it say so.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Delete and unknown name
+  Given the user enters &quot;5&quot; in A1
+  And the user clicks cell A1
+  And the user defines the name &quot;Rate&quot;
+  And the user enters &quot;=Rate*2&quot; in B1
+  When the user deletes the name &quot;Other&quot;
+  Then name-message reads &quot;Unknown name&quot;
+  And name-input has the value &quot;Other&quot;
+  And there is 1 name item
+  When the user deletes the name &quot;RATE&quot;
+  Then name-message is not visible
+  And name-input has the value &quot;&quot;
+  And there are no name items
+  And cell-B1 reads &quot;#NAME?&quot;
+  And the raw content of B1 is &quot;=RATE*2&quot;
+  When the user clicks button undo-button
+  Then name-item-1 reads &quot;Rate = Sheet1!A1&quot;
+  And cell-B1 reads &quot;10&quot;
+</code></pre>
+<h3 id="FR-NAM-05">FR-NAM-05 Names in formulas</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall evaluate a name token that is not followed by <code>(</code> as 02, section 2.7.1 states, the defined names being looked up without regard to letter case, from any sheet, at each evaluation: the value of the cell for a cell target, blank when that cell is empty; <code>#VALUE!</code> for a range target; <code>#REF!</code> for a removed target; <code>#NAME?</code> when no defined name is the same name. The canonical form shall write the name in capitals. A name followed by <code>(</code> is a function call, and a name after a sheet prefix makes the formula not valid.</li>
+<li><strong>Rationale:</strong> A formula reads better with a name than with an address, and tells a missing name from a missing cell.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Values of names
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;=rate*2&quot; in B1
+  Then cell-B1 reads &quot;#NAME?&quot;
+  And the raw content of B1 is &quot;=RATE*2&quot;
+  When the user clicks cell A1
+  And the user defines the name &quot;Rate&quot;
+  Then cell-B1 reads &quot;10&quot;
+  When the user enters &quot;=Rate+RATE+rAtE&quot; in B2
+  And the user clicks cell A1
+  And the user shift-clicks cell A2
+  And the user defines the name &quot;Both&quot;
+  And the user clicks cell H12
+  And the user defines the name &quot;Free&quot;
+  And the user enters &quot;=Both&quot; in B3
+  And the user enters &quot;=Both+1&quot; in B4
+  And the user enters &quot;=SUM(Both)&quot; in B5
+  And the user enters &quot;=Rate(1)&quot; in B6
+  And the user enters &quot;=Sheet1!Rate&quot; in B7
+  And the user enters &quot;=Free&quot; in B8
+  And the user enters &quot;=Free&amp;&quot;&quot;|&quot;&quot;&quot; in B9
+  And the user enters &quot;=IF(Rate&gt;3,&quot;&quot;high&quot;&quot;,&quot;&quot;low&quot;&quot;)&quot; in B10
+  Then cell-B2 reads &quot;15&quot;
+  And cell-B3 reads &quot;#VALUE!&quot;
+  And cell-B4 reads &quot;#VALUE!&quot;
+  And cell-B5 reads &quot;5&quot;
+  And cell-B6 reads &quot;#NAME?&quot;
+  And cell-B7 reads &quot;#SYNTAX!&quot;
+  And cell-B8 reads &quot;0&quot;
+  And cell-B9 reads &quot;|&quot;
+  And cell-B10 reads &quot;high&quot;
+  When the user clicks button add-sheet
+  And the user enters &quot;=Rate+A1&quot; in A2
+  Then cell-A2 reads &quot;5&quot;
+</code></pre>
+<h3 id="FR-NAM-06">FR-NAM-06 Names as range arguments</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall treat an argument that consists of exactly one name as a range argument (02, section 2.8.1): where a function takes a range, the cells of the target of the defined name are used, in the sheet of the target, in visiting order. If the name is not a defined name, then the range gives <code>#NAME?</code>; if its target was removed, <code>#REF!</code>. <code>ISBLANK</code> of a name with a cell target tells whether that cell is empty, and gives <code>#VALUE!</code> for a name with a range target. The cells of the target of a defined name are precedents of the formulas that use it (02, section 2.9): defining or deleting a name can create or break a cycle.</li>
+<li><strong>Rationale:</strong> A named block is used wherever a range is, with the same rules.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Ranges by name
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;2&quot; in A2
+  And the user enters &quot;x&quot; in A3
+  And the user clicks cell A1
+  And the user shift-clicks cell A3
+  And the user defines the name &quot;Data&quot;
+  And the user clicks cell B1
+  And the user defines the name &quot;Cell_b&quot;
+  When the user enters &quot;=SUM(Data)&quot; in C1
+  And the user enters &quot;=COUNTA(data)&quot; in C2
+  And the user enters &quot;=COUNTIF(Data,&quot;&quot;&gt;1&quot;&quot;)&quot; in C3
+  And the user enters &quot;=INDEX(Data,2)&quot; in C4
+  And the user enters &quot;=MATCH(&quot;&quot;x&quot;&quot;,Data,0)&quot; in C5
+  And the user enters &quot;=ISBLANK(Cell_b)&quot; in C6
+  And the user enters &quot;=ISBLANK(Data)&quot; in C7
+  And the user enters &quot;=SUM(Nope)&quot; in C8
+  And the user enters &quot;=COUNTIF(Nope,1)&quot; in C9
+  And the user enters &quot;=COUNTIF((Data),1)&quot; in C10
+  And the user enters &quot;=SUM(Data,Cell_b,10)&quot; in C11
+  And the user enters &quot;=CONCAT(Data)&quot; in C12
+  Then cell-C1 reads &quot;3&quot;
+  And cell-C2 reads &quot;3&quot;
+  And cell-C3 reads &quot;1&quot;
+  And cell-C4 reads &quot;2&quot;
+  And cell-C5 reads &quot;3&quot;
+  And cell-C6 reads &quot;TRUE&quot;
+  And cell-C7 reads &quot;#VALUE!&quot;
+  And cell-C8 reads &quot;#NAME?&quot;
+  And cell-C9 reads &quot;#NAME?&quot;
+  And cell-C10 reads &quot;#VALUE!&quot;
+  And cell-C11 reads &quot;13&quot;
+  And cell-C12 reads &quot;12x&quot;
+
+Scenario: A name closes a cycle
+  Given the user enters &quot;=SUM(Zone)+1&quot; in A1
+  And the user enters &quot;=A1*2&quot; in B1
+  Then cell-A1 reads &quot;#NAME?&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell A3
+  And the user defines the name &quot;Zone&quot;
+  Then cell-A1 reads &quot;#CYCLE!&quot;
+  And cell-B1 reads &quot;#CYCLE!&quot;
+  When the user deletes the name &quot;zone&quot;
+  Then cell-A1 reads &quot;#NAME?&quot;
+</code></pre>
+<h3 id="FR-NAM-07">FR-NAM-07 Names after insertions and deletions</h3>
+<ul>
+<li><strong>Statement:</strong> When a row or a column is inserted or deleted in the sheet of the target of a defined name, the system shall move that target as 02, sections 2.10.1 and 2.10.2 state, a cell target as a reference outside a range and a range target as a range: it follows its cells, grows or shrinks with an insertion or a deletion inside it, is cut at the edge of the grid, and becomes removed when the rule says &quot;removed&quot;. A removed target shall stay removed, with the target text <code>#REF!</code>. An insertion or a deletion in another sheet shall not change the target. The raw contents of the formulas that use the name shall not change.</li>
+<li><strong>Rationale:</strong> A name keeps standing for the same data when the data moves.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: A target that moves, shrinks and disappears
+  Given the user enters &quot;1&quot; in A2
+  And the user enters &quot;2&quot; in A3
+  And the user enters &quot;3&quot; in A4
+  And the user clicks cell A2
+  And the user shift-clicks cell A4
+  And the user defines the name &quot;Data&quot;
+  And the user clicks cell C5
+  And the user defines the name &quot;Cell&quot;
+  And the user clicks cell A12
+  And the user defines the name &quot;Last&quot;
+  And the user clicks button add-sheet
+  And the user enters &quot;=SUM(Data)&quot; in A1
+  And the user enters &quot;=Cell+1&quot; in B1
+  And the user clicks cell A2
+  And the user clicks button insert-row
+  And the user clicks sheet tab 1
+  When the user clicks cell A3
+  And the user clicks button insert-row
+  Then name-item-1 reads &quot;Cell = Sheet1!C6&quot;
+  And name-item-2 reads &quot;Data = Sheet1!A2:A5&quot;
+  And name-item-3 reads &quot;Last = #REF!&quot;
+  When the user clicks cell H2
+  And the user clicks button delete-row
+  Then name-item-1 reads &quot;Cell = Sheet1!C5&quot;
+  And name-item-2 reads &quot;Data = Sheet1!A2:A4&quot;
+  When the user clicks button delete-row 3 times
+  Then name-item-1 reads &quot;Cell = Sheet1!C2&quot;
+  And name-item-2 reads &quot;Data = #REF!&quot;
+  When the user clicks cell C9
+  And the user clicks button delete-col
+  Then name-item-1 reads &quot;Cell = #REF!&quot;
+  When the user clicks sheet tab 2
+  Then cell-A1 reads &quot;#REF!&quot;
+  And the raw content of A1 is &quot;=SUM(DATA)&quot;
+  And cell-B1 reads &quot;#REF!&quot;
+  When the user clicks button undo-button 4 times
+  Then name-item-1 reads &quot;Cell = Sheet1!C5&quot;
+  And name-item-2 reads &quot;Data = Sheet1!A2:A4&quot;
+  And the active sheet is &quot;Sheet1&quot;
+  When the user clicks sheet tab 2
+  Then cell-A1 reads &quot;5&quot;
+</code></pre>
+<p>In this scenario the row inserted in <code>Sheet2</code> changes no target. After the deletion of row 2, <code>Data</code> is <code>A2:A4</code> and holds the empty inserted row and the values 2 and 3: its sum is 5.</p>
+<h3 id="FR-NAM-08">FR-NAM-08 Names and sheets</h3>
+<ul>
+<li><strong>Statement:</strong> When the sheet of the target of a defined name is renamed, the system shall keep the target on that sheet and show its new name in the target text. When that sheet is deleted, the target shall become removed: the name stays defined, its target text is <code>#REF!</code>, and the formulas that use it read <code>#REF!</code>. A sheet added or renamed later with the name of the deleted sheet shall not bring the target back.</li>
+<li><strong>Rationale:</strong> A name follows its sheet, and does not jump to another one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Renamed, then deleted
+  Given the user clicks button add-sheet
+  And the user enters &quot;8&quot; in A1
+  And the user clicks cell A1
+  And the user defines the name &quot;Top&quot;
+  And the user clicks sheet tab 1
+  And the user enters &quot;=Top+1&quot; in B1
+  And the user clicks sheet tab 2
+  When the user renames the sheet to &quot;Q1 data&quot;
+  Then name-item-1 reads &quot;Top = &#39;Q1 data&#39;!A1&quot;
+  When the user clicks button delete-sheet
+  Then name-item-1 reads &quot;Top = #REF!&quot;
+  And cell-B1 reads &quot;#REF!&quot;
+  And the raw content of B1 is &quot;=TOP+1&quot;
+  When the user clicks button add-sheet
+  And the user renames the sheet to &quot;Q1 data&quot;
+  And the user enters &quot;8&quot; in A1
+  Then name-item-1 reads &quot;Top = #REF!&quot;
+  When the user defines the name &quot;top&quot;
+  Then name-message reads &quot;Name already used&quot;
+  When the user deletes the name &quot;top&quot;
+  And the user clicks cell A1
+  And the user defines the name &quot;top&quot;
+  And the user clicks sheet tab 1
+  Then name-item-1 reads &quot;top = &#39;Q1 data&#39;!A1&quot;
+  And cell-B1 reads &quot;9&quot;
+</code></pre>
+<h3 id="FR-NAM-09">FR-NAM-09 Names and moved contents</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall change the target of a defined name only as FR-NAM-07 and FR-NAM-08 state. Pasting, cutting, clearing, sorting, filling, replacing and importing change the contents of cells and never a target: the name stands for the cells of its rectangle, whatever they hold afterwards. When a formula is pasted or filled, the system shall leave its name tokens unchanged (02, section 2.10.3).</li>
+<li><strong>Rationale:</strong> A name is an address with a label; moving values does not move the label.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Paste, sort, fill and cut
+  Given the user enters &quot;3&quot; in A1
+  And the user enters &quot;1&quot; in A2
+  And the user enters &quot;2&quot; in A3
+  And the user clicks cell A1
+  And the user shift-clicks cell A3
+  And the user defines the name &quot;Data&quot;
+  And the user enters &quot;=SUM(Data)+A1&quot; in C1
+  And the user enters &quot;=INDEX(Data,1)&quot; in C2
+  When the user clicks cell C1
+  And the user clicks button copy-button
+  And the user clicks cell D2
+  And the user clicks button paste-button
+  Then the raw content of D2 is &quot;=SUM(DATA)+B2&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell A3
+  And the user clicks button sort-asc
+  Then cell-A1 reads &quot;1&quot;
+  And name-item-1 reads &quot;Data = Sheet1!A1:A3&quot;
+  And cell-C2 reads &quot;1&quot;
+  When the user clicks cell C2
+  And the user shift-clicks cell C3
+  And the user clicks button fill-down
+  Then the raw content of C3 is &quot;=INDEX(DATA,1)&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell A3
+  And the user clicks button cut-button
+  And the user clicks cell F1
+  And the user clicks button paste-button
+  Then name-item-1 reads &quot;Data = Sheet1!A1:A3&quot;
+  And cell-F3 reads &quot;3&quot;
+  And cell-C1 reads &quot;0&quot;
+  And cell-C2 reads &quot;0&quot;
+</code></pre>
+
+</main>
+</body>
+</html>

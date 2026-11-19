@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5</title>
+<style>
+  :root { --ink:#1e293b; --muted:#475569; --line:#cbd5e1; --head:#eef2f7; --sel:#dbeafe; --act:#bfdbfe; --accent:#1d4ed8; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:#ffffff; color:var(--ink); font:14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background:#ffffff; padding:12px 16px 4px; }
+  header h1 { margin:0; font-size:20px; font-weight:650; color:var(--ink); }
+  main { padding:8px 16px 24px; max-width:100%; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; background:#ffffff; }
+  .toolbar button, .toolbar select { font:inherit; color:var(--ink); background:#f8fafc; border:1px solid var(--line); border-radius:6px; padding:5px 10px; cursor:pointer; }
+  .toolbar button:hover:not(:disabled) { background:#e2e8f0; }
+  .toolbar button:disabled, .toolbar select:disabled { color:#94a3b8; cursor:default; }
+  .sep { width:1px; height:22px; background:var(--line); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:3px solid var(--accent); outline-offset:1px; }
+  .fbar { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+  .name-box { min-width:72px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:#f8fafc; color:var(--ink); font-weight:600; font-family:ui-monospace, Consolas, monospace; white-space:nowrap; }
+  .fbar input { flex:1; min-width:0; font:14px ui-monospace, Consolas, monospace; color:var(--ink); background:#ffffff; padding:6px 8px; border:1px solid var(--line); border-radius:6px; }
+  .fbar input[data-editing="true"] { border-color:var(--accent); background:#ffffff; }
+  .wrap { overflow-x:auto; max-width:100%; border:1px solid var(--line); border-radius:6px; background:#ffffff; }
+  table.grid { border-collapse:collapse; table-layout:fixed; width:max-content; background:#ffffff; }
+  table.grid:focus { outline:none; }
+  table.grid:focus-visible { outline:3px solid var(--accent); outline-offset:-3px; }
+  .grid th { background:var(--head); color:var(--muted); font-weight:600; border:1px solid var(--line); padding:3px 4px; text-align:center; }
+  .grid th.rh { width:40px; }
+  .grid td { width:124px; max-width:124px; height:28px; border:1px solid var(--line); padding:2px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:#ffffff; color:var(--ink); cursor:cell; user-select:none; }
+  .grid td.corner { width:40px; background:var(--head); }
+  .grid td[data-kind="number"] { text-align:right; }
+  .grid td[data-kind="logical"] { text-align:center; }
+  .grid td[data-kind="error"] { color:#a61b1b; text-align:center; }
+  .grid td[data-in-selection="true"] { background:var(--sel); }
+  .grid td[aria-selected="true"] { background:var(--act); box-shadow:inset 0 0 0 2px var(--accent); }
+  table.grid:focus-visible td[aria-selected="true"] { box-shadow:inset 0 0 0 3px #0f172a; }
+  .summary { margin-top:10px; padding:6px 10px; background:#f1f5f9; color:var(--ink); border-radius:6px; display:inline-block; font-variant-numeric:tabular-nums; }
+  .summary[hidden] { display:none; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header data-testid="app-header"><h1>Claude Opus 5.5</h1></header>
+<main>
+  <div class="toolbar" data-testid="toolbar">
+    <button type="button" data-testid="undo-button">Undo</button>
+    <button type="button" data-testid="redo-button">Redo</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" data-testid="copy-button">Copy</button>
+    <button type="button" data-testid="cut-button">Cut</button>
+    <button type="button" data-testid="paste-button">Paste</button>
+    <button type="button" data-testid="clear-button">Clear</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" data-testid="insert-row">Insert row</button>
+    <button type="button" data-testid="delete-row">Delete row</button>
+    <button type="button" data-testid="insert-col">Insert column</button>
+    <button type="button" data-testid="delete-col">Delete column</button>
+    <select data-testid="format-select" aria-label="Number format">
+      <option value="general">General</option>
+      <option value="fixed2">1,234.50</option>
+      <option value="percent1">12.5%</option>
+    </select>
+  </div>
+  <div class="fbar">
+    <div class="name-box" data-testid="name-box">A1</div>
+    <input type="text" data-testid="formula-input" aria-label="Cell content" data-editing="false" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="wrap"><table class="grid" data-testid="grid" role="grid" aria-label="Sheet" tabindex="0"></table></div>
+  <div class="summary" data-testid="selection-summary" hidden></div>
+</main>
+<script>
+(function () {
+'use strict';
+var COLS = 8, ROWS = 12, LET = 'ABCDEFGH';
+function addr(r, c) { return LET[c] + (r + 1); }
+
+/* ---------- numbers ---------- */
+function E(code) { return { t: 'e', v: code }; }
+var BLANK = { t: 'blank' };
+function N(x) {
+  if (!isFinite(x)) return E('#NUM!');
+  var y = Number(x.toPrecision(12));
+  if (y === 0) y = 0;
+  if (Math.abs(y) >= 1e15) return E('#NUM!');
+  return { t: 'n', v: y };
+}
+function decomp(x) {
+  var s = Math.abs(x).toPrecision(12), digits, exp;
+  var ei = s.indexOf('e');
+  if (ei >= 0) {
+    var man = s.slice(0, ei), E10 = parseInt(s.slice(ei + 1), 10);
+    var dot = man.indexOf('.');
+    var frac = dot >= 0 ? man.length - dot - 1 : 0;
+    digits = man.replace('.', ''); exp = E10 - frac;
+  } else {
+    var d = s.indexOf('.');
+    if (d >= 0) { digits = s.replace('.', ''); exp = -(s.length - d - 1); }
+    else { digits = s; exp = 0; }
+  }
+  return { D: BigInt(digits), exp: exp };
+}
+function roundDec(x, d) {
+  var o = decomp(x), shift = o.exp + d, m;
+  if (shift >= 0) m = o.D * (10n ** BigInt(shift));
+  else {
+    var p = 10n ** BigInt(-shift);
+    m = o.D / p;
+    if ((o.D % p) * 2n >= p) m += 1n;
+  }
+  return { neg: x < 0 && m !== 0n, m: m, d: d };
+}
+function parts(R) {
+  var ip, fp = '';
+  if (R.d <= 0) ip = (R.m * (10n ** BigInt(-R.d))).toString();
+  else {
+    var s = R.m.toString().padStart(R.d + 1, '0');
+    ip = s.slice(0, s.length - R.d); fp = s.slice(s.length - R.d);
+  }
+  return { neg: R.neg, ip: ip, fp: fp };
+}
+function roundNum(x, d) {
+  var p = parts(roundDec(x, d));
+  return Number((p.neg ? '-' : '') + p.ip + (p.fp ? '.' + p.fp : ''));
+}
+function G(x) {
+  var p = parts(roundDec(x, 6));
+  var f = p.fp.replace(/0+$/, '');
+  return (p.neg ? '-' : '') + p.ip + (f ? '.' + f : '');
+}
+function group(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function fmtNumber(x, fmt) {
+  if (fmt === 'fixed2') {
+    var p = parts(roundDec(x, 2));
+    return (p.neg ? '-' : '') + group(p.ip) + '.' + p.fp;
+  }
+  if (fmt === 'percent1') {
+    var y = Number((x * 100).toPrecision(12)); if (y === 0) y = 0;
+    var q = parts(roundDec(y, 1));
+    return (q.neg ? '-' : '') + q.ip + '.' + q.fp + '%';
+  }
+  return G(x);
+}
+var ENTRY = /^[+-]?(\d+(\.\d+)?|\.\d+)%?$/;
+function entryNumber(s) {
+  if (!ENTRY.test(s)) return null;
+  var pct = s.charAt(s.length - 1) === '%';
+  var x = Number(pct ? s.slice(0, -1) : s);
+  if (pct) x = x / 100;
+  var v = N(x);
+  return v.t === 'n' ? v.v : null;
+}
+function trimSp(s) { return s.replace(/^ +| +$/g, ''); }
+
+/* ---------- tokenizer / parser ---------- */
+var REFRE = /^(\$?)([A-Za-z]+)(\$?)([0-9]+)$/;
+function mkRef(m) { return { ca: m[1] === '$', col: m[2].toUpperCase(), ra: m[3] === '$', row: m[4].replace(/^0+(?=\d)/, '') }; }
+function tokenize(src) {
+  var toks = [], i = 0, n = src.length, m;
+  while (i < n) {
+    var ch = src[i];
+    if (ch === ' ') { i++; continue; }
+    if (/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(src[i + 1] || ''))) {
+      m = /^(\d+(\.\d+)?|\.\d+)/.exec(src.slice(i));
+      toks.push({ t: 'num', s: m[0] }); i += m[0].length; continue;
+    }
+    if (ch === '"') {
+      var j = i + 1, str = '', closed = false;
+      while (j < n) {
+        if (src[j] === '"') { if (src[j + 1] === '"') { str += '"'; j += 2; } else { j++; closed = true; break; } }
+        else str += src[j++];
+      }
+      if (!closed) return null;
+      toks.push({ t: 'str', v: str, s: src.slice(i, j) }); i = j; continue;
+    }
+    if (/[A-Za-z$]/.test(ch)) {
+      m = /^[A-Za-z0-9$]+/.exec(src.slice(i)); var w = m[0]; i += w.length;
+      var up = w.toUpperCase();
+      if (up === 'TRUE' || up === 'FALSE') toks.push({ t: 'bool', v: up === 'TRUE' });
+      else if ((m = REFRE.exec(w))) toks.push({ t: 'ref', ref: mkRef(m) });
+      else if (/^[A-Za-z0-9]+$/.test(w)) toks.push({ t: 'name', v: up });
+      else return null;
+      continue;
+    }
+    if (ch === '#') {
+      if (src.substr(i, 5).toUpperCase() === '#REF!') { toks.push({ t: 'referr' }); i += 5; continue; }
+      return null;
+    }
+    var two = src.substr(i, 2);
+    if (two === '<>' || two === '<=' || two === '>=') { toks.push({ t: 'op', v: two }); i += 2; continue; }
+    if ('+-*/^&%=<>'.indexOf(ch) >= 0) { toks.push({ t: 'op', v: ch }); i++; continue; }
+    if ('(),:'.indexOf(ch) >= 0) { toks.push({ t: 'p', v: ch }); i++; continue; }
+    return null;
+  }
+  var out = [];
+  for (var k = 0; k < toks.length; k++) {
+    var a = toks[k];
+    if (a.t === 'ref' && toks[k + 1] && toks[k + 1].t === 'p' && toks[k + 1].v === ':' && toks[k + 2] && toks[k + 2].t === 'ref') {
+      out.push({ t: 'range', a: a.ref, b: toks[k + 2].ref }); k += 2;
+    } else out.push(a);
+  }
+  return out;
+}
+function parseTokens(toks) {
+  var p = 0;
+  function peek() { return toks[p]; }
+  function isOp(v) { var t = toks[p]; return t && t.t === 'op' && (v === undefined || t.v === v); }
+  function isP(v) { var t = toks[p]; return t && t.t === 'p' && t.v === v; }
+  function fail() { throw 'syntax'; }
+  function binLevel(next, ops) {
+    return function () {
+      var l = next();
+      while (toks[p] && toks[p].t === 'op' && ops.indexOf(toks[p].v) >= 0) {
+        var op = toks[p++].v; var r = next(); l = { k: 'bin', op: op, l: l, r: r };
+      }
+      return l;
+    };
+  }
+  function signed() {
+    if (isOp('-') || isOp('+')) { var op = toks[p++].v; return { k: 'un', op: op, x: signed() }; }
+    return power();
+  }
+  function power() {
+    var b = percent();
+    if (isOp('^')) { p++; return { k: 'bin', op: '^', l: b, r: signed() }; }
+    return b;
+  }
+  function percent() {
+    var x = primary();
+    while (isOp('%')) { p++; x = { k: 'pct', x: x }; }
+    return x;
+  }
+  var product = binLevel(signed, ['*', '/']);
+  var sum = binLevel(product, ['+', '-']);
+  var concat = binLevel(sum, ['&']);
+  var comparison = binLevel(concat, ['=', '<>', '<', '<=', '>', '>=']);
+  function primary() {
+    var t = peek(); if (!t) fail();
+    switch (t.t) {
+      case 'num': p++; return { k: 'num', s: t.s };
+      case 'str': p++; return { k: 'str', v: t.v };
+      case 'bool': p++; return { k: 'bool', v: t.v };
+      case 'referr': p++; return { k: 'referr' };
+      case 'ref': p++; return { k: 'ref', ref: t.ref };
+      case 'range': p++; return { k: 'range', a: t.a, b: t.b };
+      case 'name':
+        p++;
+        if (isP('(')) {
+          p++; var args = [];
+          if (isP(')')) { p++; return { k: 'call', name: t.v, args: args }; }
+          for (;;) {
+            args.push(comparison());
+            if (isP(',')) { p++; continue; }
+            if (isP(')')) { p++; break; }
+            fail();
+          }
+          return { k: 'call', name: t.v, args: args };
+        }
+        return { k: 'name', v: t.v };
+      case 'p':
+        if (t.v === '(') { p++; var e = comparison(); if (!isP(')')) fail(); p++; return { k: 'paren', x: e }; }
+        fail();
+    }
+    fail();
+  }
+  var ast = comparison();
+  if (p !== toks.length) fail();
+  return ast;
+}
+var parseCache = new Map();
+function parseFormula(raw) {
+  if (parseCache.has(raw)) return parseCache.get(raw);
+  var res = null;
+  try {
+    var toks = tokenize(raw.slice(1));
+    if (toks && toks.length) res = { toks: toks, ast: parseTokens(toks) };
+  } catch (e) { res = null; }
+  if (parseCache.size > 5000) parseCache.clear();
+  parseCache.set(raw, res);
+  return res;
+}
+
+/* ---------- canonical form ---------- */
+function cmpLen(a, b) { return a.length !== b.length ? a.length - b.length : (a < b ? -1 : a > b ? 1 : 0); }
+function normRange(a, b) {
+  var cc = cmpLen(a.col, b.col), rc = cmpLen(a.row, b.row);
+  var c1 = cc <= 0 ? a : b, c2 = cc <= 0 ? b : a;
+  var r1 = rc <= 0 ? a : b, r2 = rc <= 0 ? b : a;
+  return [{ ca: c1.ca, col: c1.col, ra: r1.ra, row: r1.row }, { ca: c2.ca, col: c2.col, ra: r2.ra, row: r2.row }];
+}
+function refStr(r) { return (r.ca ? '$' : '') + r.col + (r.ra ? '$' : '') + r.row; }
+function serialize(toks) {
+  var s = '=';
+  for (var i = 0; i < toks.length; i++) {
+    var t = toks[i];
+    switch (t.t) {
+      case 'num': case 'str': s += t.s; break;
+      case 'bool': s += t.v ? 'TRUE' : 'FALSE'; break;
+      case 'name': s += t.v; break;
+      case 'referr': s += '#REF!'; break;
+      case 'ref': s += refStr(t.ref); break;
+      case 'range': var n = normRange(t.a, t.b); s += refStr(n[0]) + ':' + refStr(n[1]); break;
+      default: s += t.v;
+    }
+  }
+  return s;
+}
+function commitRaw(s) {
+  if (s.charAt(0) === '=') { var f = parseFormula(s); return f ? serialize(f.toks) : s; }
+  return s;
+}
+
+/* ---------- references ---------- */
+function inGrid(r) { return r.col.length === 1 && r.col <= 'H' && r.row.length <= 2 && +r.row >= 1 && +r.row <= 12; }
+function rc(r) { return { c: LET.indexOf(r.col), r: +r.row - 1 }; }
+function cellsOfRange(a, b) {
+  var p = rc(a), q = rc(b), out = [];
+  var r0 = Math.min(p.r, q.r), r1 = Math.max(p.r, q.r), c0 = Math.min(p.c, q.c), c1 = Math.max(p.c, q.c);
+  for (var r = r0; r <= r1; r++) for (var c = c0; c <= c1; c++) out.push(r * COLS + c);
+  return out;
+}
+
+/* ---------- sheet ---------- */
+var cells = [];
+for (var i0 = 0; i0 < ROWS * COLS; i0++) cells.push({ raw: '', fmt: 'general' });
+var values = [];
+
+function classify(raw) {
+  if (raw === '') return { kind: 'empty' };
+  if (raw.charAt(0) === '=') { var f = parseFormula(raw); return f ? { kind: 'formula', f: f } : { kind: 'value', v: E('#SYNTAX!') }; }
+  if (raw.charAt(0) === "'") return { kind: 'value', v: { t: 's', v: raw.slice(1) } };
+  var tr = trimSp(raw), num = entryNumber(tr);
+  if (num !== null) return { kind: 'value', v: { t: 'n', v: num } };
+  var up = tr.toUpperCase();
+  if (up === 'TRUE' || up === 'FALSE') return { kind: 'value', v: { t: 'b', v: up === 'TRUE' } };
+  return { kind: 'value', v: { t: 's', v: raw } };
+}
+
+function precedents(f) {
+  var out = [];
+  f.toks.forEach(function (t) {
+    if (t.t === 'ref' && inGrid(t.ref)) { var p = rc(t.ref); out.push(p.r * COLS + p.c); }
+    else if (t.t === 'range' && inGrid(t.a) && inGrid(t.b)) out = out.concat(cellsOfRange(t.a, t.b));
+  });
+  return out;
+}
+
+function recalc() {
+  var n = ROWS * COLS, cls = [], graph = [];
+  for (var i = 0; i < n; i++) { cls[i] = classify(cells[i].raw); graph[i] = cls[i].kind === 'formula' ? precedents(cls[i].f) : []; }
+  var circ = [];
+  for (var s = 0; s < n; s++) {
+    if (!graph[s].length) { circ[s] = false; continue; }
+    var seen = new Uint8Array(n), stack = graph[s].slice(), found = false;
+    while (stack.length) {
+      var x = stack.pop();
+      if (x === s) { found = true; break; }
+      if (seen[x]) continue; seen[x] = 1;
+      for (var k = 0; k < graph[x].length; k++) stack.push(graph[x][k]);
+    }
+    circ[s] = found;
+  }
+  var memo = new Array(n);
+  function cellValue(i) {
+    if (memo[i]) return memo[i];
+    var c = cls[i], v;
+    if (c.kind === 'empty') v = BLANK;
+    else if (c.kind === 'value') v = c.v;
+    else if (circ[i]) v = E('#CYCLE!');
+    else {
+      try { v = evalNode(c.f.ast); } catch (e) { v = E('#VALUE!'); }
+      if (v.t === 'blank') v = { t: 'n', v: 0 };
+    }
+    memo[i] = v; return v;
+  }
+  function isEmpty(i) { return cells[i].raw === ''; }
+
+  function toNum(v) {
+    switch (v.t) { case 'n': return v; case 'b': return { t: 'n', v: v.v ? 1 : 0 }; case 'blank': return { t: 'n', v: 0 }; case 'e': return v; }
+    return E('#VALUE!');
+  }
+  function toText(v) {
+    switch (v.t) { case 'n': return { t: 's', v: G(v.v) }; case 'b': return { t: 's', v: v.v ? 'TRUE' : 'FALSE' }; case 'blank': return { t: 's', v: '' }; }
+    return v;
+  }
+  function toBool(v) {
+    switch (v.t) { case 'n': return { t: 'b', v: v.v !== 0 }; case 'b': return v; case 'blank': return { t: 'b', v: false }; case 'e': return v; }
+    return E('#VALUE!');
+  }
+  function toInt(v) { v = toNum(v); return v.t === 'n' ? { t: 'n', v: Math.trunc(v.v) } : v; }
+  var RANK = { n: 0, s: 1, b: 2 };
+  function compare(a, b) {
+    if (a.t === 'blank') a = b.t === 's' ? { t: 's', v: '' } : b.t === 'b' ? { t: 'b', v: false } : { t: 'n', v: 0 };
+    if (b.t === 'blank') b = a.t === 's' ? { t: 's', v: '' } : a.t === 'b' ? { t: 'b', v: false } : { t: 'n', v: 0 };
+    if (a.t !== b.t) return RANK[a.t] - RANK[b.t];
+    if (a.t === 's') { var x = a.v.toUpperCase(), y = b.v.toUpperCase(); return x < y ? -1 : x > y ? 1 : 0; }
+    var p = +a.v, q = +b.v; return p < q ? -1 : p > q ? 1 : 0;
+  }
+  function cmpOp(op, c) {
+    switch (op) { case '=': return c === 0; case '<>': return c !== 0; case '<': return c < 0; case '<=': return c <= 0; case '>': return c > 0; case '>=': return c >= 0; }
+  }
+  function evalNode(nd) {
+    switch (nd.k) {
+      case 'num': return N(Number(nd.s));
+      case 'str': return { t: 's', v: nd.v };
+      case 'bool': return { t: 'b', v: nd.v };
+      case 'referr': return E('#REF!');
+      case 'ref': if (!inGrid(nd.ref)) return E('#REF!'); var p = rc(nd.ref); return cellValue(p.r * COLS + p.c);
+      case 'range': return E('#VALUE!');
+      case 'name': return E('#NAME?');
+      case 'paren': return evalNode(nd.x);
+      case 'pct': var a = toNum(evalNode(nd.x)); return a.t === 'e' ? a : N(a.v / 100);
+      case 'un': var u = toNum(evalNode(nd.x)); return u.t === 'e' ? u : N(nd.op === '-' ? -u.v : u.v);
+      case 'bin': return evalBin(nd);
+      case 'call': return evalCall(nd);
+    }
+    return E('#VALUE!');
+  }
+  function evalBin(nd) {
+    var l = evalNode(nd.l), r = evalNode(nd.r);
+    if (l.t === 'e') return l;
+    if (r.t === 'e') return r;
+    var op = nd.op;
+    if (op === '&') return { t: 's', v: toText(l).v + toText(r).v };
+    if (op === '=' || op === '<>' || op === '<' || op === '<=' || op === '>' || op === '>=') return { t: 'b', v: cmpOp(op, compare(l, r)) };
+    l = toNum(l); if (l.t === 'e') return l;
+    r = toNum(r); if (r.t === 'e') return r;
+    var a = l.v, b = r.v;
+    switch (op) {
+      case '+': return N(a + b);
+      case '-': return N(a - b);
+      case '*': return N(a * b);
+      case '/': return b === 0 ? E('#DIV/0!') : N(a / b);
+      case '^':
+        if (a === 0 && b === 0) return E('#NUM!');
+        if (a === 0 && b < 0) return E('#DIV/0!');
+        if (a < 0 && !Number.isInteger(b)) return E('#NUM!');
+        return N(Math.pow(a, b));
+    }
+    return E('#VALUE!');
+  }
+  function isRangeArg(nd) { return nd.k === 'ref' || nd.k === 'range' || nd.k === 'referr'; }
+  function rangeCells(nd) {
+    if (nd.k === 'referr') return E('#REF!');
+    if (nd.k === 'ref') { if (!inGrid(nd.ref)) return E('#REF!'); var p = rc(nd.ref); return { list: [p.r * COLS + p.c], h: 1, w: 1 }; }
+    if (!inGrid(nd.a) || !inGrid(nd.b)) return E('#REF!');
+    var a = rc(nd.a), b = rc(nd.b);
+    return { list: cellsOfRange(nd.a, nd.b), h: Math.abs(a.r - b.r) + 1, w: Math.abs(a.c - b.c) + 1 };
+  }
+  var ARITY = { SUM: [1, Infinity], AVERAGE: [1, Infinity], MIN: [1, Infinity], MAX: [1, Infinity], COUNT: [1, Infinity], COUNTA: [1, Infinity],
+    ROUND: [2, 2], ABS: [1, 1], INT: [1, 1], MOD: [2, 2], IF: [3, 3], AND: [1, Infinity], OR: [1, Infinity], NOT: [1, 1],
+    IFERROR: [2, 2], ISERROR: [1, 1], ISBLANK: [1, 1], LEN: [1, 1], UPPER: [1, 1], LEFT: [2, 2], RIGHT: [2, 2], MID: [3, 3],
+    CONCAT: [1, Infinity], COUNTIF: [2, 2], SUMIF: [3, 3] };
+  function evalCall(nd) {
+    var name = nd.name, args = nd.args;
+    if (!Object.prototype.hasOwnProperty.call(ARITY, name)) return E('#NAME?');
+    var ar = ARITY[name];
+    if (args.length < ar[0] || args.length > ar[1]) return E('#ARGS!');
+    var v, w, x, i, j;
+    switch (name) {
+      case 'SUM': case 'AVERAGE': case 'MIN': case 'MAX': case 'COUNT': case 'COUNTA': {
+        var contrib = [], count = 0;
+        for (i = 0; i < args.length; i++) {
+          var a = args[i];
+          if (isRangeArg(a)) {
+            var rg = rangeCells(a); if (rg.t === 'e') return rg;
+            for (j = 0; j < rg.list.length; j++) {
+              var cv = cellValue(rg.list[j]);
+              if (cv.t === 'e') return cv;
+              if (name === 'COUNTA') { if (!isEmpty(rg.list[j])) count++; }
+              else if (cv.t === 'n') { contrib.push(cv.v); count++; }
+            }
+          } else {
+            v = evalNode(a);
+            if (v.t === 'e') return v;
+            if (name === 'COUNTA') count++;
+            else if (name === 'COUNT') { if (v.t === 'n') count++; }
+            else { v = toNum(v); if (v.t === 'e') return v; contrib.push(v.v); count++; }
+          }
+        }
+        if (name === 'COUNT' || name === 'COUNTA') return N(count);
+        var s = 0; for (j = 0; j < contrib.length; j++) s += contrib[j];
+        if (name === 'SUM') return N(s);
+        if (name === 'AVERAGE') return contrib.length ? N(s / contrib.length) : E('#DIV/0!');
+        if (!contrib.length) return N(0);
+        return N(name === 'MIN' ? Math.min.apply(null, contrib) : Math.max.apply(null, contrib));
+      }
+      case 'ROUND':
+        v = toNum(evalNode(args[0])); if (v.t === 'e') return v;
+        w = toInt(evalNode(args[1])); if (w.t === 'e') return w;
+        if (w.v < -9 || w.v > 9) return E('#NUM!');
+        return N(roundNum(v.v, w.v));
+      case 'ABS': v = toNum(evalNode(args[0])); return v.t === 'e' ? v : N(Math.abs(v.v));
+      case 'INT': v = toNum(evalNode(args[0])); return v.t === 'e' ? v : N(Math.floor(v.v));
+      case 'MOD':
+        v = toNum(evalNode(args[0])); if (v.t === 'e') return v;
+        w = toNum(evalNode(args[1])); if (w.t === 'e') return w;
+        if (w.v === 0) return E('#DIV/0!');
+        return N(v.v - w.v * Math.floor(v.v / w.v));
+      case 'IF':
+        v = toBool(evalNode(args[0])); if (v.t === 'e') return v;
+        return evalNode(v.v ? args[1] : args[2]);
+      case 'AND': case 'OR': {
+        var all = true, any = false;
+        for (i = 0; i < args.length; i++) {
+          v = toBool(evalNode(args[i])); if (v.t === 'e') return v;
+          if (v.v) any = true; else all = false;
+        }
+        return { t: 'b', v: name === 'AND' ? all : any };
+      }
+      case 'NOT': v = toBool(evalNode(args[0])); return v.t === 'e' ? v : { t: 'b', v: !v.v };
+      case 'IFERROR': v = evalNode(args[0]); return v.t === 'e' ? evalNode(args[1]) : v;
+      case 'ISERROR': return { t: 'b', v: evalNode(args[0]).t === 'e' };
+      case 'ISBLANK': {
+        var a0 = args[0];
+        if (isRangeArg(a0)) {
+          var r0 = rangeCells(a0); if (r0.t === 'e') return r0;
+          if (a0.k === 'range') return E('#VALUE!');
+          return { t: 'b', v: isEmpty(r0.list[0]) };
+        }
+        v = evalNode(a0); return v.t === 'e' ? v : { t: 'b', v: false };
+      }
+      case 'LEN': v = toText(evalNode(args[0])); return v.t === 'e' ? v : N(v.v.length);
+      case 'UPPER': v = toText(evalNode(args[0])); return v.t === 'e' ? v : { t: 's', v: v.v.toUpperCase() };
+      case 'LEFT': case 'RIGHT':
+        v = toText(evalNode(args[0])); if (v.t === 'e') return v;
+        w = toInt(evalNode(args[1])); if (w.t === 'e') return w;
+        if (w.v < 0) return E('#VALUE!');
+        if (name === 'LEFT') return { t: 's', v: v.v.slice(0, w.v) };
+        return { t: 's', v: w.v === 0 ? '' : v.v.slice(Math.max(0, v.v.length - w.v)) };
+      case 'MID':
+        v = toText(evalNode(args[0])); if (v.t === 'e') return v;
+        w = toInt(evalNode(args[1])); if (w.t === 'e') return w;
+        x = toInt(evalNode(args[2])); if (x.t === 'e') return x;
+        if (w.v < 1 || x.v < 0) return E('#VALUE!');
+        return { t: 's', v: v.v.substr(w.v - 1, x.v) };
+      case 'CONCAT': {
+        var out = '';
+        for (i = 0; i < args.length; i++) {
+          if (isRangeArg(args[i])) {
+            var rr = rangeCells(args[i]); if (rr.t === 'e') return rr;
+            for (j = 0; j < rr.list.length; j++) { var c2 = cellValue(rr.list[j]); if (c2.t === 'e') return c2; out += toText(c2).v; }
+          } else { v = evalNode(args[i]); if (v.t === 'e') return v; out += toText(v).v; }
+        }
+        return { t: 's', v: out };
+      }
+      case 'COUNTIF': case 'SUMIF': {
+        var isSum = name === 'SUMIF';
+        if (!isRangeArg(args[0])) return E('#VALUE!');
+        if (isSum && !isRangeArg(args[2])) return E('#VALUE!');
+        var R1 = rangeCells(args[0]); if (R1.t === 'e') return R1;
+        var R2 = null;
+        if (isSum) { R2 = rangeCells(args[2]); if (R2.t === 'e') return R2; if (R2.h !== R1.h || R2.w !== R1.w) return E('#VALUE!'); }
+        var crit = evalNode(args[1]); if (crit.t === 'e') return crit;
+        var op = '=', operand;
+        if (crit.t === 'n' || crit.t === 'b') operand = crit;
+        else if (crit.t === 'blank') operand = { t: 's', v: '' };
+        else {
+          var m = /^(>=|<=|<>|>|<|=)/.exec(crit.v);
+          if (m) {
+            op = m[1]; var rest = crit.v.slice(op.length), en = entryNumber(rest), ru = rest.toUpperCase();
+            if (en !== null) operand = { t: 'n', v: en };
+            else if (ru === 'TRUE' || ru === 'FALSE') operand = { t: 'b', v: ru === 'TRUE' };
+            else operand = { t: 's', v: rest };
+          } else operand = crit;
+        }
+        var cnt = 0, total = 0;
+        for (j = 0; j < R1.list.length; j++) {
+          var cv1 = cellValue(R1.list[j]);
+          if (cv1.t === 'e') return cv1;
+          if (isEmpty(R1.list[j])) continue;
+          var match;
+          if (op === '=' || op === '<>') { var eq = cv1.t === operand.t && compare(cv1, operand) === 0; match = op === '=' ? eq : !eq; }
+          else match = cv1.t === operand.t && cmpOp(op, compare(cv1, operand));
+          if (!match) continue;
+          cnt++;
+          if (isSum) { var sv = cellValue(R2.list[j]); if (sv.t === 'e') return sv; if (sv.t === 'n') total += sv.v; }
+        }
+        return isSum ? N(total) : N(cnt);
+      }
+    }
+    return E('#NAME?');
+  }
+  for (var q = 0; q < n; q++) values[q] = cellValue(q);
+}
+
+/* ---------- rewriting ---------- */
+function rewriteRaw(raw, fRef, fRange) {
+  if (raw.charAt(0) !== '=') return raw;
+  var f = parseFormula(raw); if (!f) return raw;
+  var toks = f.toks.map(function (t) {
+    if (t.t === 'ref') { if (!inGrid(t.ref)) return t; var r = fRef(t.ref); return r ? { t: 'ref', ref: r } : { t: 'referr' }; }
+    if (t.t === 'range') {
+      if (!inGrid(t.a) || !inGrid(t.b)) return t;
+      var nr = normRange(t.a, t.b), res = fRange(nr[0], nr[1]);
+      return res ? { t: 'range', a: res[0], b: res[1] } : { t: 'referr' };
+    }
+    return t;
+  });
+  return serialize(toks);
+}
+function withPos(ref, axis, n) {
+  var o = { ca: ref.ca, col: ref.col, ra: ref.ra, row: ref.row };
+  if (axis === 'row') o.row = String(n); else o.col = LET[n - 1];
+  return o;
+}
+function posOf(ref, axis) { return axis === 'row' ? +ref.row : LET.indexOf(ref.col) + 1; }
+function structRewrite(raw, axis, ins, k) {
+  var lim = axis === 'row' ? ROWS : COLS;
+  return rewriteRaw(raw, function (ref) {
+    var n = posOf(ref, axis);
+    if (ins) { if (n < k) return ref; if (n + 1 > lim) return null; return withPos(ref, axis, n + 1); }
+    if (n < k) return ref; if (n === k) return null; return withPos(ref, axis, n - 1);
+  }, function (a, b) {
+    var t = posOf(a, axis), bb = posOf(b, axis);
+    if (ins) {
+      var t2 = t >= k ? t + 1 : t, b2 = bb >= k ? bb + 1 : bb;
+      if (t2 > lim) return null;
+      return [withPos(a, axis, t2), withPos(b, axis, Math.min(b2, lim))];
+    }
+    if (k > bb) return [a, b];
+    if (k < t) return [withPos(a, axis, t - 1), withPos(b, axis, bb - 1)];
+    if (t === bb) return null;
+    return [a, withPos(b, axis, bb - 1)];
+  });
+}
+function pasteRewrite(raw, dr, dc) {
+  function mv(ref) {
+    var p = rc(ref), r = p.r + (ref.ra ? 0 : dr), c = p.c + (ref.ca ? 0 : dc);
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+    return { ca: ref.ca, col: LET[c], ra: ref.ra, row: String(r + 1) };
+  }
+  return rewriteRaw(raw, mv, function (a, b) { var x = mv(a), y = mv(b); return x && y ? [x, y] : null; });
+}
+
+/* ---------- UI state ---------- */
+var sel = { ar: 0, ac: 0, r: 0, c: 0 };
+var editing = false, undoStack = [], redoStack = [], clip = null;
+function q(id) { return document.querySelector('[data-testid="' + id + '"]'); }
+var grid = q('grid'), input = q('formula-input'), nameBox = q('name-box'), fmtSel = q('format-select'), summary = q('selection-summary');
+var btn = {};
+['undo-button', 'redo-button', 'copy-button', 'cut-button', 'paste-button', 'clear-button', 'insert-row', 'delete-row', 'insert-col', 'delete-col'].forEach(function (k) { btn[k] = q(k); });
+
+var cellEls = [];
+(function build() {
+  var hr = document.createElement('tr'); hr.setAttribute('role', 'row');
+  var corner = document.createElement('td'); corner.setAttribute('role', 'presentation'); corner.className = 'corner'; hr.appendChild(corner);
+  for (var c = 0; c < COLS; c++) { var th = document.createElement('th'); th.setAttribute('role', 'columnheader'); th.setAttribute('data-testid', 'col-header-' + LET[c]); th.textContent = LET[c]; hr.appendChild(th); }
+  var thead = document.createElement('thead'); thead.appendChild(hr); grid.appendChild(thead);
+  var tb = document.createElement('tbody');
+  for (var r = 0; r < ROWS; r++) {
+    var tr = document.createElement('tr'); tr.setAttribute('role', 'row');
+    var rh = document.createElement('th'); rh.className = 'rh'; rh.setAttribute('role', 'rowheader'); rh.setAttribute('data-testid', 'row-header-' + (r + 1)); rh.textContent = r + 1; tr.appendChild(rh);
+    for (c = 0; c < COLS; c++) {
+      var td = document.createElement('td'); td.setAttribute('role', 'gridcell'); td.setAttribute('data-testid', 'cell-' + addr(r, c)); td.dataset.i = r * COLS + c;
+      tr.appendChild(td); cellEls.push(td);
+    }
+    tb.appendChild(tr);
+  }
+  grid.appendChild(tb);
+})();
+
+function rect() { return { r0: Math.min(sel.ar, sel.r), r1: Math.max(sel.ar, sel.r), c0: Math.min(sel.ac, sel.c), c1: Math.max(sel.ac, sel.c) }; }
+function rectCells(R) { var o = []; for (var r = R.r0; r <= R.r1; r++) for (var c = R.c0; c <= R.c1; c++) o.push(r * COLS + c); return o; }
+function snap() { return { cells: cells.map(function (x) { return { raw: x.raw, fmt: x.fmt }; }), sel: { ar: sel.ar, ac: sel.ac, r: sel.r, c: sel.c } }; }
+function restore(s) { cells = s.cells.map(function (x) { return { raw: x.raw, fmt: x.fmt }; }); sel = { ar: s.sel.ar, ac: s.sel.ac, r: s.sel.r, c: s.sel.c }; }
+function record(before) {
+  undoStack.push({ before: before, after: snap() });
+  if (undoStack.length > 20) undoStack.shift();
+  redoStack = [];
+}
+
+function render() {
+  var R = rect();
+  for (var i = 0; i < cellEls.length; i++) {
+    var el = cellEls[i], v = values[i], r = Math.floor(i / COLS), c = i % COLS, txt, kind;
+    if (cells[i].raw === '') { txt = ''; kind = 'empty'; }
+    else {
+      kind = { n: 'number', s: 'text', b: 'logical', e: 'error', blank: 'number' }[v.t];
+      txt = v.t === 'n' ? fmtNumber(v.v, cells[i].fmt) : v.t === 's' ? v.v : v.t === 'b' ? (v.v ? 'TRUE' : 'FALSE') : v.t === 'e' ? v.v : '';
+    }
+    if (el.textContent !== txt) el.textContent = txt;
+    el.setAttribute('data-kind', kind);
+    el.setAttribute('aria-selected', r === sel.r && c === sel.c ? 'true' : 'false');
+    el.setAttribute('data-in-selection', r >= R.r0 && r <= R.r1 && c >= R.c0 && c <= R.c1 ? 'true' : 'false');
+  }
+  nameBox.textContent = R.r0 === R.r1 && R.c0 === R.c1 ? addr(sel.r, sel.c) : addr(R.r0, R.c0) + ':' + addr(R.r1, R.c1);
+  var active = cells[sel.r * COLS + sel.c];
+  input.setAttribute('data-editing', editing ? 'true' : 'false');
+  if (!editing) { if (input.value !== active.raw) input.value = active.raw; fmtSel.value = active.fmt; }
+  btn['undo-button'].disabled = editing || !undoStack.length;
+  btn['redo-button'].disabled = editing || !redoStack.length;
+  btn['paste-button'].disabled = editing || !clip;
+  ['copy-button', 'cut-button', 'clear-button', 'insert-row', 'delete-row', 'insert-col', 'delete-col'].forEach(function (k) { btn[k].disabled = editing; });
+  fmtSel.disabled = editing;
+  // summary
+  var list = rectCells(R), sum = 0, n = 0;
+  list.forEach(function (i) { if (cells[i].raw !== '' && values[i].t === 'n') { sum += values[i].v; n++; } });
+  if (n) {
+    var sTxt = N(sum), aTxt = N(sum / n);
+    summary.textContent = 'Sum: ' + (sTxt.t === 'n' ? G(sTxt.v) : '#NUM!') + ' | Average: ' + (aTxt.t === 'n' ? G(aTxt.v) : '#NUM!') + ' | Count: ' + n;
+    summary.hidden = false;
+  } else { summary.hidden = true; summary.textContent = ''; }
+}
+function changed() { recalc(); render(); }
+
+/* commit returns before-snapshot when a change occurred */
+function commitIfEditing() {
+  if (!editing) return null;
+  editing = false;
+  var raw = commitRaw(input.value), i = sel.r * COLS + sel.c;
+  if (raw === cells[i].raw) return null;
+  var before = snap();
+  cells[i].raw = raw;
+  recalc();
+  return before;
+}
+function moveTo(r, c, extend) {
+  r = Math.max(0, Math.min(ROWS - 1, r)); c = Math.max(0, Math.min(COLS - 1, c));
+  sel.r = r; sel.c = c;
+  if (!extend) { sel.ar = r; sel.ac = c; }
+}
+
+/* ---------- events ---------- */
+grid.addEventListener('mousedown', function (e) { if (e.target.closest('td[role="gridcell"]')) e.preventDefault(); });
+grid.addEventListener('click', function (e) {
+  var td = e.target.closest('td[role="gridcell"]'); if (!td) return;
+  var i = +td.dataset.i, before = commitIfEditing();
+  moveTo(Math.floor(i / COLS), i % COLS, e.shiftKey);
+  if (before) record(before);
+  grid.focus({ preventScroll: true });
+  render();
+});
+grid.addEventListener('keydown', function (e) {
+  var k = e.key, lk = k.length === 1 ? k.toLowerCase() : k, ctrl = e.ctrlKey || e.metaKey;
+  var arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  var handled = arrows[k] || k === 'Delete' || k === 'Backspace' || k === 'Enter' || (ctrl && (lk === 'z' || lk === 'y'));
+  if (!handled) return;
+  e.preventDefault();
+  if (k === 'Enter') { input.focus(); return; }
+  if (editing) return;
+  if (arrows[k]) { moveTo(sel.r + arrows[k][0], sel.c + arrows[k][1], e.shiftKey); render(); }
+  else if (k === 'Delete' || k === 'Backspace') doClear();
+  else if (lk === 'z') doUndo();
+  else doRedo();
+});
+input.addEventListener('input', function () { if (!editing) { editing = true; render(); } });
+input.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+    e.preventDefault();
+    var before = commitIfEditing();
+    if (e.key === 'Enter') moveTo(sel.r + 1, sel.c, false); else moveTo(sel.r, sel.c + 1, false);
+    if (before) record(before);
+    render();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    editing = false;
+    input.value = cells[sel.r * COLS + sel.c].raw;
+    render();
+    grid.focus({ preventScroll: true });
+  }
+});
+function doClear() {
+  if (editing) return;
+  var list = rectCells(rect());
+  if (list.every(function (i) { return cells[i].raw === ''; })) return;
+  var before = snap();
+  list.forEach(function (i) { cells[i].raw = ''; });
+  record(before); changed();
+}
+function doUndo() {
+  if (editing || !undoStack.length) return;
+  var st = undoStack.pop(); redoStack.push(st); restore(st.before); changed();
+}
+function doRedo() {
+  if (editing || !redoStack.length) return;
+  var st = redoStack.pop(); undoStack.push(st); restore(st.after); changed();
+}
+function takeBlock(mode) {
+  var R = rect(), block = [];
+  for (var r = R.r0; r <= R.r1; r++) for (var c = R.c0; c <= R.c1; c++) { var x = cells[r * COLS + c]; block.push({ dr: r - R.r0, dc: c - R.c0, raw: x.raw, fmt: x.fmt }); }
+  clip = { r0: R.r0, c0: R.c0, r1: R.r1, c1: R.c1, block: block, mode: mode };
+  render();
+}
+function doPaste() {
+  if (editing || !clip) return;
+  var before = snap(), R = rect(), tr = R.r0, tc = R.c0, cut = clip.mode === 'cut';
+  if (cut) for (var r = clip.r0; r <= clip.r1; r++) for (var c = clip.c0; c <= clip.c1; c++) cells[r * COLS + c] = { raw: '', fmt: 'general' };
+  var dr = tr - clip.r0, dc = tc - clip.c0;
+  clip.block.forEach(function (b) {
+    var r2 = tr + b.dr, c2 = tc + b.dc;
+    if (r2 >= ROWS || c2 >= COLS) return;
+    cells[r2 * COLS + c2] = { raw: cut ? b.raw : pasteRewrite(b.raw, dr, dc), fmt: b.fmt };
+  });
+  if (cut) clip = null;
+  moveTo(tr, tc, false);
+  record(before); changed();
+}
+function doStruct(axis, ins) {
+  if (editing) return;
+  var before = snap(), k = axis === 'row' ? sel.r + 1 : sel.c + 1;
+  var nc = cells.map(function (x) { return { raw: structRewrite(x.raw, axis, ins, k), fmt: x.fmt }; });
+  var out = [];
+  for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+    var p = axis === 'row' ? r + 1 : c + 1, src;
+    if (ins) src = p < k ? p : p === k ? 0 : p - 1;
+    else { var lim = axis === 'row' ? ROWS : COLS; src = p < k ? p : p === lim ? 0 : p + 1; }
+    if (!src) out.push({ raw: '', fmt: 'general' });
+    else { var sr = axis === 'row' ? src - 1 : r, sc = axis === 'row' ? c : src - 1; out.push(nc[sr * COLS + sc]); }
+  }
+  cells = out;
+  record(before); changed();
+}
+btn['undo-button'].addEventListener('click', doUndo);
+btn['redo-button'].addEventListener('click', doRedo);
+btn['copy-button'].addEventListener('click', function () { if (!editing) takeBlock('copy'); });
+btn['cut-button'].addEventListener('click', function () { if (!editing) takeBlock('cut'); });
+btn['paste-button'].addEventListener('click', doPaste);
+btn['clear-button'].addEventListener('click', doClear);
+btn['insert-row'].addEventListener('click', function () { doStruct('row', true); });
+btn['delete-row'].addEventListener('click', function () { doStruct('row', false); });
+btn['insert-col'].addEventListener('click', function () { doStruct('col', true); });
+btn['delete-col'].addEventListener('click', function () { doStruct('col', false); });
+fmtSel.addEventListener('change', function () {
+  if (editing) return;
+  var f = fmtSel.value, list = rectCells(rect());
+  if (list.every(function (i) { return cells[i].fmt === f; })) { render(); return; }
+  var before = snap();
+  list.forEach(function (i) { cells[i].fmt = f; });
+  record(before); changed();
+});
+
+changed();
+})();
+</script>
+</body>
+</html>

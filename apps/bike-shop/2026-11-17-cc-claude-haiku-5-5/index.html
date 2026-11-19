@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Haiku 5.5</title>
+<style>
+  :root {
+    --bg: #f4f2ee;
+    --surface: #ffffff;
+    --ink: #1c1b19;
+    --muted: #55524b;
+    --line: #cfccc3;
+    --accent: #0d5c57;
+    --accent-soft: #dcefeb;
+    --unavailable: #e9e7e1;
+    --warn: #9c1c12;
+    --disabled: #e2e0da;
+    --focus: #0d5c57;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  [hidden] { display: none !important; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    color-scheme: light;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  button, input { font: inherit; }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 16px;
+  }
+  .app-header h1 {
+    margin: 0 auto;
+    max-width: 1200px;
+    font-size: 1.4rem;
+    letter-spacing: 0.01em;
+    color: var(--accent);
+  }
+
+  .layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  @media (min-width: 920px) {
+    .layout { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; }
+  }
+
+  .configurator, .order {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    min-width: 0;
+  }
+  .panel h2, .order > h2 {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+  }
+
+  .field { display: grid; gap: 6px; }
+  .field label, .promo label {
+    font-weight: 600;
+  }
+  input[type="text"] {
+    width: 100%;
+    max-width: 14rem;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  .error {
+    margin: 0;
+    color: var(--warn);
+    font-weight: 600;
+  }
+  .hint {
+    margin: 0;
+    color: var(--muted);
+  }
+  .status {
+    margin: 0;
+    color: var(--ink);
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  /* Option cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    min-height: 64px;
+    padding: 10px 12px;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    cursor: pointer;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .card.is-unavailable {
+    cursor: not-allowed;
+    background: var(--unavailable);
+    border-style: dashed;
+    border-color: #a9a69c;
+  }
+  .card:focus-within {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .card input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .card-name { font-weight: 600; }
+  .card-price { color: var(--muted); font-size: 0.92rem; }
+  .card-reason { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
+  .card.is-unavailable .card-price { color: var(--muted); }
+  .card-badge {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* Quantity */
+  .qty {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .qty-value {
+    min-width: 2.5rem;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  /* Buttons */
+  .btn {
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--accent);
+  }
+  .btn-quiet {
+    background: transparent;
+    color: var(--accent);
+    border-color: transparent;
+    text-decoration: underline;
+    padding-inline: 4px;
+  }
+  .btn-small { min-height: 40px; padding: 6px 12px; }
+  .btn-round {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+  .btn:disabled {
+    background: var(--disabled);
+    border-color: var(--disabled);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+  .btn-secondary:disabled {
+    background: var(--disabled);
+    border-color: var(--disabled);
+  }
+
+  /* Bike box */
+  .bike-box {
+    display: grid;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .bike-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .caption { color: var(--muted); font-weight: 600; }
+  .big-figure { font-size: 1.4rem; font-weight: 700; }
+  .bike-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .bike-buttons .btn { flex: 1 1 auto; }
+
+  /* Order */
+  .empty { margin: 0; color: var(--muted); }
+  .lines { display: grid; gap: 10px; }
+  .line {
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    background: var(--surface);
+  }
+  .line.is-editing {
+    border: 2px solid var(--accent);
+    background: var(--accent-soft);
+  }
+  .line-desc { margin: 0; font-weight: 600; }
+  .line-acc { margin: 0; color: var(--muted); font-size: 0.92rem; }
+  .line-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+  }
+  .line-figs { margin: 0; display: flex; gap: 6px; align-items: baseline; }
+  .cap { color: var(--muted); font-size: 0.88rem; }
+  .fig { font-weight: 600; }
+  .line-actions { display: flex; gap: 8px; }
+
+  .promo { display: grid; gap: 8px; }
+  .promo-row { display: flex; gap: 8px; align-items: stretch; }
+  .promo-row input[type="text"] { flex: 1 1 0; min-width: 0; max-width: none; }
+  .promo-row .btn { flex: none; }
+
+  .summary {
+    display: grid;
+    gap: 6px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+  .sum-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sum-row [data-role="value"] { font-weight: 600; text-align: right; }
+  .sum-row.is-total [data-role="label"],
+  .sum-row.is-total [data-role="value"] { font-weight: 700; font-size: 1.15rem; }
+
+  .place { width: 100%; margin-top: 4px; }
+
+  /* Notice and confirmation */
+  .notice {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid var(--accent);
+    color: var(--ink);
+  }
+
+  .confirmation {
+    max-width: 640px;
+    margin: 24px auto;
+    display: grid;
+    gap: 14px;
+  }
+  .confirmation h2 { margin: 0; font-size: 1.4rem; color: var(--accent); }
+  .conf-list { margin: 0; display: grid; gap: 8px; }
+  .conf-list > div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .conf-list dt { color: var(--muted); font-weight: 600; }
+  .conf-list dd { margin: 0; font-weight: 700; text-align: right; }
+</style>
+</head>
+<body>
+
+<header class="app-header" data-testid="app-header">
+  <h1>Claude Haiku 5.5</h1>
+</header>
+
+<main class="layout" id="main">
+  <div class="configurator" data-testid="configurator">
+
+    <section class="panel" data-testid="section-rider" aria-labelledby="h-rider">
+      <h2 id="h-rider">Rider</h2>
+      <div class="field">
+        <label for="height-input">Rider height (cm)</label>
+        <input id="height-input" data-testid="height-input" type="text" inputmode="numeric" autocomplete="off" aria-describedby="height-error">
+        <p class="error" id="height-error" data-testid="height-error" hidden></p>
+        <p class="hint" data-testid="height-recommendation" hidden></p>
+      </div>
+    </section>
+
+    <section class="panel" data-testid="section-frame" aria-labelledby="h-frame">
+      <h2 id="h-frame">Frame</h2>
+      <div class="cards" id="cards-frame" role="radiogroup" aria-labelledby="h-frame"></div>
+    </section>
+
+    <section class="panel" data-testid="section-wheels" aria-labelledby="h-wheels">
+      <h2 id="h-wheels">Wheels</h2>
+      <div class="cards" id="cards-wheels" role="radiogroup" aria-labelledby="h-wheels"></div>
+    </section>
+
+    <section class="panel" data-testid="section-drivetrain" aria-labelledby="h-drivetrain">
+      <h2 id="h-drivetrain">Drivetrain</h2>
+      <div class="cards" id="cards-drivetrain" role="radiogroup" aria-labelledby="h-drivetrain"></div>
+    </section>
+
+    <section class="panel" data-testid="section-color" aria-labelledby="h-color">
+      <h2 id="h-color">Color</h2>
+      <div class="cards" id="cards-color" role="radiogroup" aria-labelledby="h-color"></div>
+    </section>
+
+    <section class="panel" data-testid="section-accessories" aria-labelledby="h-accessories">
+      <h2 id="h-accessories">Accessories</h2>
+      <div class="cards" id="cards-accessories" role="group" aria-labelledby="h-accessories"></div>
+    </section>
+
+    <section class="panel" data-testid="section-quantity" aria-labelledby="h-quantity">
+      <h2 id="h-quantity">Quantity</h2>
+      <div class="qty">
+        <button type="button" class="btn btn-secondary btn-round" data-testid="qty-decrease" aria-label="Decrease quantity">&minus;</button>
+        <span class="qty-value" data-testid="qty-value">1</span>
+        <button type="button" class="btn btn-secondary btn-round" data-testid="qty-increase" aria-label="Increase quantity">+</button>
+      </div>
+    </section>
+
+    <div class="bike-box">
+      <div class="bike-price-row">
+        <span class="caption">Bike price</span>
+        <span class="big-figure" data-testid="bike-price">&mdash;</span>
+      </div>
+      <div class="bike-buttons">
+        <button type="button" class="btn btn-secondary" data-testid="undo-button" disabled>Undo</button>
+        <button type="button" class="btn" data-testid="add-to-order" disabled>Add to order</button>
+      </div>
+      <p class="hint" data-testid="add-hint">Enter the rider's height to add this bike.</p>
+      <p class="error" data-testid="line-error" hidden></p>
+      <button type="button" class="btn btn-secondary" data-testid="cancel-edit" hidden>Cancel edit</button>
+    </div>
+
+  </div>
+
+  <div class="order" data-testid="order">
+    <section class="panel" aria-labelledby="h-order">
+      <h2 id="h-order">Order</h2>
+
+      <p class="empty" data-testid="order-empty">Your order is empty.</p>
+      <div class="lines" id="order-lines"></div>
+
+      <div class="promo">
+        <label for="promo-input">Promo code</label>
+        <div class="promo-row">
+          <input id="promo-input" data-testid="promo-input" type="text" autocomplete="off" aria-describedby="promo-error">
+          <button type="button" class="btn btn-secondary" data-testid="promo-apply" disabled>Apply</button>
+        </div>
+        <p class="error" id="promo-error" data-testid="promo-error" hidden>This code is not valid.</p>
+        <p class="status" data-testid="promo-status" hidden></p>
+        <button type="button" class="btn btn-quiet" data-testid="promo-remove" hidden>Remove code</button>
+      </div>
+
+      <div class="summary">
+        <div class="sum-row" data-testid="summary-line-bikes" hidden>
+          <span data-role="label">Bikes</span><span data-role="value"></span>
+        </div>
+        <div class="sum-row" data-testid="summary-line-pack" hidden>
+          <span data-role="label">Commuter pack</span><span data-role="value"></span>
+        </div>
+        <div class="sum-row" data-testid="summary-line-volume" hidden>
+          <span data-role="label">Volume discount</span><span data-role="value"></span>
+        </div>
+        <div class="sum-row" data-testid="summary-line-promo" hidden>
+          <span data-role="label"></span><span data-role="value"></span>
+        </div>
+        <div class="sum-row" data-testid="summary-line-shipping" hidden>
+          <span data-role="label">Shipping</span><span data-role="value"></span>
+        </div>
+        <div class="sum-row is-total" data-testid="summary-line-total" hidden>
+          <span data-role="label">Total</span><span data-role="value"></span>
+        </div>
+        <div class="sum-row" data-testid="summary-line-vat" hidden>
+          <span data-role="label">VAT included</span><span data-role="value"></span>
+        </div>
+        <div class="sum-row" data-testid="summary-line-delivery" hidden>
+          <span data-role="label">Delivery</span><span data-role="value"></span>
+        </div>
+      </div>
+
+      <button type="button" class="btn place" data-testid="place-order" disabled>Place order</button>
+      <p class="hint" data-testid="place-hint" hidden>Save or cancel the line being edited.</p>
+    </section>
+  </div>
+</main>
+
+<div role="status">
+  <p class="notice" data-testid="notice" hidden></p>
+</div>
+
+<section class="panel confirmation" data-testid="confirmation" aria-labelledby="confirmation-title" hidden>
+  <h2 id="confirmation-title" data-testid="confirmation-title">Order confirmed</h2>
+  <p data-testid="confirmation-reference"></p>
+  <p data-testid="confirmation-bikes"></p>
+  <dl class="conf-list">
+    <div><dt>Total</dt><dd data-testid="confirmation-total"></dd></div>
+    <div><dt>Delivery</dt><dd data-testid="confirmation-delivery"></dd></div>
+  </dl>
+  <button type="button" class="btn" data-testid="confirmation-new">Start a new order</button>
+</section>
+
+<script>
+'use strict';
+
+const M = {
+  m01: 'Enter a height between 150 and 200 cm.',
+  m04: 'Not available with frame S',
+  m05: 'Available with frames M and L only',
+  m06: '29" wheels were replaced by 27.5" wheels: not available with frame S.',
+  m07: 'Pro Electronic 2×12 was replaced by Sport 1×12: not available with frame S.',
+  m08: 'Glacier was replaced by Graphite: available with frames M and L only.',
+  m09: '29" wheels were selected: required by Pro Electronic 2×12.',
+  m10: 'Pro Electronic 2×12 was replaced by Sport 1×12: it requires 29" wheels.',
+  m11: 'Mudguards were added: required by the rear rack.',
+  m12: 'Kickstand was removed: not compatible with the rear rack.',
+  m13: 'Rear rack was removed: it requires mudguards.',
+  m14: 'Rear rack was removed: not compatible with the kickstand.',
+  m16: 'A line cannot hold more than 5 bikes.',
+  m17: 'An order cannot hold more than 4 lines.',
+  m18: 'An order cannot hold more than 10 bikes.',
+  m20: 'This code is not valid.',
+  m22: 'SPRING10 requires €3,000.00 or more after the volume discount.',
+  m23: 'WELCOME50 applies to an order of one bike only.',
+  m24: 'FREESHIP applies once the order holds a bike.',
+  m25: 'TEAM15 requires 4 bikes or more.',
+  m26: 'The volume discount applies instead of TEAM15.'
+};
+
+const FRAMES = [
+  { id: 'S', name: 'Frame S', min: 150, max: 164, cents: 119000 },
+  { id: 'M', name: 'Frame M', min: 165, max: 174, cents: 119000 },
+  { id: 'L', name: 'Frame L', min: 175, max: 184, cents: 124000 },
+  { id: 'XL', name: 'Frame XL', min: 185, max: 200, cents: 129000 }
+];
+const WHEELS = [
+  { id: '275', name: '27.5" wheels', cents: 0 },
+  { id: '29', name: '29" wheels', cents: 12000 }
+];
+const DRIVES = [
+  { id: 'essential', name: 'Essential 1×10', cents: 0, lead: 5 },
+  { id: 'sport', name: 'Sport 1×12', cents: 24000, lead: 7 },
+  { id: 'pro', name: 'Pro Electronic 2×12', cents: 69000, lead: 12 }
+];
+const COLORS = [
+  { id: 'graphite', name: 'Graphite', cents: 0 },
+  { id: 'sand', name: 'Sand', cents: 0 },
+  { id: 'red', name: 'Racing Red', cents: 6000 },
+  { id: 'glacier', name: 'Glacier', cents: 0 }
+];
+const ACCESSORIES = [
+  { id: 'mudguards', name: 'Mudguards', cents: 4500 },
+  { id: 'rack', name: 'Rear rack', cents: 6900 },
+  { id: 'lights', name: 'Lights', cents: 3990 },
+  { id: 'kickstand', name: 'Kickstand', cents: 2450 }
+];
+const CODES = ['SPRING10', 'WELCOME50', 'FREESHIP', 'TEAM15'];
+const CLOSED_DAYS = ['2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01', '2027-03-29'];
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  'August', 'September', 'October', 'November', 'December'];
+const LISTS = { frame: FRAMES, wheels: WHEELS, drivetrain: DRIVES, color: COLORS, accessory: ACCESSORIES };
+
+const S = {
+  cfg: emptyCfg(),
+  qty: 1,
+  auto: true,
+  editing: null,
+  lines: [],
+  undo: [],
+  notice: '',
+  lineError: '',
+  promo: null,
+  promoError: false,
+  seq: 1,
+  confirmed: null
+};
+
+const cards = [];
+const slots = [];
+
+/* ---------- helpers ---------- */
+
+function T(id) { return document.querySelector('[data-testid="' + id + '"]'); }
+function pad(n) { return String(n).padStart(2, '0'); }
+function find(list, id) { return list.find(function (o) { return o.id === id; }); }
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+function fmt(cents) {
+  const euros = String(Math.floor(cents / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return '€' + euros + '.' + pad(cents % 100);
+}
+function signed(cents) { return cents > 0 ? '+' + fmt(cents) : 'Included'; }
+function discount(cents) { return '−' + fmt(cents); }
+function roundDiv(n, d) { return Math.floor((2 * n + d) / (2 * d)); }
+function percent(x, p) { return roundDiv(x * p, 100); }
+
+function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function fmtDate(d) {
+  return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+/* ---------- configuration ---------- */
+
+function emptyCfg() {
+  return {
+    frame: null,
+    wheels: '275',
+    drv: 'essential',
+    color: 'graphite',
+    acc: { mudguards: false, rack: false, lights: false, kickstand: false }
+  };
+}
+function copyCfg(c) {
+  return { frame: c.frame, wheels: c.wheels, drv: c.drv, color: c.color, acc: Object.assign({}, c.acc) };
+}
+function lineKey(c) {
+  const accs = ACCESSORIES.filter(function (a) { return c.acc[a.id]; }).map(function (a) { return a.id; });
+  return [c.frame, c.wheels, c.drv, c.color, accs.join(',')].join('|');
+}
+function colorCents(color, drv) {
+  return color === 'red' && drv === 'pro' ? 0 : find(COLORS, color).cents;
+}
+function unitPrice(c) {
+  let total = colorCents(c.color, c.drv) + find(WHEELS, c.wheels).cents + find(DRIVES, c.drv).cents;
+  if (c.frame) total += find(FRAMES, c.frame).cents;
+  ACCESSORIES.forEach(function (a) { if (c.acc[a.id]) total += a.cents; });
+  return total;
+}
+function describe(c) {
+  return [find(FRAMES, c.frame).name, find(WHEELS, c.wheels).name,
+    find(DRIVES, c.drv).name, find(COLORS, c.color).name].join(' · ');
+}
+function accessoryList(c) {
+  const names = ACCESSORIES.filter(function (a) { return c.acc[a.id]; }).map(function (a) { return a.name; });
+  return names.length ? names.join(', ') : 'No accessories';
+}
+
+/* Height: the recommended frame id for a valid height, otherwise null. */
+function recommended() {
+  const text = T('height-input').value.trim();
+  if (!/^[0-9]+$/.test(text)) return null;
+  const h = Number(text);
+  if (h < 150 || h > 200) return null;
+  return FRAMES.find(function (f) { return h >= f.min && h <= f.max; }).id;
+}
+
+/* Cascades that follow a frame becoming selected (C1 to C3). */
+function frameCascades() {
+  const msgs = [];
+  const f = S.cfg.frame;
+  if (f === 'S') {
+    if (S.cfg.wheels === '29') { S.cfg.wheels = '275'; msgs.push(M.m06); }
+    if (S.cfg.drv === 'pro') { S.cfg.drv = 'sport'; msgs.push(M.m07); }
+  }
+  if ((f === 'S' || f === 'XL') && S.cfg.color === 'glacier') {
+    S.cfg.color = 'graphite';
+    msgs.push(M.m08);
+  }
+  return msgs;
+}
+
+function selectFrame(id) {
+  if (S.cfg.frame === id) return [];
+  S.cfg.frame = id;
+  S.auto = false;
+  return frameCascades();
+}
+function selectWheels(id) {
+  if (S.cfg.wheels === id) return [];
+  S.cfg.wheels = id;
+  if (id === '275' && S.cfg.drv === 'pro') {
+    S.cfg.drv = 'sport';
+    return [M.m10];
+  }
+  return [];
+}
+function selectDrive(id) {
+  if (S.cfg.drv === id) return [];
+  S.cfg.drv = id;
+  if (id === 'pro' && S.cfg.wheels === '275') {
+    S.cfg.wheels = '29';
+    return [M.m09];
+  }
+  return [];
+}
+function selectColor(id) {
+  if (S.cfg.color === id) return [];
+  S.cfg.color = id;
+  return [];
+}
+function toggleAccessory(id, checked) {
+  if (S.cfg.acc[id] === checked) return [];
+  S.cfg.acc[id] = checked;
+  const msgs = [];
+  if (checked && id === 'rack') {
+    if (!S.cfg.acc.mudguards) { S.cfg.acc.mudguards = true; msgs.push(M.m11); }
+    if (S.cfg.acc.kickstand) { S.cfg.acc.kickstand = false; msgs.push(M.m12); }
+  }
+  if (!checked && id === 'mudguards' && S.cfg.acc.rack) {
+    S.cfg.acc.rack = false;
+    msgs.push(M.m13);
+  }
+  if (checked && id === 'kickstand' && S.cfg.acc.rack) {
+    S.cfg.acc.rack = false;
+    msgs.push(M.m14);
+  }
+  return msgs;
+}
+
+/* A user action: one card click or one quantity button. */
+function userAction(change) {
+  const before = JSON.stringify(snap());
+  S.notice = '';
+  S.lineError = '';
+  const msgs = change();
+  if (JSON.stringify(snap()) !== before) S.undo.push(JSON.parse(before));
+  S.notice = msgs.join(' ');
+  render();
+}
+
+function snap() { return { cfg: copyCfg(S.cfg), qty: S.qty, auto: S.auto }; }
+
+function resetConfigurator() {
+  S.cfg = emptyCfg();
+  S.qty = 1;
+  S.auto = true;
+  S.editing = null;
+  S.undo = [];
+  S.notice = '';
+  const rec = recommended();
+  if (rec) S.cfg.frame = rec;
+}
+
+/* ---------- order ---------- */
+
+function computeOrder() {
+  let B = 0;
+  let bikes = 0;
+  let pack = 0;
+  let perf = 0;
+  S.lines.forEach(function (l) {
+    const amount = unitPrice(l.cfg) * l.qty;
+    const p = l.cfg.acc.mudguards && l.cfg.acc.rack && l.cfg.acc.lights ? 3000 * l.qty : 0;
+    B += l.qty;
+    pack += p;
+    bikes += amount - p;
+    if (l.cfg.drv !== 'essential') perf += amount - p;
+  });
+  let vol = 0;
+  if (B >= 6) vol = percent(bikes, 8);
+  else if (B >= 3) vol = percent(bikes, 5);
+  const team = S.promo === 'TEAM15' && B >= 4 ? percent(perf, 15) : 0;
+  const teamUsed = team > vol ? team : 0;
+  const volUsed = team > vol ? 0 : vol;
+  const afterVol = bikes - volUsed;
+  let promoAmt = 0;
+  if (S.promo === 'SPRING10' && afterVol >= 300000) promoAmt = percent(afterVol, 10);
+  else if (S.promo === 'WELCOME50' && B === 1) promoAmt = 5000;
+  else if (S.promo === 'TEAM15') promoAmt = teamUsed;
+  const merch = afterVol - promoAmt;
+  let shipping = 0;
+  if (B > 0 && S.promo !== 'FREESHIP' && merch < 500000) shipping = 4900 + 1500 * (B - 1);
+  const total = merch + shipping;
+  return {
+    B: B,
+    bikes: bikes,
+    pack: pack,
+    vol: vol,
+    team: team,
+    volUsed: volUsed,
+    afterVol: afterVol,
+    promoAmt: promoAmt,
+    shipping: shipping,
+    total: total,
+    vat: roundDiv(total * 20, 120)
+  };
+}
+
+function promoStatus(o) {
+  if (S.promo === 'SPRING10' && o.afterVol < 300000) return M.m22;
+  if (S.promo === 'WELCOME50' && o.B !== 1) return M.m23;
+  if (S.promo === 'FREESHIP' && o.B < 1) return M.m24;
+  if (S.promo === 'TEAM15') {
+    if (o.B < 4) return M.m25;
+    if (o.team <= o.vol) return M.m26;
+  }
+  return 'Code ' + S.promo + ' applied.';
+}
+
+function lineLead(l) {
+  return find(DRIVES, l.cfg.drv).lead + (l.cfg.color === 'red' ? 3 : 0) + (l.qty >= 3 ? 2 : 0);
+}
+function orderLead(now) {
+  const base = Math.max.apply(null, S.lines.map(lineLead));
+  return base + (S.lines.length - 1) + (now.getHours() >= 14 ? 1 : 0);
+}
+function isBusinessDay(d) {
+  const day = d.getDay();
+  if (day === 0 || day === 6) return false;
+  return CLOSED_DAYS.indexOf(ymd(d)) < 0;
+}
+function deliveryDate(now) {
+  const lead = orderLead(now);
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let count = 0;
+  while (count < lead) {
+    d.setDate(d.getDate() + 1);
+    if (isBusinessDay(d)) count += 1;
+  }
+  return fmtDate(d);
+}
+
+function linesError(lines) {
+  if (lines.some(function (l) { return l.qty > 5; })) return M.m16;
+  if (lines.length > 4) return M.m17;
+  const B = lines.reduce(function (sum, l) { return sum + l.qty; }, 0);
+  if (B > 10) return M.m18;
+  return '';
+}
+function copyLine(l) { return { cfg: copyCfg(l.cfg), qty: l.qty }; }
+
+function addToOrder() {
+  const rec = recommended();
+  if (S.editing === null) {
+    if (rec === null || S.cfg.frame === null) return;
+    const next = S.lines.map(copyLine);
+    const key = lineKey(S.cfg);
+    const idx = next.findIndex(function (l) { return lineKey(l.cfg) === key; });
+    if (idx >= 0) next[idx].qty += S.qty;
+    else next.push({ cfg: copyCfg(S.cfg), qty: S.qty });
+    const err = linesError(next);
+    if (err) {
+      S.lineError = err;
+      render();
+      return;
+    }
+    S.lines = next;
+    S.lineError = '';
+    resetConfigurator();
+    render();
+    return;
+  }
+
+  const i = S.editing;
+  const next = S.lines.map(copyLine);
+  next[i] = { cfg: copyCfg(S.cfg), qty: S.qty };
+  const key = lineKey(S.cfg);
+  const k = next.findIndex(function (l, j) { return j !== i && lineKey(l.cfg) === key; });
+  if (k >= 0) {
+    const qty = next[i].qty + next[k].qty;
+    const lo = Math.min(i, k);
+    const hi = Math.max(i, k);
+    next[lo].qty = qty;
+    next.splice(hi, 1);
+  }
+  const err = linesError(next);
+  if (err) {
+    S.lineError = err;
+    render();
+    return;
+  }
+  S.lines = next;
+  S.lineError = '';
+  resetConfigurator();
+  render();
+}
+
+function startEdit(i) {
+  const line = S.lines[i];
+  if (S.editing !== null) S.lineError = '';
+  S.editing = i;
+  S.cfg = copyCfg(line.cfg);
+  S.qty = line.qty;
+  S.auto = false;
+  S.undo = [];
+  S.notice = '';
+  render();
+}
+
+function cancelEdit() {
+  S.lineError = '';
+  resetConfigurator();
+  render();
+}
+
+function removeLine(i) {
+  S.lines.splice(i, 1);
+  S.lineError = '';
+  if (S.editing === i) {
+    resetConfigurator();
+  } else if (S.editing !== null && S.editing > i) {
+    S.editing -= 1;
+  }
+  render();
+}
+
+function applyPromo() {
+  const input = T('promo-input');
+  const code = input.value.trim().toUpperCase();
+  if (code === '') return;
+  if (CODES.indexOf(code) >= 0) {
+    S.promo = code;
+    input.value = '';
+    S.promoError = false;
+  } else {
+    S.promoError = true;
+  }
+  render();
+}
+
+/* ---------- rendering ---------- */
+
+function reasonFor(ref) {
+  const f = S.cfg.frame;
+  if (ref.group === 'wheels' && ref.id === '29' && f === 'S') return M.m04;
+  if (ref.group === 'drivetrain' && ref.id === 'pro' && f === 'S') return M.m04;
+  if (ref.group === 'color' && ref.id === 'glacier' && (f === 'S' || f === 'XL')) return M.m05;
+  return '';
+}
+function cardPrice(ref) {
+  if (ref.group === 'frame') return fmt(find(FRAMES, ref.id).cents);
+  if (ref.group === 'wheels') return signed(find(WHEELS, ref.id).cents);
+  if (ref.group === 'drivetrain') return signed(find(DRIVES, ref.id).cents);
+  if (ref.group === 'color') return signed(colorCents(ref.id, S.cfg.drv));
+  return signed(find(ACCESSORIES, ref.id).cents);
+}
+function isSelected(ref) {
+  if (ref.group === 'frame') return S.cfg.frame === ref.id;
+  if (ref.group === 'wheels') return S.cfg.wheels === ref.id;
+  if (ref.group === 'drivetrain') return S.cfg.drv === ref.id;
+  if (ref.group === 'color') return S.cfg.color === ref.id;
+  return !!S.cfg.acc[ref.id];
+}
+
+function setRow(key, visible, value, label) {
+  const row = T('summary-line-' + key);
+  row.hidden = !visible;
+  if (label !== undefined) row.querySelector('[data-role="label"]').textContent = label;
+  row.querySelector('[data-role="value"]').textContent = value;
+}
+
+function render() {
+  const rec = recommended();
+  const raw = T('height-input').value.trim();
+  const bad = raw !== '' && rec === null;
+  const err = T('height-error');
+  err.hidden = !bad;
+  err.textContent = bad ? M.m01 : '';
+  T('height-input').setAttribute('aria-invalid', bad ? 'true' : 'false');
+  const hint = T('height-recommendation');
+  hint.hidden = rec === null;
+  hint.textContent = rec === null ? '' : 'Recommended frame: ' + rec;
+
+  cards.forEach(function (ref) {
+    const reason = reasonFor(ref);
+    const unavailable = reason !== '';
+    ref.input.checked = isSelected(ref);
+    ref.input.disabled = unavailable;
+    ref.label.classList.toggle('is-selected', ref.input.checked);
+    ref.label.classList.toggle('is-unavailable', unavailable);
+    ref.reason.textContent = reason;
+    ref.reason.hidden = !unavailable;
+    ref.price.textContent = cardPrice(ref);
+    if (ref.badge) ref.badge.hidden = !(rec !== null && rec === ref.id);
+  });
+
+  T('qty-value').textContent = String(S.qty);
+  T('qty-decrease').disabled = S.qty <= 1;
+  T('qty-increase').disabled = S.qty >= 5;
+  T('bike-price').textContent = S.cfg.frame ? fmt(unitPrice(S.cfg) * S.qty) : '—';
+  T('undo-button').disabled = S.undo.length === 0;
+
+  const editing = S.editing !== null;
+  const add = T('add-to-order');
+  add.textContent = editing ? 'Update line ' + (S.editing + 1) : 'Add to order';
+  add.disabled = !editing && (rec === null || S.cfg.frame === null);
+  T('add-hint').hidden = editing || rec !== null;
+  T('cancel-edit').hidden = !editing;
+  T('line-error').textContent = S.lineError;
+  T('line-error').hidden = S.lineError === '';
+
+  const o = computeOrder();
+  const has = S.lines.length > 0;
+  slots.forEach(function (slot, i) {
+    const line = S.lines[i];
+    slot.hidden = !line;
+    slot.classList.toggle('is-editing', S.editing === i);
+    if (!line) return;
+    slot.querySelector('[data-role="description"]').textContent = describe(line.cfg);
+    slot.querySelector('[data-role="accessories"]').textContent = accessoryList(line.cfg);
+    slot.querySelector('[data-role="qty"]').textContent = String(line.qty);
+    slot.querySelector('[data-role="amount"]').textContent = fmt(unitPrice(line.cfg) * line.qty);
+  });
+  T('order-empty').hidden = has;
+
+  const promoApplied = S.promo !== null;
+  setRow('bikes', has, fmt(o.bikes), 'Bikes');
+  setRow('pack', has && o.pack > 0, discount(o.pack), 'Commuter pack');
+  setRow('volume', has && o.volUsed > 0, discount(o.volUsed), 'Volume discount');
+  setRow('promo', has && o.promoAmt > 0, discount(o.promoAmt), 'Promo ' + (S.promo || ''));
+  setRow('shipping', has, o.shipping === 0 ? 'Free' : fmt(o.shipping), 'Shipping');
+  setRow('total', has, fmt(o.total), 'Total');
+  setRow('vat', has, fmt(o.vat), 'VAT included');
+  setRow('delivery', has, has ? deliveryDate(new Date()) : '', 'Delivery');
+
+  T('promo-input').setAttribute('aria-invalid', S.promoError ? 'true' : 'false');
+  T('promo-error').hidden = !S.promoError;
+  T('promo-error').textContent = S.promoError ? M.m20 : '';
+  T('promo-apply').disabled = T('promo-input').value.trim() === '';
+  T('promo-status').hidden = !promoApplied;
+  T('promo-status').textContent = promoApplied ? promoStatus(o) : '';
+  T('promo-remove').hidden = !promoApplied;
+
+  const n = o.B;
+  const place = T('place-order');
+  place.textContent = n === 0 ? 'Place order' : n === 1 ? 'Place order (1 bike)' : 'Place order (' + n + ' bikes)';
+  place.disabled = !has || editing;
+  T('place-hint').hidden = !editing;
+
+  const notice = T('notice');
+  notice.textContent = S.notice;
+  notice.hidden = S.notice === '' || S.confirmed !== null;
+
+  const c = S.confirmed;
+  byId('main').hidden = c !== null;
+  T('confirmation').hidden = c === null;
+  if (c) {
+    T('confirmation-reference').textContent = c.reference;
+    T('confirmation-bikes').textContent = c.bikes;
+    T('confirmation-total').textContent = c.total;
+    T('confirmation-delivery').textContent = c.delivery;
+  }
+}
+
+function byId(id) { return document.getElementById(id); }
+
+/* ---------- building the static structure ---------- */
+
+function buildCards(group, containerId, type, options) {
+  const box = byId(containerId);
+  options.forEach(function (opt) {
+    const label = el('label', 'card');
+    label.dataset.testid = 'card-' + group + '-' + opt.id;
+
+    const input = el('input');
+    input.type = type;
+    input.name = group === 'accessory' ? 'accessory' : group;
+    input.value = opt.id;
+    input.setAttribute('aria-label', opt.name);
+
+    const name = el('span', 'card-name');
+    name.dataset.role = 'name';
+    name.textContent = opt.name;
+
+    const price = el('span', 'card-price');
+    price.dataset.role = 'price';
+
+    const reason = el('span', 'card-reason');
+    reason.dataset.role = 'reason';
+    reason.hidden = true;
+
+    label.append(input, name, price, reason);
+
+    let badge = null;
+    if (group === 'frame') {
+      badge = el('span', 'card-badge');
+      badge.dataset.role = 'badge';
+      badge.textContent = 'Recommended';
+      badge.hidden = true;
+      label.append(badge);
+    }
+
+    const ref = { group: group, id: opt.id, label: label, input: input, price: price, reason: reason, badge: badge };
+    input.addEventListener('click', function () { onCardClick(ref); });
+    box.append(label);
+    cards.push(ref);
+  });
+}
+
+function onCardClick(ref) {
+  userAction(function () {
+    if (ref.group === 'frame') return selectFrame(ref.id);
+    if (ref.group === 'wheels') return selectWheels(ref.id);
+    if (ref.group === 'drivetrain') return selectDrive(ref.id);
+    if (ref.group === 'color') return selectColor(ref.id);
+    return toggleAccessory(ref.id, ref.input.checked);
+  });
+}
+
+function buildSlots() {
+  const box = byId('order-lines');
+  for (let i = 0; i < 4; i++) {
+    const slot = el('article', 'line');
+    slot.dataset.testid = 'order-line-' + (i + 1);
+    slot.hidden = true;
+    slot.innerHTML =
+      '<p class="line-desc" data-role="description"></p>' +
+      '<p class="line-acc" data-role="accessories"></p>' +
+      '<div class="line-foot">' +
+        '<p class="line-figs"><span class="cap">Qty</span> <span class="fig" data-role="qty"></span></p>' +
+        '<p class="line-figs"><span class="cap">Amount</span> <span class="fig" data-role="amount"></span></p>' +
+        '<div class="line-actions">' +
+          '<button type="button" class="btn btn-secondary btn-small" data-role="edit">Edit</button>' +
+          '<button type="button" class="btn btn-secondary btn-small" data-role="remove">Remove</button>' +
+        '</div>' +
+      '</div>';
+    slot.querySelector('[data-role="edit"]').addEventListener('click', function () { startEdit(i); });
+    slot.querySelector('[data-role="remove"]').addEventListener('click', function () { removeLine(i); });
+    box.append(slot);
+    slots.push(slot);
+  }
+}
+
+/* ---------- events ---------- */
+
+buildCards('frame', 'cards-frame', 'radio', FRAMES);
+buildCards('wheels', 'cards-wheels', 'radio', WHEELS);
+buildCards('drivetrain', 'cards-drivetrain', 'radio', DRIVES);
+buildCards('color', 'cards-color', 'radio', COLORS);
+buildCards('accessory', 'cards-accessories', 'checkbox', ACCESSORIES);
+buildSlots();
+
+T('height-input').addEventListener('input', function () {
+  const rec = recommended();
+  if (S.auto && rec !== null && rec !== S.cfg.frame) {
+    S.cfg.frame = rec;
+    S.notice = frameCascades().join(' ');
+  }
+  render();
+});
+
+T('qty-decrease').addEventListener('click', function () {
+  userAction(function () { S.qty -= 1; return []; });
+});
+T('qty-increase').addEventListener('click', function () {
+  userAction(function () { S.qty += 1; return []; });
+});
+
+T('undo-button').addEventListener('click', function () {
+  const s = S.undo.pop();
+  if (!s) return;
+  S.cfg = s.cfg;
+  S.qty = s.qty;
+  S.auto = s.auto;
+  S.notice = '';
+  render();
+});
+
+T('add-to-order').addEventListener('click', addToOrder);
+T('cancel-edit').addEventListener('click', cancelEdit);
+
+T('promo-input').addEventListener('input', function () {
+  S.promoError = false;
+  render();
+});
+T('promo-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !T('promo-apply').disabled) {
+    e.preventDefault();
+    applyPromo();
+  }
+});
+T('promo-apply').addEventListener('click', applyPromo);
+T('promo-remove').addEventListener('click', function () {
+  S.promo = null;
+  render();
+});
+
+T('place-order').addEventListener('click', function () {
+  if (S.lines.length === 0 || S.editing !== null) return;
+  const now = new Date();
+  const o = computeOrder();
+  S.confirmed = {
+    reference: 'AT-' + ymd(now).replace(/-/g, '') + '-' + String(S.seq).padStart(3, '0'),
+    bikes: o.B === 1 ? '1 bike' : o.B + ' bikes',
+    total: fmt(o.total),
+    delivery: deliveryDate(now)
+  };
+  S.seq += 1;
+  render();
+});
+
+T('confirmation-new').addEventListener('click', function () {
+  S.confirmed = null;
+  S.lines = [];
+  S.promo = null;
+  S.promoError = false;
+  S.lineError = '';
+  T('height-input').value = '';
+  T('promo-input').value = '';
+  resetConfigurator();
+  render();
+});
+
+/* Keeps the delivery date current while the page stays open. */
+setInterval(function () {
+  if (S.lines.length === 0 || S.confirmed !== null) return;
+  const value = T('summary-line-delivery').querySelector('[data-role="value"]');
+  const text = deliveryDate(new Date());
+  if (value.textContent !== text) value.textContent = text;
+}, 30000);
+
+render();
+</script>
+</body>
+</html>

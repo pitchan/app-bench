@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Configurator 3D — 09-dr-design</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-configurator-3d">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-design-system.html">04-design-system</a> · <a href="05-fr-fit.html">05-fr-fit</a> · <a href="06-fr-options.html">06-fr-options</a> · <a href="07-fr-pricing.html">07-fr-pricing</a> · <a href="08-fr-order.html">08-fr-order</a> · <strong>09-dr-design</strong> · <a href="10-non-functional.html">10-non-functional</a> · <a href="11-fr-preview-3d.html">11-fr-preview-3d</a></nav>
+<h1 id="9-design-requirements">9. Design requirements</h1>
+<p>Values are computed values read in the browser (04-design-system, 4.2). &quot;Wide&quot; means a viewport width of 1024 px or more; &quot;narrow&quot; means less than 1024 px. All boxes use <code>box-sizing: border-box</code> unless stated otherwise.</p>
+<h2 id="91-tokens">9.1 Tokens</h2>
+<h3 id="DR-TOK-01">DR-TOK-01 Tokens declared</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall declare on <code>:root</code> every token of 04-design-system, section 4.1, with the value of the active theme.</li>
+<li><strong>Rationale:</strong> Tokens are the single source of every color, length and duration.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Light theme tokens
+  Given the color scheme is light
+  When the page loads
+  Then the value of --color-accent on :root is &quot;#0E6B58&quot; in any letter case
+  And the value of --radius-card on :root is &quot;12px&quot;
+</code></pre>
+<h3 id="DR-TOK-02">DR-TOK-02 Page base styles</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give <code>body</code> a margin of 0, a background color <code>--color-bg</code>, a text color <code>--color-text</code>, a font size of 16px and a line height of 24px.</li>
+<li><strong>Rationale:</strong> Every component inherits one base.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Body
+  Given the color scheme is light
+  Then body has background-color &quot;rgb(246, 244, 240)&quot;, color &quot;rgb(27, 26, 24)&quot;, font-size &quot;16px&quot;, line-height &quot;24px&quot;, margin &quot;0px&quot;
+</code></pre>
+<h2 id="92-layout">9.2 Layout</h2>
+<h3 id="DR-LAY-01">DR-LAY-01 Wide layout</h3>
+<ul>
+<li><strong>Statement:</strong> While the viewport is wide, the system shall lay out <code>main</code> with a maximum width of 1200px including a horizontal padding of 24px on each side, centered in the viewport, and place <code>configurator</code> and <code>summary</code> side by side with their tops aligned: <code>summary</code> on the right, 360px wide, 32px from <code>configurator</code>, and <code>configurator</code> taking the remaining width.</li>
+<li><strong>Rationale:</strong> The price stays next to the choices on a desktop screen.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: 1280 px viewport
+  Given the viewport is 1280 × 800
+  Then the configurator box starts at x = 64 and is 760 px wide
+  And the summary box starts at x = 856 and is 360 px wide
+  And configurator and summary have the same top
+</code></pre>
+<h3 id="DR-LAY-02">DR-LAY-02 Sticky summary</h3>
+<ul>
+<li><strong>Statement:</strong> While the viewport is wide, the system shall keep <code>summary</code> in view when the page scrolls, with <code>position: sticky</code> and a <code>top</code> of 24px.</li>
+<li><strong>Rationale:</strong> The customer sees the price while scrolling through options.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Scrolled page
+  Given the viewport is 1280 × 600
+  Then summary has computed position &quot;sticky&quot; and top &quot;24px&quot;
+  When the window scrolls until the top of the configurator box is at y = −100 in the viewport
+  Then the top of the summary box is at y = 24 in the viewport
+</code></pre>
+<h3 id="DR-LAY-03">DR-LAY-03 Narrow layout</h3>
+<ul>
+<li><strong>Statement:</strong> While the viewport is narrow, the system shall lay out <code>main</code> with a horizontal padding of 16px, place <code>summary</code> below <code>configurator</code> with a vertical gap of 32px, give both the full content width, and give <code>summary</code> <code>position: static</code>.</li>
+<li><strong>Rationale:</strong> On a phone the page reads top to bottom.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: 375 px viewport
+  Given the viewport is 375 × 812
+  Then configurator and summary both start at x = 16 and are 343 px wide
+  And the top of summary is 32 px below the bottom of configurator
+</code></pre>
+<h3 id="DR-LAY-04">DR-LAY-04 Section order and headings</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall show the seven sections in the order of 03-ui-contract, section 3.1, separated by a vertical gap of 16px, each with an <code>&lt;h2&gt;</code> whose text is, in order, <code>1. Rider</code>, <code>2. Frame</code>, <code>3. Wheels</code>, <code>4. Drivetrain</code>, <code>5. Color</code>, <code>6. Accessories</code>, <code>7. Quantity</code>, with a font size of 20px, a font weight of 600 and a top margin of 0.</li>
+<li><strong>Rationale:</strong> Numbered steps tell the customer where they are.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Headings
+  Then the h2 of section-color reads &quot;5. Color&quot; with font-size &quot;20px&quot; and font-weight &quot;600&quot;
+  And the top of section-wheels is 16 px below the bottom of section-frame
+</code></pre>
+<h3 id="DR-LAY-05">DR-LAY-05 Card grids</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall arrange the cards of each section in a grid with a gap of 12px in both directions and equal column widths (each column <code>minmax(0, 1fr)</code>, so that card content never changes a column width), with these column counts:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Wide</th>
+<th>Narrow</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Frame</td>
+<td>4</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Wheels</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Drivetrain</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Color</td>
+<td>4</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Accessories</td>
+<td>2</td>
+<td>2</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Rationale:</strong> Cards of the same group are compared side by side.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Frames on a wide screen
+  Given the viewport is 1280 × 800
+  Then the four frame cards have the same top and the same width
+  And the left edge of card-frame-M is 12 px after the right edge of card-frame-S
+
+Scenario: Frames on a phone
+  Given the viewport is 375 × 812
+  Then card-frame-L is below card-frame-S, with the same left edge
+</code></pre>
+<h2 id="93-components">9.3 Components</h2>
+<h3 id="DR-CMP-01">DR-CMP-01 Section panels</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give each section a background <code>--color-surface</code>, a 1px solid <code>--color-border</code> border, a radius of <code>--radius-card</code> and a padding of 24px.</li>
+<li><strong>Rationale:</strong> Each step reads as one panel.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Panel
+  Given the color scheme is light
+  Then section-rider has background-color &quot;rgb(255, 255, 255)&quot;, border-top &quot;1px solid rgb(220, 214, 204)&quot;, border-radius &quot;12px&quot;, padding &quot;24px&quot;
+</code></pre>
+<h3 id="DR-CMP-02">DR-CMP-02 Option cards</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give each option card, in its default state, a background <code>--color-surface</code>, a 1px solid <code>--color-border</code> border, a radius of <code>--radius-card</code>, a padding of 16px and a pointer cursor; its <code>[data-role=&quot;name&quot;]</code> a font size of 16px, a font weight of 600 and the color <code>--color-text</code>; its <code>[data-role=&quot;price&quot;]</code> a font size of 14px, the color <code>--color-muted</code> and <code>font-variant-numeric: tabular-nums</code>.</li>
+<li><strong>Rationale:</strong> Cards share one look so the state changes stand out.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Default card
+  Given the color scheme is light
+  Then card-drivetrain-sport has border &quot;1px solid rgb(220, 214, 204)&quot;, padding &quot;16px&quot;, cursor &quot;pointer&quot;
+  And its price has font-size &quot;14px&quot;, color &quot;rgb(103, 98, 91)&quot;, font-variant-numeric &quot;tabular-nums&quot;
+</code></pre>
+<h3 id="DR-CMP-03">DR-CMP-03 Color swatches</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall draw each <code>[data-role=&quot;swatch&quot;]</code> as a 32px × 32px circle (<code>border-radius: 50%</code>) with the color&#39;s hex value as background color and a 1px solid <code>--color-border</code> border.</li>
+<li><strong>Rationale:</strong> The customer sees the actual paint.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Sand swatch
+  Then the swatch of card-color-sand is 32 × 32 px with background-color &quot;rgb(216, 199, 166)&quot; and border-radius &quot;50%&quot;
+</code></pre>
+<h3 id="DR-CMP-04">DR-CMP-04 Recommended badge style</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give the badge a background <code>--color-accent</code>, the text color <code>--color-accent-contrast</code>, a radius of <code>--radius-pill</code>, a font size of 14px, a font weight of 600, a padding of 2px 8px and <code>white-space: nowrap</code>, and shall position it absolutely, horizontally centered on its card, with its vertical center on the card&#39;s top border edge, so that it takes no space inside the card and never changes the card&#39;s size.</li>
+<li><strong>Rationale:</strong> The recommendation is visible at a glance.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Badge
+  Given the color scheme is light and the height is 178
+  Then the badge of card-frame-L has background-color &quot;rgb(14, 107, 88)&quot;, color &quot;rgb(255, 255, 255)&quot;, padding &quot;2px 8px&quot;
+  And the vertical center of the badge is at the top edge of card-frame-L, within 1 px
+  And the horizontal center of the badge is at the horizontal center of card-frame-L, within 1 px
+</code></pre>
+<h3 id="DR-CMP-05">DR-CMP-05 Primary button</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give <code>order-button</code> the full content width of <code>summary</code>, a height of 48px, no border, a radius of <code>--radius-control</code>, a font size of 16px, a font weight of 600, a background <code>--color-accent</code> and the text color <code>--color-accent-contrast</code>; while disabled, a background <code>--color-disabled-bg</code>, the text color <code>--color-muted</code> and a <code>not-allowed</code> cursor.</li>
+<li><strong>Rationale:</strong> The one action of the page is the most visible element.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Disabled then enabled
+  Given the color scheme is light and the viewport is 1280 × 800
+  When the page loads
+  Then order-button is 310 px wide and 48 px high, with background-color &quot;rgb(236, 232, 225)&quot; and cursor &quot;not-allowed&quot;
+  When the user fills height-input with &quot;178&quot;
+  Then order-button has background-color &quot;rgb(14, 107, 88)&quot; and color &quot;rgb(255, 255, 255)&quot;
+</code></pre>
+<h3 id="DR-CMP-06">DR-CMP-06 Secondary buttons</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give <code>promo-apply</code>, <code>promo-remove</code>, <code>qty-decrease</code>, <code>qty-increase</code> and <code>confirmation-new</code> a transparent background, a 1px solid <code>--color-border</code> border, the text color <code>--color-text</code>, a height of 40px and a radius of <code>--radius-control</code>; <code>qty-decrease</code> and <code>qty-increase</code> shall be 40px wide. While disabled, these buttons shall have an opacity of 0.45 and a <code>not-allowed</code> cursor.</li>
+<li><strong>Rationale:</strong> Secondary actions stay quiet next to the primary one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Quantity buttons
+  When the page loads
+  Then qty-decrease is 40 × 40 px with background-color &quot;rgba(0, 0, 0, 0)&quot;, opacity &quot;0.45&quot;, cursor &quot;not-allowed&quot;
+  And qty-increase has opacity &quot;1&quot;
+</code></pre>
+<h3 id="DR-CMP-07">DR-CMP-07 Summary typography</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall style <code>summary</code> like a section panel (DR-CMP-01), draw <code>bike-preview</code> with no border and no padding, at the full content width of <code>summary</code> and 260px high, so that its content box is that full width by 260px (310 × 260 on a wide viewport), and lay out each summary line as one row: label on the left, value aligned on the right edge of the line, both on a single line (<code>white-space: nowrap</code>); a label too long for the row is cut with <code>text-overflow: ellipsis</code> and never pushes the value out of the row. Values use <code>font-variant-numeric: tabular-nums</code>. The label and value of <code>summary-line-total</code> have a font size of 28px and a font weight of 700, and the line has a 1px solid <code>--color-border</code> top border. Discount values (<code>qty-discount</code>, <code>promo</code>) have the color <code>--color-accent</code>.</li>
+<li><strong>Rationale:</strong> Prices line up in a column; the total is the first thing read.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Total line
+  Given the configuration of example P1 and the color scheme is light
+  Then the value of summary-line-total has font-size &quot;28px&quot; and font-weight &quot;700&quot;
+  And the value of summary-line-qty-discount has color &quot;rgb(14, 107, 88)&quot;
+  And the right edge of every summary value is at the same x, within 1 px
+</code></pre>
+<h3 id="DR-CMP-08">DR-CMP-08 Field errors</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give <code>height-error</code> and <code>promo-error</code> the color <code>--color-danger</code> and a font size of 14px, and give <code>height-input</code> a border color <code>--color-danger</code> while <code>height-error</code> is visible.</li>
+<li><strong>Rationale:</strong> A wrong value is noticed where it was typed.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Height error
+  Given the color scheme is light
+  When the user fills height-input with &quot;140&quot;
+  Then height-error has color &quot;rgb(180, 35, 24)&quot; and font-size &quot;14px&quot;
+  And height-input has border-top-color &quot;rgb(180, 35, 24)&quot;
+</code></pre>
+<h3 id="DR-CMP-09">DR-CMP-09 Promo status color</h3>
+<ul>
+<li><strong>Statement:</strong> While <code>promo-status</code> is visible, the system shall give it the color <code>--color-accent</code> while the applied code is active and <code>--color-muted</code> while it is not.</li>
+<li><strong>Rationale:</strong> The customer sees at a glance whether the code works.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Inactive then active
+  Given the color scheme is light and the configuration of example P6 with SPRING10 applied
+  Then promo-status has color &quot;rgb(103, 98, 91)&quot;
+  When the user checks &quot;Kickstand&quot;
+  Then promo-status has color &quot;rgb(14, 107, 88)&quot;
+</code></pre>
+<h3 id="DR-CMP-10">DR-CMP-10 Notice placement and style</h3>
+<ul>
+<li><strong>Statement:</strong> While <code>notice</code> is visible, the system shall display it fixed 24px above the bottom of the viewport, horizontally centered, at most 480px wide, with a background <code>--color-surface</code>, a 4px solid <code>--color-accent</code> left border, a padding of 12px 16px and a radius of <code>--radius-control</code>.</li>
+<li><strong>Rationale:</strong> Automatic changes are noticed without blocking the page.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Notice placement
+  Given the viewport is 1280 × 800
+  When the user checks &quot;Rear rack&quot;
+  Then the bottom of notice is at y = 776 and its center is at x = 640, within 1 px
+</code></pre>
+<h2 id="94-states">9.4 States</h2>
+<h3 id="DR-STA-01">DR-STA-01 Card hover</h3>
+<ul>
+<li><strong>Statement:</strong> While the pointer is over an option card that is neither selected nor disabled, the system shall give it a border color <code>--color-muted</code>. Hovering a selected or a disabled card shall not change its border.</li>
+<li><strong>Rationale:</strong> The pointer shows what can be clicked.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Hover
+  Given the color scheme is light
+  When the pointer hovers card-wheels-29
+  Then card-wheels-29 has border-top-color &quot;rgb(103, 98, 91)&quot;
+  When the pointer hovers card-color-glacier
+  Then card-color-glacier has border-top-color &quot;rgb(220, 214, 204)&quot;
+</code></pre>
+<h3 id="DR-STA-02">DR-STA-02 Card selected</h3>
+<ul>
+<li><strong>Statement:</strong> While an option is selected, the system shall give its card a 2px solid <code>--color-accent</code> border and show its <code>[data-role=&quot;check&quot;]</code> element.</li>
+<li><strong>Rationale:</strong> The current choice is unmistakable.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Selected wheels
+  Given the color scheme is light
+  When the page loads
+  Then card-wheels-275 has border-top &quot;2px solid rgb(14, 107, 88)&quot; and its check is visible
+  And the check of card-wheels-29 is not visible
+</code></pre>
+<h3 id="DR-STA-03">DR-STA-03 Card disabled</h3>
+<ul>
+<li><strong>Statement:</strong> While an option is disabled, the system shall give its card an opacity of 0.45 and a <code>not-allowed</code> cursor, and show its <code>[data-role=&quot;reason&quot;]</code> element.</li>
+<li><strong>Rationale:</strong> An unavailable option is visible and explained.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Glacier
+  Then card-color-glacier has opacity &quot;0.45&quot; and cursor &quot;not-allowed&quot;
+</code></pre>
+<h3 id="DR-STA-04">DR-STA-04 Keyboard focus</h3>
+<ul>
+<li><strong>Statement:</strong> While the input of an option card has keyboard focus (<code>:focus-visible</code>), the system shall draw on the card a 2px solid <code>--color-accent</code> outline with an outline offset of 2px. While any button has keyboard focus, the system shall draw the same outline on the button.</li>
+<li><strong>Rationale:</strong> Keyboard users see where they are, even though the inputs are visually hidden.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Tab into the wheels group
+  Given the color scheme is light
+  When the user moves the focus with the Tab key to the radio &quot;27.5\&quot; wheels&quot;
+  Then card-wheels-275 has outline-style &quot;solid&quot;, outline-width &quot;2px&quot;, outline-color &quot;rgb(14, 107, 88)&quot; and outline-offset &quot;2px&quot;
+</code></pre>
+<h3 id="DR-STA-05">DR-STA-05 Stable card size</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall keep each option card&#39;s width and height identical in every state (default, hover, focus, selected, disabled), so that a state change never moves another element.</li>
+<li><strong>Rationale:</strong> Thicker selected borders must not make the layout jump.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Selecting a card
+  Given the viewport is 1280 × 800
+  When the user selects card-drivetrain-sport
+  Then the bounding boxes of card-drivetrain-sport and card-drivetrain-pro are unchanged
+</code></pre>
+<h2 id="95-theme-and-motion">9.5 Theme and motion</h2>
+<h3 id="DR-THM-01">DR-THM-01 Dark theme</h3>
+<ul>
+<li><strong>Statement:</strong> While the media query <code>(prefers-color-scheme: dark)</code> matches, the system shall use the dark values of every color token; otherwise it shall use the light values. No control switches the theme.</li>
+<li><strong>Rationale:</strong> The page follows the customer&#39;s system setting.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Dark
+  Given the color scheme is dark
+  When the page loads
+  Then body has background-color &quot;rgb(18, 17, 16)&quot;
+  And section-frame has background-color &quot;rgb(29, 27, 25)&quot;
+  And card-wheels-275 has border-top-color &quot;rgb(59, 196, 165)&quot;
+</code></pre>
+<h3 id="DR-MOT-01">DR-MOT-01 Transitions and reduced motion</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall give every option card and every <code>&lt;button&gt;</code> a computed <code>transition-property</code> that covers <code>border-color</code>, <code>background-color</code> and <code>color</code> (either the single value <code>all</code>, or a list containing these three properties), with a computed <code>transition-duration</code> of <code>--duration-fast</code> (<code>0.15s</code>) for every entry of that list. Option cards and buttons shall not transition any property with another duration. While the media query <code>(prefers-reduced-motion: reduce)</code> matches, every transition and animation duration in the page shall be 0s.</li>
+<li><strong>Rationale:</strong> State changes are smooth, except for customers who ask for no motion.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Normal motion
+  Then the transition-property of card-frame-S is &quot;all&quot; or contains &quot;border-color&quot;, &quot;background-color&quot; and &quot;color&quot;
+  And every comma-separated entry of the transition-duration of card-frame-S and of order-button is &quot;0.15s&quot;
+
+Scenario: Reduced motion
+  Given reduced motion is requested
+  Then every comma-separated entry of the transition-duration of card-frame-S and of order-button is &quot;0s&quot;
+</code></pre>
+
+</main>
+</body>
+</html>

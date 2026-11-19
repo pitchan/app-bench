@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Fable 5.2</title>
+<style>
+:root {
+  --color-bg: #F6F4F0;
+  --color-surface: #FFFFFF;
+  --color-text: #1B1A18;
+  --color-muted: #67625B;
+  --color-border: #DCD6CC;
+  --color-accent: #0E6B58;
+  --color-accent-contrast: #FFFFFF;
+  --color-danger: #B42318;
+  --color-disabled-bg: #ECE8E1;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --duration-fast: 150ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121110;
+    --color-surface: #1D1B19;
+    --color-text: #F3F0EA;
+    --color-muted: #A59F96;
+    --color-border: #38342F;
+    --color-accent: #3BC4A5;
+    --color-accent-contrast: #0B0A09;
+    --color-danger: #F97066;
+    --color-disabled-bg: #2A2724;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--text-md);
+  line-height: 24px;
+}
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+header.wrap { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+header h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  padding-bottom: 48px;
+}
+.configurator { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+}
+.panel h2 {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-lg);
+  line-height: 28px;
+  font-weight: 600;
+}
+.summary { position: static; min-width: 0; }
+@media (min-width: 1024px) {
+  .wrap { padding-left: var(--space-5); padding-right: var(--space-5); }
+  main { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+  .summary { position: sticky; top: 24px; }
+}
+
+/* fields */
+.field-label { display: block; font-weight: 600; margin-bottom: var(--space-2); }
+.text-input {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  min-width: 0;
+}
+.text-input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+#height-input { width: 160px; max-width: 100%; }
+#height-input.invalid { border-color: var(--color-danger); }
+.field-error { color: var(--color-danger); font-size: var(--text-sm); line-height: 20px; margin: var(--space-2) 0 0; }
+.field-info { color: var(--color-muted); font-size: var(--text-sm); line-height: 20px; margin: var(--space-2) 0 0; }
+#height-recommendation { color: var(--color-accent); font-weight: 600; }
+#frame-warning { color: var(--color-danger); margin-top: var(--space-3); }
+
+/* card grids */
+.grid { display: grid; gap: var(--space-3); }
+.grid-frame { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-wheels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-drivetrain { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-color { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-accessory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1024px) {
+  .grid-frame { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-drivetrain { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-color { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* option cards */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  cursor: pointer;
+  color: var(--color-text);
+  min-width: 0;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+.card:hover:not(.selected):not(.disabled) { border-color: var(--color-muted); }
+.card.selected { border: 2px solid var(--color-accent); padding: 15px; }
+.card.disabled { opacity: 0.45; cursor: not-allowed; }
+.card:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.card input {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.card [data-role="name"] { font-size: var(--text-md); font-weight: 600; color: var(--color-text); padding-right: 28px; overflow-wrap: anywhere; }
+.card [data-role="price"] { font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.card .hint { font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); }
+.card [data-role="reason"] { font-size: var(--text-sm); line-height: 20px; font-weight: 600; visibility: hidden; }
+.card.disabled [data-role="reason"] { visibility: visible; }
+.card [data-role="check"] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+}
+.card.selected [data-role="check"] { top: 11px; right: 11px; }
+.card [data-role="badge"] {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  line-height: 20px;
+  font-weight: 600;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.card.selected [data-role="badge"] { top: -2px; }
+.card [data-role="swatch"] {
+  display: block;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-1);
+}
+
+/* buttons */
+button {
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+}
+.btn-secondary:hover:not(:disabled) { border-color: var(--color-muted); }
+.btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-qty { width: 40px; padding: 0; font-size: var(--text-lg); line-height: 1; }
+.btn-primary {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: var(--text-md);
+  font-weight: 600;
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+  margin-top: var(--space-4);
+}
+.btn-primary:disabled { background-color: var(--color-disabled-bg); color: var(--color-muted); cursor: not-allowed; }
+
+.stepper { display: flex; align-items: center; gap: var(--space-3); }
+#qty-value { min-width: 32px; text-align: center; font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* summary */
+#bike-preview {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  background-color: #EDEDF2;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+#bike-preview:active { cursor: grabbing; }
+#bike-preview:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.line { display: flex; align-items: baseline; gap: var(--space-3); padding: 2px 0; font-size: var(--text-sm); line-height: 22px; }
+.line [data-role="label"] { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line [data-role="value"] { flex: none; margin-left: auto; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.line.muted [data-role="label"] { color: var(--color-muted); }
+.line.sep { border-top: 1px solid var(--color-border); margin-top: var(--space-2); padding-top: var(--space-2); }
+.line.discount [data-role="value"] { color: var(--color-accent); }
+.line.total { border-top: 1px solid var(--color-border); margin-top: var(--space-2); padding-top: var(--space-2); }
+.line.total [data-role="label"], .line.total [data-role="value"] { font-size: var(--text-xl); line-height: 36px; font-weight: 700; }
+.promo { border-top: 1px solid var(--color-border); margin-top: var(--space-3); padding-top: var(--space-3); }
+.promo .field-label { font-size: var(--text-sm); margin-bottom: var(--space-1); }
+.promo-row { display: flex; gap: var(--space-2); }
+.promo-row .text-input { flex: 1 1 auto; width: 0; }
+.promo-applied { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); margin-top: var(--space-2); }
+#promo-status { font-size: var(--text-sm); line-height: 20px; margin: 0; color: var(--color-muted); }
+#promo-status.active { color: var(--color-accent); }
+#order-hint { text-align: center; }
+
+/* notice */
+#notice {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(480px, calc(100vw - 32px));
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 0 solid var(--color-accent);
+  border-left: 4px solid var(--color-accent);
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+}
+
+/* confirmation */
+.confirm-wrap { padding-bottom: 48px; }
+#confirmation h2:focus { outline: none; }
+#confirmation h2:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.confirm-list { margin: 0 0 var(--space-5); display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-5); }
+.confirm-list dt { color: var(--color-muted); }
+.confirm-list dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+</style>
+</head>
+<body>
+<header class="wrap" data-testid="app-header"><h1>Claude Fable 5.2</h1></header>
+
+<main class="wrap" id="main">
+  <div class="configurator" data-testid="configurator">
+    <section class="panel" data-testid="section-rider">
+      <h2>1. Rider</h2>
+      <label class="field-label" for="height-input">Your height (cm)</label>
+      <input class="text-input" id="height-input" data-testid="height-input" type="text" inputmode="numeric" autocomplete="off">
+      <p class="field-error" id="height-error" data-testid="height-error" hidden>Enter a height between 150 and 200 cm.</p>
+      <p class="field-info" id="height-recommendation" data-testid="height-recommendation" hidden></p>
+    </section>
+    <section class="panel" data-testid="section-frame">
+      <h2>2. Frame</h2>
+      <div class="grid grid-frame" id="grid-frame"></div>
+      <p class="field-error" id="frame-warning" data-testid="frame-warning" hidden></p>
+    </section>
+    <section class="panel" data-testid="section-wheels">
+      <h2>3. Wheels</h2>
+      <div class="grid grid-wheels" id="grid-wheels"></div>
+    </section>
+    <section class="panel" data-testid="section-drivetrain">
+      <h2>4. Drivetrain</h2>
+      <div class="grid grid-drivetrain" id="grid-drivetrain"></div>
+    </section>
+    <section class="panel" data-testid="section-color">
+      <h2>5. Color</h2>
+      <div class="grid grid-color" id="grid-color"></div>
+    </section>
+    <section class="panel" data-testid="section-accessories">
+      <h2>6. Accessories</h2>
+      <div class="grid grid-accessory" id="grid-accessory"></div>
+    </section>
+    <section class="panel" data-testid="section-quantity">
+      <h2>7. Quantity</h2>
+      <div class="stepper">
+        <button type="button" class="btn-secondary btn-qty" id="qty-decrease" data-testid="qty-decrease" aria-label="Decrease quantity">&#x2212;</button>
+        <span id="qty-value" data-testid="qty-value">1</span>
+        <button type="button" class="btn-secondary btn-qty" id="qty-increase" data-testid="qty-increase" aria-label="Increase quantity">+</button>
+      </div>
+    </section>
+  </div>
+
+  <aside class="panel summary" data-testid="summary" aria-label="Summary">
+    <canvas id="bike-preview" data-testid="bike-preview" tabindex="0" role="img" aria-label="Bike preview" width="310" height="260"></canvas>
+    <div id="lines"></div>
+    <div class="promo">
+      <label class="field-label" for="promo-input">Promo code</label>
+      <div class="promo-row">
+        <input class="text-input" id="promo-input" data-testid="promo-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button type="button" class="btn-secondary" id="promo-apply" data-testid="promo-apply" disabled>Apply</button>
+      </div>
+      <p class="field-error" id="promo-error" data-testid="promo-error" hidden>This code is not valid.</p>
+      <div class="promo-applied" id="promo-applied" hidden>
+        <p id="promo-status" data-testid="promo-status"></p>
+        <button type="button" class="btn-secondary" id="promo-remove" data-testid="promo-remove">Remove code</button>
+      </div>
+    </div>
+    <button type="button" class="btn-primary" id="order-button" data-testid="order-button" disabled>Order 1 bike</button>
+    <p class="field-info" id="order-hint" data-testid="order-hint">Enter your height to continue.</p>
+  </aside>
+</main>
+
+<div class="wrap confirm-wrap" id="confirm-wrap" hidden>
+  <section class="panel" id="confirmation" data-testid="confirmation" hidden>
+    <h2 id="confirmation-title" data-testid="confirmation-title" tabindex="-1">Order confirmed</h2>
+    <dl class="confirm-list">
+      <dt>Reference</dt><dd data-testid="confirmation-reference" id="confirmation-reference"></dd>
+      <dt>Total</dt><dd data-testid="confirmation-total" id="confirmation-total"></dd>
+      <dt>Estimated delivery</dt><dd data-testid="confirmation-delivery" id="confirmation-delivery"></dd>
+    </dl>
+    <button type="button" class="btn-secondary" id="confirmation-new" data-testid="confirmation-new">Configure another bike</button>
+  </section>
+</div>
+
+<div role="status" id="status-region"><div id="notice" data-testid="notice" hidden></div></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- catalog ---------- */
+  var FRAMES = [
+    { id: 'S', name: 'Frame S', min: 150, max: 164, price: 119000 },
+    { id: 'M', name: 'Frame M', min: 165, max: 174, price: 119000 },
+    { id: 'L', name: 'Frame L', min: 175, max: 184, price: 124000 },
+    { id: 'XL', name: 'Frame XL', min: 185, max: 200, price: 129000 }
+  ];
+  var WHEELS = [
+    { id: '275', name: '27.5" wheels', price: 0 },
+    { id: '29', name: '29" wheels', price: 12000, reason: 'Not available with frame S' }
+  ];
+  var DRIVETRAINS = [
+    { id: 'essential', name: 'Essential 1×10', price: 0, lead: 5 },
+    { id: 'sport', name: 'Sport 1×12', price: 24000, lead: 7 },
+    { id: 'pro', name: 'Pro Electronic 2×12', price: 69000, lead: 12 }
+  ];
+  var COLORS = [
+    { id: 'graphite', name: 'Graphite', hex: '#3A3A3C', price: 0 },
+    { id: 'sand', name: 'Sand', hex: '#D8C7A6', price: 0 },
+    { id: 'red', name: 'Racing Red', hex: '#C8102E', price: 6000 },
+    { id: 'glacier', name: 'Glacier', hex: '#A9D6E5', price: 0, reason: 'Out of stock' }
+  ];
+  var ACCESSORIES = [
+    { id: 'mudguards', name: 'Mudguards', price: 4500 },
+    { id: 'rack', name: 'Rear rack', price: 6900 },
+    { id: 'lights', name: 'Lights', price: 3990 },
+    { id: 'kickstand', name: 'Kickstand', price: 2450 }
+  ];
+  var GROUPS = { frame: FRAMES, wheels: WHEELS, drivetrain: DRIVETRAINS, color: COLORS, accessory: ACCESSORIES };
+  var CODES = ['SPRING10', 'WELCOME50', 'FREESHIP'];
+  var CLOSED = { '2026-12-24': 1, '2026-12-25': 1, '2026-12-31': 1, '2027-01-01': 1 };
+  var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var MINUS = '−', DASH = '—';
+  var MSG7 = '29" wheels were replaced by 27.5" wheels: not available with frame S.';
+  var MSG8 = 'Mudguards were added: required by the rear rack.';
+  var MSG9 = 'Rear rack was removed: it requires mudguards.';
+
+  function find(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- state ---------- */
+  var st;
+  var orderSeq = 0;
+  function freshState() {
+    return {
+      heightRaw: '', frame: null, auto: true, wheels: '275', drivetrain: 'essential', color: 'graphite',
+      acc: { mudguards: false, rack: false, lights: false, kickstand: false },
+      qty: 1, code: null, promoError: false, notice: null
+    };
+  }
+  st = freshState();
+
+  /* ---------- formats ---------- */
+  function money(c) {
+    var e = Math.floor(c / 100), ct = c % 100;
+    return '€' + String(e).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + (ct < 10 ? '0' : '') + ct;
+  }
+  function signed(c) { return c === 0 ? 'Included' : '+' + money(c); }
+  function discount(c) { return MINUS + money(c); }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDate(d) {
+    return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  /* ---------- rules ---------- */
+  function validHeight() {
+    var t = st.heightRaw.trim();
+    if (!/^[0-9]+$/.test(t)) return null;
+    var n = Number(t);
+    return n >= 150 && n <= 200 ? n : null;
+  }
+  function recommended(h) {
+    for (var i = 0; i < FRAMES.length; i++) if (h >= FRAMES[i].min && h <= FRAMES[i].max) return FRAMES[i].id;
+    return null;
+  }
+  function colorSurcharge() {
+    if (st.color === 'red' && st.drivetrain === 'pro') return 0;
+    return find(COLORS, st.color).price;
+  }
+  function compute() {
+    var p = { hasFrame: !!st.frame };
+    var unit = (st.frame ? find(FRAMES, st.frame).price : 0) + find(WHEELS, st.wheels).price +
+      find(DRIVETRAINS, st.drivetrain).price + colorSurcharge();
+    ACCESSORIES.forEach(function (a) { if (st.acc[a.id]) unit += a.price; });
+    p.unit = unit;
+    p.subtotal = unit * st.qty;
+    p.qtyDiscount = st.qty >= 3 ? Math.floor((p.subtotal * 5 + 50) / 100) : 0;
+    p.after = p.subtotal - p.qtyDiscount;
+    p.active = false;
+    if (st.code === 'FREESHIP') p.active = true;
+    else if (st.code === 'SPRING10') p.active = p.hasFrame && p.after >= 150000;
+    else if (st.code === 'WELCOME50') p.active = st.qty < 3;
+    p.promo = 0;
+    if (p.active && st.code === 'SPRING10') p.promo = Math.floor((p.after * 10 + 50) / 100);
+    if (p.active && st.code === 'WELCOME50') p.promo = 5000;
+    p.merch = p.after - p.promo;
+    p.shipping = (st.code === 'FREESHIP' || p.merch >= 200000) ? 0 : 4900;
+    p.total = p.merch + p.shipping;
+    p.vat = Math.floor((p.total * 20 + 60) / 120);
+    return p;
+  }
+  function deliveryDate() {
+    var lead = find(DRIVETRAINS, st.drivetrain).lead + (st.color === 'red' ? 3 : 0) + (st.qty >= 3 ? 2 : 0);
+    var now = new Date();
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var n = 0;
+    while (n < lead) {
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      var wd = d.getDay();
+      var key = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+      if (wd !== 0 && wd !== 6 && !CLOSED[key]) n++;
+    }
+    return d;
+  }
+
+  /* ---------- build cards ---------- */
+  var cards = {};
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function buildCards() {
+    Object.keys(GROUPS).forEach(function (group) {
+      var grid = $('grid-' + group);
+      GROUPS[group].forEach(function (o) {
+        var card = el('label', { 'class': 'card', 'data-testid': 'card-' + group + '-' + o.id });
+        var input = el('input', { type: group === 'accessory' ? 'checkbox' : 'radio', name: group, value: o.id, 'aria-label': o.name });
+        card.appendChild(input);
+        var c = { card: card, input: input, option: o };
+        if (group === 'frame') {
+          c.badge = el('span', { 'data-role': 'badge', hidden: '' }, 'Recommended');
+          card.appendChild(c.badge);
+        }
+        if (group === 'color') {
+          var sw = el('span', { 'data-role': 'swatch' });
+          sw.style.backgroundColor = o.hex;
+          card.appendChild(sw);
+        }
+        card.appendChild(el('span', { 'data-role': 'name' }, o.name));
+        if (group === 'frame') card.appendChild(el('span', { 'class': 'hint' }, o.min + ' – ' + o.max + ' cm'));
+        if (group === 'drivetrain') card.appendChild(el('span', { 'class': 'hint' }, o.lead + ' business days'));
+        c.price = el('span', { 'data-role': 'price' });
+        card.appendChild(c.price);
+        if (o.reason) {
+          c.reason = el('span', { 'data-role': 'reason' }, o.reason);
+          card.appendChild(c.reason);
+        }
+        c.check = el('span', { 'data-role': 'check', 'aria-hidden': 'true', hidden: '' }, '✓');
+        card.appendChild(c.check);
+        grid.appendChild(card);
+        cards[group + '-' + o.id] = c;
+
+        if (group === 'frame') {
+          // click also fires when the checked radio is activated again (FR-FIT-05)
+          input.addEventListener('click', function () {
+            st.auto = false;
+            if (st.frame !== o.id) { st.notice = null; setFrame(o.id); }
+            update();
+          });
+        } else if (group === 'accessory') {
+          input.addEventListener('change', function () { onAccessory(o.id, input.checked); });
+        } else {
+          input.addEventListener('change', function () {
+            if (!input.checked || input.disabled) { update(); return; }
+            if (st[group] !== o.id) { st.notice = null; st[group] = o.id; }
+            update();
+          });
+        }
+      });
+    });
+  }
+
+  function setFrame(f) {
+    if (st.frame === f) return;
+    st.frame = f;
+    if (f === 'S' && st.wheels === '29') { st.wheels = '275'; st.notice = MSG7; }
+  }
+  function onAccessory(id, checked) {
+    st.notice = null;
+    st.acc[id] = checked;
+    if (id === 'rack' && checked && !st.acc.mudguards) { st.acc.mudguards = true; st.notice = MSG8; }
+    if (id === 'mudguards' && !checked && st.acc.rack) { st.acc.rack = false; st.notice = MSG9; }
+    update();
+  }
+
+  /* ---------- summary lines ---------- */
+  var lines = {};
+  function buildLines() {
+    var keys = ['frame', 'wheels', 'drivetrain', 'color'];
+    ACCESSORIES.forEach(function (a) { keys.push('accessory-' + a.id); });
+    keys = keys.concat(['unit', 'quantity', 'subtotal', 'qty-discount', 'promo', 'shipping', 'total', 'vat', 'delivery']);
+    var extra = { unit: 'sep', 'qty-discount': 'discount', promo: 'discount', total: 'total', vat: 'muted', delivery: 'sep' };
+    var host = $('lines');
+    keys.forEach(function (k) {
+      var row = el('div', { 'class': 'line' + (extra[k] ? ' ' + extra[k] : ''), 'data-testid': 'summary-line-' + k });
+      var l = el('span', { 'data-role': 'label' }), v = el('span', { 'data-role': 'value' });
+      row.appendChild(l); row.appendChild(v);
+      host.appendChild(row);
+      lines[k] = { row: row, label: l, value: v };
+    });
+  }
+  function setLine(k, label, value, shown) {
+    var ln = lines[k];
+    ln.label.textContent = label;
+    ln.value.textContent = value;
+    ln.row.hidden = shown === false;
+  }
+
+  /* ---------- render DOM ---------- */
+  var heightInput = $('height-input'), promoInput = $('promo-input');
+  var lastTotal = null, lastDelivery = '';
+
+  function update() {
+    var h = validHeight();
+    var rec = h == null ? null : recommended(h);
+    var hasContent = st.heightRaw.trim() !== '';
+    var showErr = hasContent && h == null;
+
+    $('height-error').hidden = !showErr;
+    heightInput.classList.toggle('invalid', showErr);
+    if (showErr) {
+      heightInput.setAttribute('aria-invalid', 'true');
+      heightInput.setAttribute('aria-describedby', 'height-error');
+    } else {
+      heightInput.removeAttribute('aria-invalid');
+      heightInput.removeAttribute('aria-describedby');
+    }
+    $('height-recommendation').hidden = rec == null;
+    $('height-recommendation').textContent = rec == null ? '' : 'Recommended frame: ' + rec;
+
+    var warn = $('frame-warning'), gap = 0;
+    if (rec != null && st.frame) {
+      var order = ['S', 'M', 'L', 'XL'];
+      gap = order.indexOf(st.frame) - order.indexOf(rec);
+    }
+    if (Math.abs(gap) >= 2) {
+      warn.textContent = 'Frame ' + st.frame + ' is ' + Math.abs(gap) + ' sizes ' + (gap > 0 ? 'larger' : 'smaller') + ' than recommended.';
+      warn.hidden = false;
+    } else {
+      warn.hidden = true;
+      warn.textContent = '';
+    }
+
+    Object.keys(GROUPS).forEach(function (group) {
+      GROUPS[group].forEach(function (o) {
+        var c = cards[group + '-' + o.id];
+        var selected = group === 'accessory' ? !!st.acc[o.id] : (group === 'frame' ? st.frame === o.id : st[group] === o.id);
+        var disabled = (group === 'color' && o.id === 'glacier') || (group === 'wheels' && o.id === '29' && st.frame === 'S');
+        c.input.checked = selected;
+        c.input.disabled = disabled;
+        c.card.classList.toggle('selected', selected);
+        c.card.classList.toggle('disabled', disabled);
+        c.check.hidden = !selected;
+        if (c.badge) c.badge.hidden = rec !== o.id;
+        var txt;
+        if (group === 'frame') txt = money(o.price);
+        else if (group === 'color' && o.id === 'red' && st.drivetrain === 'pro') txt = 'Included with Pro';
+        else txt = signed(o.price);
+        c.price.textContent = txt;
+      });
+    });
+
+    $('qty-value').textContent = String(st.qty);
+    $('qty-decrease').disabled = st.qty <= 1;
+    $('qty-increase').disabled = st.qty >= 5;
+
+    var p = compute();
+    var has = p.hasFrame;
+    var fr = has ? find(FRAMES, st.frame) : null;
+    setLine('frame', has ? fr.name : 'Frame', has ? money(fr.price) : DASH);
+    var w = find(WHEELS, st.wheels), d = find(DRIVETRAINS, st.drivetrain), col = find(COLORS, st.color);
+    setLine('wheels', w.name, signed(w.price));
+    setLine('drivetrain', d.name, signed(d.price));
+    setLine('color', col.name, signed(colorSurcharge()));
+    ACCESSORIES.forEach(function (a) { setLine('accessory-' + a.id, a.name, signed(a.price), !!st.acc[a.id]); });
+    setLine('unit', 'Unit price', has ? money(p.unit) : DASH);
+    setLine('quantity', 'Quantity', '× ' + st.qty);
+    setLine('subtotal', 'Subtotal', has ? money(p.subtotal) : DASH);
+    setLine('qty-discount', 'Quantity discount (5%)', discount(p.qtyDiscount), has && st.qty >= 3);
+    setLine('promo', 'Code ' + (st.code || ''), discount(p.promo), has && p.active && p.promo > 0);
+    setLine('shipping', 'Shipping', has ? (p.shipping === 0 ? 'Free' : money(p.shipping)) : DASH);
+    setLine('total', 'Total', has ? money(p.total) : DASH);
+    setLine('vat', 'Including VAT (20%)', has ? money(p.vat) : DASH);
+    lastDelivery = fmtDate(deliveryDate());
+    setLine('delivery', 'Estimated delivery', lastDelivery);
+    lastTotal = has ? p.total : null;
+
+    // promo
+    $('promo-apply').disabled = promoInput.value.trim() === '';
+    $('promo-error').hidden = !st.promoError;
+    if (st.promoError) {
+      promoInput.setAttribute('aria-invalid', 'true');
+      promoInput.setAttribute('aria-describedby', 'promo-error');
+    } else {
+      promoInput.removeAttribute('aria-invalid');
+      promoInput.removeAttribute('aria-describedby');
+    }
+    var ps = $('promo-status');
+    $('promo-applied').hidden = !st.code;
+    if (st.code) {
+      ps.textContent = p.active ? 'Code ' + st.code + ' applied.'
+        : (st.code === 'SPRING10' ? 'SPRING10 requires €1,500.00 or more after the quantity discount.'
+          : 'WELCOME50 cannot be combined with the quantity discount.');
+      ps.classList.toggle('active', p.active);
+    } else {
+      ps.textContent = '';
+    }
+
+    // order
+    $('order-button').textContent = st.qty === 1 ? 'Order 1 bike' : 'Order ' + st.qty + ' bikes';
+    $('order-button').disabled = h == null || !st.frame;
+    $('order-hint').hidden = h != null;
+
+    // notice
+    var n = $('notice');
+    if (st.notice) { n.textContent = st.notice; n.hidden = false; }
+    else { n.hidden = true; n.textContent = ''; }
+
+    scheduleRender();
+  }
+
+  /* ---------- events ---------- */
+  heightInput.addEventListener('input', function () {
+    var raw = heightInput.value;
+    if (raw === st.heightRaw) return;
+    st.heightRaw = raw;
+    st.notice = null;
+    var h = validHeight();
+    if (h != null && st.auto) setFrame(recommended(h));
+    update();
+  });
+  $('qty-decrease').addEventListener('click', function () {
+    if (st.qty > 1) { st.qty--; st.notice = null; update(); }
+  });
+  $('qty-increase').addEventListener('click', function () {
+    if (st.qty < 5) { st.qty++; st.notice = null; update(); }
+  });
+  function applyPromo() {
+    var code = promoInput.value.trim().toUpperCase();
+    if (code === '') return;
+    if (CODES.indexOf(code) === -1) {
+      st.promoError = true;
+    } else {
+      st.code = code;
+      st.promoError = false;
+      promoInput.value = '';
+    }
+    update();
+  }
+  promoInput.addEventListener('input', function () { st.promoError = false; update(); });
+  promoInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!$('promo-apply').disabled) applyPromo();
+    }
+  });
+  $('promo-apply').addEventListener('click', applyPromo);
+  $('promo-remove').addEventListener('click', function () { st.code = null; update(); });
+
+  $('order-button').addEventListener('click', function () {
+    if (validHeight() == null || !st.frame || lastTotal == null) return;
+    orderSeq++;
+    var now = new Date();
+    var seq = String(orderSeq);
+    while (seq.length < 3) seq = '0' + seq;
+    $('confirmation-reference').textContent = 'BK-' + now.getFullYear() + pad2(now.getMonth() + 1) + pad2(now.getDate()) + '-' + seq;
+    $('confirmation-total').textContent = money(lastTotal);
+    $('confirmation-delivery').textContent = lastDelivery;
+    st.notice = null;
+    $('notice').hidden = true;
+    $('notice').textContent = '';
+    $('main').hidden = true;
+    $('confirm-wrap').hidden = false;
+    $('confirmation').hidden = false;
+    $('confirmation-title').focus();
+  });
+  $('confirmation-new').addEventListener('click', function () {
+    st = freshState();
+    heightInput.value = '';
+    promoInput.value = '';
+    $('confirmation').hidden = true;
+    $('confirm-wrap').hidden = true;
+    $('main').hidden = false;
+    update();
+    heightInput.focus();
+  });
+
+  /* ---------- 3D preview ---------- */
+  var cv = $('bike-preview');
+  var ctx = cv.getContext('2d');
+  var yaw = 0, pitch = 10;
+  var viewW = 310, viewH = 260;
+  var PART_NAMES = ['frame', 'saddle', 'wheel-rear', 'wheel-front', 'mudguard-rear', 'mudguard-front', 'rack', 'light', 'kickstand'];
+  var DEG = Math.PI / 180;
+
+  function hexRgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+  function presentParts() {
+    var a = ['frame', 'saddle', 'wheel-rear', 'wheel-front'];
+    if (st.acc.mudguards) a.push('mudguard-rear', 'mudguard-front');
+    if (st.acc.rack) a.push('rack');
+    if (st.acc.lights) a.push('light');
+    if (st.acc.kickstand) a.push('kickstand');
+    return a;
+  }
+  function sceneKey() {
+    return [st.frame, st.wheels, st.color, st.acc.mudguards, st.acc.rack, st.acc.lights, st.acc.kickstand].join('|');
+  }
+  var sceneCache = null, sceneCacheKey = '';
+  function scene() {
+    var key = sceneKey();
+    if (sceneCache && key === sceneCacheKey) return sceneCache;
+    var R = st.wheels === '29' ? 375 : 350;
+    var L = st.frame ? { S: 430, M: 470, L: 510, XL: 550 }[st.frame] : 470;
+    var C = hexRgb(find(COLORS, st.color).hex);
+    var prims = [];
+    function cap(part, col, P, Q, r) {
+      prims.push({ t: 0, part: part, col: col, ax: P[0], ay: P[1], az: P[2], bx: Q[0], by: Q[1], bz: Q[2], r: r });
+    }
+    function box(part, col, mn, mx) {
+      prims.push({ t: 1, part: part, col: col, mn: mn, mx: mx });
+    }
+    function add(P, v) { return [P[0] + v[0], P[1] + v[1], P[2] + v[2]]; }
+    var RA = [0, R, 0], FA = [1080, R, 0], BB = [420, 300, 0];
+    var ST = [420 - 0.25 * L, 300 + L, 0], HT = [1000, 340 + L, 0], HB = [1020, 220 + L, 0];
+    var SP = add(ST, [-15, 60, 0]), HS = add(HT, [-60, 60, 0]);
+    cap(0, C, BB, ST, 18); cap(0, C, ST, HT, 18); cap(0, C, BB, HB, 20); cap(0, C, HB, HT, 20);
+    cap(0, C, ST, RA, 16); cap(0, C, BB, RA, 16); cap(0, C, HB, FA, 16); cap(0, C, ST, SP, 13);
+    cap(0, C, HT, HS, 15); cap(0, C, add(HS, [0, 0, -260]), add(HS, [0, 0, 260]), 16);
+    var dark = hexRgb('#1C1C1E');
+    cap(1, dark, add(SP, [-90, 0, 0]), add(SP, [80, 0, 0]), 24);
+    function wheel(part, A) {
+      for (var k = 0; k < 36; k++) {
+        var a0 = 10 * k * DEG, a1 = 10 * ((k + 1) % 36) * DEG;
+        cap(part, dark, add(A, [R * Math.cos(a0), R * Math.sin(a0), 0]), add(A, [R * Math.cos(a1), R * Math.sin(a1), 0]), 22);
+      }
+      cap(part, dark, add(A, [0, 0, -50]), add(A, [0, 0, 50]), 15);
+    }
+    wheel(2, RA); wheel(3, FA);
+    if (st.acc.mudguards) {
+      var mg = hexRgb('#2C2C2E');
+      [[4, RA], [5, FA]].forEach(function (m) {
+        for (var k = 0; k < 12; k++) {
+          var a0 = (30 + 10 * k) * DEG, a1 = (30 + 10 * (k + 1)) * DEG, rr = R + 45;
+          cap(m[0], mg, add(m[1], [rr * Math.cos(a0), rr * Math.sin(a0), 0]), add(m[1], [rr * Math.cos(a1), rr * Math.sin(a1), 0]), 25);
+        }
+      });
+    }
+    if (st.acc.rack) {
+      var rk = hexRgb('#48484A');
+      box(6, rk, [-120, 2 * R + 80, -90], [260, 2 * R + 92, 90]);
+      cap(6, rk, [-100, 2 * R + 86, 0], RA, 14);
+    }
+    if (st.acc.lights) box(7, hexRgb('#FFD60A'), add(HT, [20, -60, -25]), add(HT, [70, -20, 25]));
+    if (st.acc.kickstand) cap(8, hexRgb('#8E8E93'), [380, 300, 60], [300, 0, 160], 20);
+    sceneCache = prims; sceneCacheKey = key;
+    return prims;
+  }
+
+  function camera(W, H) {
+    var cy = Math.cos(yaw * DEG), sy = Math.sin(yaw * DEG), cp = Math.cos(pitch * DEG), sp = Math.sin(pitch * DEG);
+    var D = 3600;
+    var c = { W: W, H: H, F: (H / 2) / Math.tan(15 * DEG) };
+    c.ex = 540 + D * sy * cp; c.ey = 450 + D * sp; c.ez = D * cy * cp;
+    c.fx = -sy * cp; c.fy = -sp; c.fz = -cy * cp;
+    // r = f x (0,1,0) = (-fz, 0, fx)
+    var rl = Math.sqrt(c.fz * c.fz + c.fx * c.fx);
+    c.rx = -c.fz / rl; c.ry = 0; c.rz = c.fx / rl;
+    // u = r x f
+    c.ux = c.ry * c.fz - c.rz * c.fy;
+    c.uy = c.rz * c.fx - c.rx * c.fz;
+    c.uz = c.rx * c.fy - c.ry * c.fx;
+    return c;
+  }
+
+  // distance along the normalized ray to the solid, Infinity when missed
+  function hit(p, ox, oy, oz, dx, dy, dz) {
+    if (p.t === 0) {
+      var bax = p.bx - p.ax, bay = p.by - p.ay, baz = p.bz - p.az;
+      var oax = ox - p.ax, oay = oy - p.ay, oaz = oz - p.az;
+      var baba = bax * bax + bay * bay + baz * baz;
+      var bard = bax * dx + bay * dy + baz * dz;
+      var baoa = bax * oax + bay * oay + baz * oaz;
+      var rdoa = dx * oax + dy * oay + dz * oaz;
+      var oaoa = oax * oax + oay * oay + oaz * oaz;
+      var r2 = p.r * p.r, best = Infinity, t, h, b;
+      var a = baba - bard * bard;
+      if (a > 1e-9 * baba) {
+        b = baba * rdoa - baoa * bard;
+        h = b * b - a * (baba * oaoa - baoa * baoa - r2 * baba);
+        if (h < 0) return Infinity;
+        t = (-b - Math.sqrt(h)) / a;
+        var y = baoa + t * bard;
+        if (t > 0 && y >= 0 && y <= baba) best = t;
+      }
+      h = rdoa * rdoa - (oaoa - r2);
+      if (h >= 0) { t = -rdoa - Math.sqrt(h); if (t > 0 && t < best) best = t; }
+      var obx = ox - p.bx, oby = oy - p.by, obz = oz - p.bz;
+      b = dx * obx + dy * oby + dz * obz;
+      h = b * b - (obx * obx + oby * oby + obz * obz - r2);
+      if (h >= 0) { t = -b - Math.sqrt(h); if (t > 0 && t < best) best = t; }
+      return best;
+    }
+    var o = [ox, oy, oz], d = [dx, dy, dz], t0 = -Infinity, t1 = Infinity;
+    for (var i = 0; i < 3; i++) {
+      if (Math.abs(d[i]) < 1e-12) {
+        if (o[i] < p.mn[i] || o[i] > p.mx[i]) return Infinity;
+      } else {
+        var ta = (p.mn[i] - o[i]) / d[i], tb = (p.mx[i] - o[i]) / d[i];
+        if (ta > tb) { var s = ta; ta = tb; tb = s; }
+        if (ta > t0) t0 = ta;
+        if (tb < t1) t1 = tb;
+        if (t0 > t1) return Infinity;
+      }
+    }
+    return t0 > 0 ? t0 : Infinity;
+  }
+  function normalAt(p, hx, hy, hz) {
+    if (p.t === 0) {
+      var bax = p.bx - p.ax, bay = p.by - p.ay, baz = p.bz - p.az;
+      var tt = ((hx - p.ax) * bax + (hy - p.ay) * bay + (hz - p.az) * baz) / (bax * bax + bay * bay + baz * baz);
+      tt = tt < 0 ? 0 : (tt > 1 ? 1 : tt);
+      return [(hx - p.ax - bax * tt) / p.r, (hy - p.ay - bay * tt) / p.r, (hz - p.az - baz * tt) / p.r];
+    }
+    var h = [hx, hy, hz], n = [0, 0, 0], bd = Infinity, bi = 0, bs = 1;
+    for (var i = 0; i < 3; i++) {
+      var d0 = Math.abs(h[i] - p.mn[i]), d1 = Math.abs(h[i] - p.mx[i]);
+      if (d0 < bd) { bd = d0; bi = i; bs = -1; }
+      if (d1 < bd) { bd = d1; bi = i; bs = 1; }
+    }
+    n[bi] = bs;
+    return n;
+  }
+  function pick(c, prims, px, py) {
+    var a = (px - c.W / 2) / c.F, b = (py - c.H / 2) / c.F;
+    var dx = c.fx + a * c.rx - b * c.ux, dy = c.fy + a * c.ry - b * c.uy, dz = c.fz + a * c.rz - b * c.uz;
+    var l = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    dx /= l; dy /= l; dz /= l;
+    var best = Infinity, bi = -1;
+    for (var i = 0; i < prims.length; i++) {
+      var t = hit(prims[i], c.ex, c.ey, c.ez, dx, dy, dz);
+      if (t < best) { best = t; bi = i; }
+    }
+    return bi;
+  }
+  function currentSize() {
+    var w = cv.clientWidth, h = cv.clientHeight;
+    if (w > 0 && h > 0) { viewW = w; viewH = h; }
+  }
+
+  window.bikePreviewState = function () {
+    return { yaw: yaw, pitch: pitch, parts: presentParts() };
+  };
+  window.bikePickAt = function (px, py) {
+    currentSize();
+    var prims = scene();
+    var i = pick(camera(viewW, viewH), prims, Number(px), Number(py));
+    return i < 0 ? null : PART_NAMES[prims[i].part];
+  };
+
+  var lastRenderKey = '', renderQueued = false;
+  function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    var done = false;
+    function go() { if (done) return; done = true; renderQueued = false; render(); }
+    requestAnimationFrame(go);
+    setTimeout(go, 120);
+  }
+  function render() {
+    var W = cv.clientWidth, H = cv.clientHeight;
+    if (!(W > 0 && H > 0)) return;
+    viewW = W; viewH = H;
+    var key = sceneKey() + '#' + yaw + '#' + pitch + '#' + W + '#' + H;
+    if (key === lastRenderKey && cv.width === W && cv.height === H) return;
+    if (cv.width !== W) cv.width = W;
+    if (cv.height !== H) cv.height = H;
+    var prims = scene(), c = camera(W, H), F = c.F;
+    var N = W * H, zb = new Float64Array(N), ids = new Int16Array(N), i, j, k;
+    for (i = 0; i < N; i++) { zb[i] = Infinity; ids[i] = -1; }
+
+    function ext(bb, x, y, z, rad) {
+      var qx = x - c.ex, qy = y - c.ey, qz = z - c.ez;
+      var dzv = qx * c.fx + qy * c.fy + qz * c.fz;
+      if (dzv - rad < 1) { bb[0] = 0; bb[1] = 0; bb[2] = W; bb[3] = H; return; }
+      var sx = W / 2 + F * (qx * c.rx + qy * c.ry + qz * c.rz) / dzv;
+      var syv = H / 2 - F * (qx * c.ux + qy * c.uy + qz * c.uz) / dzv;
+      var pr = F * rad / (dzv - rad) * 1.5 + 2;
+      if (sx - pr < bb[0]) bb[0] = sx - pr;
+      if (syv - pr < bb[1]) bb[1] = syv - pr;
+      if (sx + pr > bb[2]) bb[2] = sx + pr;
+      if (syv + pr > bb[3]) bb[3] = syv + pr;
+    }
+    for (k = 0; k < prims.length; k++) {
+      var p = prims[k], bb = [Infinity, Infinity, -Infinity, -Infinity];
+      if (p.t === 0) {
+        ext(bb, p.ax, p.ay, p.az, p.r); ext(bb, p.bx, p.by, p.bz, p.r);
+      } else {
+        for (i = 0; i < 8; i++) ext(bb, (i & 1) ? p.mx[0] : p.mn[0], (i & 2) ? p.mx[1] : p.mn[1], (i & 4) ? p.mx[2] : p.mn[2], 0);
+      }
+      var x0 = Math.max(0, Math.floor(bb[0])), y0 = Math.max(0, Math.floor(bb[1]));
+      var x1 = Math.min(W - 1, Math.ceil(bb[2])), y1 = Math.min(H - 1, Math.ceil(bb[3]));
+      for (j = y0; j <= y1; j++) {
+        var b = (j + 0.5 - H / 2) / F;
+        for (i = x0; i <= x1; i++) {
+          var a = (i + 0.5 - W / 2) / F;
+          var dx = c.fx + a * c.rx - b * c.ux, dy = c.fy + a * c.ry - b * c.uy, dz = c.fz + a * c.rz - b * c.uz;
+          var l = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          var t = hit(p, c.ex, c.ey, c.ez, dx / l, dy / l, dz / l);
+          var idx = j * W + i;
+          if (t < zb[idx]) { zb[idx] = t; ids[idx] = k; }
+        }
+      }
+    }
+    // light fixed to the camera: towards the viewer, from the upper right
+    var lx = -0.75 * c.fx + 0.55 * c.ux + 0.35 * c.rx, ly = -0.75 * c.fy + 0.55 * c.uy + 0.35 * c.ry, lz = -0.75 * c.fz + 0.55 * c.uz + 0.35 * c.rz;
+    var ll = Math.sqrt(lx * lx + ly * ly + lz * lz);
+    lx /= ll; ly /= ll; lz /= ll;
+    var img = ctx.createImageData(W, H), data = img.data;
+    for (j = 0; j < H; j++) {
+      var b2 = (j + 0.5 - H / 2) / F;
+      for (i = 0; i < W; i++) {
+        var id = j * W + i, o = id * 4, pk = ids[id];
+        if (pk < 0) {
+          data[o] = 0xED; data[o + 1] = 0xED; data[o + 2] = 0xF2; data[o + 3] = 255;
+          continue;
+        }
+        var a2 = (i + 0.5 - W / 2) / F;
+        var ex = c.fx + a2 * c.rx - b2 * c.ux, ey = c.fy + a2 * c.ry - b2 * c.uy, ez = c.fz + a2 * c.rz - b2 * c.uz;
+        var el2 = Math.sqrt(ex * ex + ey * ey + ez * ez), tt = zb[id] / el2;
+        var pr2 = prims[pk];
+        var n = normalAt(pr2, c.ex + ex * tt, c.ey + ey * tt, c.ez + ez * tt);
+        var dot = n[0] * lx + n[1] * ly + n[2] * lz;
+        var s = 0.5 + 0.5 * (dot > 0 ? (dot > 1 ? 1 : dot) : 0);
+        data[o] = Math.round(pr2.col[0] * s);
+        data[o + 1] = Math.round(pr2.col[1] * s);
+        data[o + 2] = Math.round(pr2.col[2] * s);
+        data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    lastRenderKey = key;
+  }
+
+  function turn(dyaw, dpitch) {
+    yaw = ((yaw + dyaw) % 360 + 360) % 360;
+    if (yaw >= 360) yaw = 0;
+    pitch = Math.max(-20, Math.min(60, pitch + dpitch));
+    scheduleRender();
+  }
+  var drag = null;
+  cv.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0 || e.isPrimary === false) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* capture is optional */ }
+    e.preventDefault();
+    try { cv.focus({ preventScroll: true }); } catch (err2) { /* ignore */ }
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) { drag = null; return; }
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (dx || dy) turn(0.9 * dx, 0.5 * dy);
+    e.preventDefault();
+  });
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag = null;
+    try { cv.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  cv.addEventListener('selectstart', function (e) { e.preventDefault(); });
+  cv.addEventListener('dragstart', function (e) { e.preventDefault(); });
+  cv.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowRight': turn(15, 0); break;
+      case 'ArrowLeft': turn(-15, 0); break;
+      case 'ArrowUp': turn(0, 5); break;
+      case 'ArrowDown': turn(0, -5); break;
+      case 'Home': yaw = 0; pitch = 10; scheduleRender(); break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(function () { scheduleRender(); }).observe(cv);
+  window.addEventListener('resize', scheduleRender);
+
+  /* ---------- start ---------- */
+  buildCards();
+  buildLines();
+  heightInput.value = '';
+  promoInput.value = '';
+  update();
+  render();
+}());
+</script>
+</body>
+</html>

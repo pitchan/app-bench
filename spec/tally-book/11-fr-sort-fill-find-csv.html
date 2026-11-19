@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Book — 11-fr-sort-fill-find-csv</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/tally-book">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-values-and-formulas.html">02-values-and-formulas</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-grid-and-editing.html">04-fr-grid-and-editing</a> · <a href="05-fr-formulas.html">05-fr-formulas</a> · <a href="06-fr-structure-and-clipboard.html">06-fr-structure-and-clipboard</a> · <a href="07-fr-history.html">07-fr-history</a> · <a href="08-rendering.html">08-rendering</a> · <a href="09-non-functional.html">09-non-functional</a> · <a href="10-fr-sheets-and-names.html">10-fr-sheets-and-names</a> · <strong>11-fr-sort-fill-find-csv</strong> · <a href="12-fr-persistence.html">12-fr-persistence</a></nav>
+<h1 id="11-functional-requirements--sort-fill-find-and-csv">11. Functional requirements — Sort, fill, find and CSV</h1>
+<p>Every action of this file acts on the active sheet. Each one that changes the workbook is one step of the history (FR-HIS-05).</p>
+<h2 id="111-sort">11.1 Sort</h2>
+<h3 id="FR-SRT-01">FR-SRT-01 Sorting rows</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>sort-asc</code> or <code>sort-desc</code>, the system shall reorder the rows of the selection. A <strong>row of the selection</strong> is the cells of one row of the sheet that are inside the selection; the <strong>key column</strong> is the column of the active cell. The system shall place the rows of the selection in the ascending order of their keys for <code>sort-asc</code>, in the descending order for <code>sort-desc</code> (02, section 2.14), each cell moving with its raw content and its format. The cells outside the selection shall not move. The selection shall not change: the anchor and the active cell keep their addresses. If no row of the selection changes place, then the system shall change nothing and create no history step.</li>
+<li><strong>Rationale:</strong> A table is put in order on one of its columns, without touching what is beside it.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Key column, formats and neighbours
+  Given the user enters &quot;3&quot; in A1
+  And the user enters &quot;1&quot; in A2
+  And the user enters &quot;2&quot; in A3
+  And the user enters &quot;10&quot; in A4
+  And the user enters &quot;c&quot; in B1
+  And the user enters &quot;a&quot; in B2
+  And the user enters &quot;b&quot; in B3
+  And the user enters &quot;d&quot; in B4
+  And the user enters &quot;k1&quot; in C1
+  And the user enters &quot;k2&quot; in C2
+  And the user clicks cell A2
+  And the user sets the format to &quot;fixed2&quot;
+  When the user clicks cell B4
+  And the user shift-clicks cell A1
+  And the user clicks button sort-asc
+  Then cell-A1 reads &quot;1.00&quot;
+  And cell-B1 reads &quot;a&quot;
+  And cell-A2 reads &quot;2&quot;
+  And cell-A3 reads &quot;3&quot;
+  And cell-B3 reads &quot;c&quot;
+  And cell-A4 reads &quot;10&quot;
+  And cell-C1 reads &quot;k1&quot;
+  And cell-C2 reads &quot;k2&quot;
+  And the selection is &quot;A1:B4&quot;
+  And cell-A1 has aria-selected &quot;true&quot;
+  When the user clicks button sort-asc
+  And the user clicks cell A1
+  And the user shift-clicks cell B4
+  And the user clicks button sort-desc
+  Then cell-B1 reads &quot;d&quot;
+  And cell-A1 reads &quot;10&quot;
+  And cell-B4 reads &quot;a&quot;
+  And cell-A4 reads &quot;1.00&quot;
+  When the user clicks button undo-button
+  Then cell-A1 reads &quot;1.00&quot;
+  When the user clicks button undo-button
+  Then cell-A1 reads &quot;3&quot;
+  And cell-A2 reads &quot;1.00&quot;
+</code></pre>
+<p>In this scenario the second click on <code>sort-asc</code> moves no row and creates no step: the two undos take back the descending sort, then the first ascending sort.</p>
+<h3 id="FR-SRT-02">FR-SRT-02 Sorting order</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall order the keys as 02, section 2.14 states. Ascending: number cells by value, then text cells without regard to letter case, then <code>FALSE</code>, then <code>TRUE</code>, then error cells, then empty cells. Descending: error cells, then <code>TRUE</code>, then <code>FALSE</code>, then text cells in decreasing order, then number cells by decreasing value, then empty cells. Empty cells come last in both orders. A cell is ordered by the value it has before the sort, a formula cell by its result; a cell that holds the empty text is a text cell.</li>
+<li><strong>Rationale:</strong> Any column can be sorted, whatever it holds, with one known result.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Mixed column
+  Given the user enters &quot;b&quot; in A1
+  And the user enters &quot;10&quot; in A3
+  And the user enters &quot;TRUE&quot; in A4
+  And the user enters &quot;=1/0&quot; in A5
+  And the user enters &quot;A&quot; in A6
+  And the user enters &quot;2&quot; in A7
+  And the user enters &quot;FALSE&quot; in A8
+  And the user enters &quot;&#39;&quot; in A9
+  And the user enters &quot;=nope&quot; in A10
+  And the user enters &quot;=0-5&quot; in A11
+  When the user clicks cell A1
+  And the user shift-clicks cell A11
+  And the user clicks button sort-asc
+  Then cell-A1 reads &quot;-5&quot;
+  And cell-A2 reads &quot;2&quot;
+  And cell-A3 reads &quot;10&quot;
+  And cell-A4 shows nothing and has data-kind &quot;text&quot;
+  And cell-A5 reads &quot;A&quot;
+  And cell-A6 reads &quot;b&quot;
+  And cell-A7 reads &quot;FALSE&quot;
+  And cell-A8 reads &quot;TRUE&quot;
+  And cell-A9 reads &quot;#DIV/0!&quot;
+  And cell-A10 reads &quot;#NAME?&quot;
+  And cell-A11 has data-kind &quot;empty&quot;
+  When the user clicks button sort-desc
+  Then cell-A1 reads &quot;#DIV/0!&quot;
+  And cell-A2 reads &quot;#NAME?&quot;
+  And cell-A3 reads &quot;TRUE&quot;
+  And cell-A4 reads &quot;FALSE&quot;
+  And cell-A5 reads &quot;b&quot;
+  And cell-A6 reads &quot;A&quot;
+  And cell-A7 shows nothing and has data-kind &quot;text&quot;
+  And cell-A8 reads &quot;10&quot;
+  And cell-A9 reads &quot;2&quot;
+  And cell-A10 reads &quot;-5&quot;
+  And cell-A11 has data-kind &quot;empty&quot;
+</code></pre>
+<h3 id="FR-SRT-03">FR-SRT-03 Stable sort</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall keep, in both orders, the rows whose keys are equal (02, section 2.14) in the order they had before the sort. Two texts that differ only by letter case are equal keys, and so are two error cells, whatever their errors.</li>
+<li><strong>Rationale:</strong> Sorting on one column keeps the order a previous sort gave inside each group.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Equal keys keep their order
+  Given the user enters &quot;2&quot; in A1
+  And the user enters &quot;1&quot; in A2
+  And the user enters &quot;2&quot; in A3
+  And the user enters &quot;1&quot; in A4
+  And the user enters &quot;1&quot; in A6
+  And the user enters &quot;a&quot; in B1
+  And the user enters &quot;b&quot; in B2
+  And the user enters &quot;c&quot; in B3
+  And the user enters &quot;d&quot; in B4
+  And the user enters &quot;e&quot; in B5
+  And the user enters &quot;f&quot; in B6
+  When the user clicks cell B6
+  And the user shift-clicks cell A1
+  And the user clicks button sort-asc
+  Then cell-B1 reads &quot;b&quot;
+  And cell-B2 reads &quot;d&quot;
+  And cell-B3 reads &quot;f&quot;
+  And cell-B4 reads &quot;a&quot;
+  And cell-B5 reads &quot;c&quot;
+  And cell-B6 reads &quot;e&quot;
+  When the user clicks button sort-desc
+  Then cell-B1 reads &quot;a&quot;
+  And cell-B2 reads &quot;c&quot;
+  And cell-B3 reads &quot;b&quot;
+  And cell-B4 reads &quot;d&quot;
+  And cell-B5 reads &quot;f&quot;
+  And cell-B6 reads &quot;e&quot;
+
+Scenario: Letter case does not separate keys
+  Given the user enters &quot;apple&quot; in A1
+  And the user enters &quot;Banana&quot; in A2
+  And the user enters &quot;APPLE&quot; in A3
+  And the user enters &quot;banana&quot; in A4
+  When the user clicks cell A1
+  And the user shift-clicks cell A4
+  And the user clicks button sort-desc
+  Then cell-A1 reads &quot;Banana&quot;
+  And cell-A2 reads &quot;banana&quot;
+  And cell-A3 reads &quot;apple&quot;
+  And cell-A4 reads &quot;APPLE&quot;
+</code></pre>
+<h3 id="FR-SRT-04">FR-SRT-04 Sorted formulas</h3>
+<ul>
+<li><strong>Statement:</strong> When rows are sorted, the system shall move the raw content of each cell as it is: a formula that moves is <strong>not</strong> adjusted (02, section 2.10.3 does not apply), so its references name the same addresses as before. The system shall rewrite no formula of any other cell and change no target of a defined name. The keys are the values before the sort; after the sort every cell is evaluated again, so the values of the moved formulas can differ from their keys.</li>
+<li><strong>Rationale:</strong> One simple rule: a sort moves contents and changes none.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Formulas move unchanged
+  Given the user enters &quot;3&quot; in A1
+  And the user enters &quot;1&quot; in A2
+  And the user enters &quot;2&quot; in A3
+  And the user enters &quot;=A1*10&quot; in B1
+  And the user enters &quot;=A2*10&quot; in B2
+  And the user enters &quot;=A3*10&quot; in B3
+  And the user enters &quot;=B1+1&quot; in C1
+  And the user enters &quot;=SUM(A1:A3)&quot; in D1
+  When the user clicks cell B3
+  And the user shift-clicks cell A1
+  And the user clicks button sort-asc
+  Then cell-A1 reads &quot;1&quot;
+  And the raw content of B1 is &quot;=A2*10&quot;
+  And cell-B1 reads &quot;20&quot;
+  And the raw content of B2 is &quot;=A3*10&quot;
+  And cell-B2 reads &quot;30&quot;
+  And the raw content of B3 is &quot;=A1*10&quot;
+  And cell-B3 reads &quot;10&quot;
+  And the raw content of C1 is &quot;=B1+1&quot;
+  And cell-C1 reads &quot;21&quot;
+  And cell-D1 reads &quot;6&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell B3
+  And the user clicks button sort-asc
+  Then cell-A1 reads &quot;3&quot;
+  And cell-A2 reads &quot;1&quot;
+  And cell-A3 reads &quot;2&quot;
+  And cell-B1 reads &quot;30&quot;
+  And cell-B2 reads &quot;10&quot;
+  And cell-B3 reads &quot;20&quot;
+</code></pre>
+<p>In this scenario the second sort has column <code>B</code> as key column, with the keys 20, 30 and 10: the third row goes first. Its formula <code>=A1*10</code> then reads the new <code>A1</code>, and the values of column <code>B</code> after the sort are 30, 10 and 20: the column was ordered on the values it had before the sort.</p>
+<h2 id="112-fill">11.2 Fill</h2>
+<h3 id="FR-FIL-01">FR-FIL-01 Fill down</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>fill-down</code> while the selection has two rows or more, the system shall, for each column of the selection, write into each cell of the selection below its first row: the raw content of the cell of that column in the first row of the selection, adjusted as 02, section 2.10.3 states by the offset between the two cells when it is a valid formula and unchanged otherwise; and the format of that cell. An empty cell in the first row makes the cells below it empty. The selection shall not change. If the selection has one row, then the system shall change nothing and create no history step.</li>
+<li><strong>Rationale:</strong> A formula typed once is repeated down a column, each copy reading its own row.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Values, formulas and formats
+  Given the user enters &quot;5&quot; in A1
+  And the user enters &quot;=A1*2+$A$1&quot; in B1
+  And the user enters &quot;x&quot; in C1
+  And the user enters &quot;=D12+SUM(A11:A12)&quot; in D1
+  And the user enters &quot;old&quot; in A2
+  And the user enters &quot;z&quot; in E2
+  And the user clicks cell A1
+  And the user sets the format to &quot;fixed2&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell E3
+  And the user clicks button fill-down
+  Then cell-A2 reads &quot;5.00&quot;
+  And cell-A3 reads &quot;5.00&quot;
+  And the raw content of B2 is &quot;=A2*2+$A$1&quot;
+  And the raw content of B3 is &quot;=A3*2+$A$1&quot;
+  And cell-B3 reads &quot;15&quot;
+  And cell-C3 reads &quot;x&quot;
+  And the raw content of D2 is &quot;=#REF!+SUM(#REF!)&quot;
+  And cell-E2 shows nothing
+  When the user clicks button undo-button
+  Then cell-A2 reads &quot;old&quot;
+  And cell-E2 reads &quot;z&quot;
+  And the selection is &quot;A1:E3&quot;
+  When the user clicks cell A1
+  And the user shift-clicks cell E1
+  And the user clicks button fill-down
+  Then redo-button is enabled
+</code></pre>
+<p>In this scenario the last click acts on a selection of one row: nothing changes, no step is created, and the step that was undone can still be redone.</p>
+<h3 id="FR-FIL-02">FR-FIL-02 Fill right</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>fill-right</code> while the selection has two columns or more, the system shall, for each row of the selection, write into each cell of the selection to the right of its first column: the raw content of the cell of that row in the first column of the selection, adjusted as 02, section 2.10.3 states when it is a valid formula and unchanged otherwise; and the format of that cell. The selection shall not change. If the selection has one column, then the system shall change nothing and create no history step.</li>
+<li><strong>Rationale:</strong> A formula typed once is repeated along a row.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Along a row
+  Given the user enters &quot;=A2+$B2+B$3&quot; in A1
+  And the user enters &quot;=Sheet1!A3&amp;Nope!A3&quot; in A4
+  And the user enters &quot;=1+&quot; in A5
+  And the user enters &quot;=H6&quot; in G6
+  When the user clicks cell A1
+  And the user shift-clicks cell C5
+  And the user clicks button fill-right
+  Then the raw content of B1 is &quot;=B2+$B2+C$3&quot;
+  And the raw content of C1 is &quot;=C2+$B2+D$3&quot;
+  And the raw content of B4 is &quot;=Sheet1!B3&amp;Nope!B3&quot;
+  And the raw content of C5 is &quot;=1+&quot;
+  When the user clicks cell G6
+  And the user shift-clicks cell H6
+  And the user clicks button fill-right
+  Then the raw content of H6 is &quot;=#REF!&quot;
+  When the user clicks cell H1
+  And the user shift-clicks cell H3
+  And the user clicks button fill-right
+  And the user clicks button undo-button
+  Then cell-H6 shows nothing
+  And the raw content of G6 is &quot;=H6&quot;
+  And cell-G6 reads &quot;0&quot;
+</code></pre>
+<h3 id="FR-FIL-03">FR-FIL-03 Fill series</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>fill-series</code>, the system shall take the lines of the selection: when the selection has one row, one line, that row from left to right; otherwise one line per column of the selection, from top to bottom. The system shall continue each line that can be continued (02, section 2.15): its first two cells hold numbers that are not formulas, it has three cells or more, and every value is in range. The cells from the third on receive the raw content <em>P(v)</em> of their value and the format of the first cell of the line; the step is the difference between the first two values, and each value is computed from the first one. The lines that cannot be continued shall not change. The selection shall not change. If no line is continued, then the system shall change nothing and create no history step.</li>
+<li><strong>Rationale:</strong> A list of numbers or of dates is extended from its first two terms.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Columns
+  Given the user enters &quot;1&quot; in A1
+  And the user enters &quot;3&quot; in A2
+  And the user enters &quot;0.1&quot; in B1
+  And the user enters &quot;0.3&quot; in B2
+  And the user enters &quot;x&quot; in C1
+  And the user enters &quot;2&quot; in C2
+  And the user enters &quot;keep&quot; in C3
+  And the user enters &quot;=1&quot; in D1
+  And the user enters &quot;2&quot; in D2
+  And the user enters &quot;10&quot; in E1
+  And the user enters &quot;7.5&quot; in E2
+  And the user enters &quot;2024-01-31&quot; in F1
+  And the user enters &quot;2024-02-07&quot; in F2
+  And the user enters &quot;0&quot; in G1
+  And the user enters &quot;900000000000000&quot; in G2
+  When the user clicks cell A1
+  And the user shift-clicks cell G6
+  And the user clicks button fill-series
+  Then the selection is &quot;A1:G6&quot;
+  And cell-A3 reads &quot;5&quot;
+  And cell-A6 reads &quot;11&quot;
+  And the raw content of B4 is &quot;0.7&quot;
+  And cell-B6 reads &quot;1.1&quot;
+  And cell-C3 reads &quot;keep&quot;
+  And cell-C4 shows nothing
+  And cell-D3 shows nothing
+  And cell-E5 reads &quot;0&quot;
+  And cell-E6 reads &quot;-2.5&quot;
+  And the raw content of F3 is &quot;45335&quot;
+  And cell-F3 reads &quot;2024-02-14&quot;
+  And cell-F6 reads &quot;2024-03-06&quot;
+  And cell-G3 shows nothing
+
+Scenario: One row, and lines too short
+  Given the user enters &quot;5&quot; in A8
+  And the user enters &quot;10&quot; in B8
+  And the user enters &quot;old&quot; in C8
+  When the user clicks cell A8
+  And the user shift-clicks cell B8
+  And the user clicks button fill-series
+  Then undo-button is enabled
+  And cell-C8 reads &quot;old&quot;
+  When the user clicks button undo-button 3 times
+  Then undo-button is disabled
+  When the user clicks button redo-button 3 times
+  And the user clicks cell A8
+  And the user shift-clicks cell E8
+  And the user clicks button fill-series
+  Then cell-C8 reads &quot;15&quot;
+  And cell-D8 reads &quot;20&quot;
+  And cell-E8 reads &quot;25&quot;
+  When the user clicks button undo-button
+  Then cell-C8 reads &quot;old&quot;
+</code></pre>
+<p>In the second scenario the first click on <code>fill-series</code> acts on a line of two cells and creates no step: three undos empty the history of the three commits.</p>
+<h2 id="113-find-and-replace">11.3 Find and replace</h2>
+<p>The rules on matching and replacing are in 02, section 2.16. The needle is the value of <code>find-input</code>, the replacement string the value of <code>replace-input</code>, both taken as typed; <em>match case</em> is on when <code>find-case</code> is checked, <em>whole cell</em> when <code>find-whole</code> is checked.</p>
+<h3 id="FR-FND-01">FR-FND-01 Find next</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>find-next</code>, the system shall count the cells of the active sheet that match (02, section 2.16) and show TXT-09 in <code>find-status</code>, <code>{n}</code> being that count. If one cell at least matches, then the system shall make anchor and active cell the first matching cell that comes after the active cell in visiting order, the search going on from <code>A1</code> after <code>H12</code> and ending with the active cell itself. If no cell matches, the selection shall not change. The search reads raw contents: a formula is searched in its text, not in its result. The system shall change no cell and create no history step. Pressing Enter in <code>find-input</code> shall start no action, and shall neither reload the page nor navigate.</li>
+<li><strong>Rationale:</strong> The user walks through the cells that hold a text, formulas included.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Walking through the matches
+  Given the user enters &quot;apple&quot; in A1
+  And the user enters &quot;Pineapple&quot; in B1
+  And the user enters &quot;=LEN(&quot;&quot;apple&quot;&quot;)&quot; in A2
+  And the user enters &quot;5&quot; in C3
+  And the user enters &quot;banana&quot; in D4
+  And the user clicks cell A1
+  When the user fills find-input with &quot;apple&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 3&quot;
+  And the selection is &quot;B1&quot;
+  When the user clicks button find-next
+  Then the selection is &quot;A2&quot;
+  When the user clicks button find-next
+  Then the selection is &quot;A1&quot;
+  When the user fills find-input with &quot;5&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 1&quot;
+  And the selection is &quot;C3&quot;
+  When the user clicks button find-next
+  Then the selection is &quot;C3&quot;
+  When the user fills find-input with &quot;zzz&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 0&quot;
+  And the selection is &quot;C3&quot;
+  When the user fills find-input with &quot;&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 0&quot;
+  And undo-button is enabled
+  When the user clicks button undo-button 5 times
+  Then undo-button is disabled
+</code></pre>
+<p>In this scenario <code>A2</code> shows <code>5</code> and is not found by the needle <code>5</code>: its raw content is <code>=LEN(&quot;apple&quot;)</code>. The five undos are those of the five commits: no search created a step.</p>
+<h3 id="FR-FND-02">FR-FND-02 Search options</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall apply the two options of 02, section 2.16 to <code>find-next</code> and to <code>replace-all</code>. Without <em>match case</em>, a letter <code>A</code>–<code>Z</code> matches its capital and its small form, and every other character matches itself only; with <em>match case</em>, every character matches itself only. With <em>whole cell</em>, a cell matches when its whole raw content matches the needle; without it, when a part of its raw content does. With an empty needle no cell matches.</li>
+<li><strong>Rationale:</strong> The search is as wide or as strict as the user asks.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Match case and whole cell
+  Given the user enters &quot;Apple&quot; in A1
+  And the user enters &quot;apple pie&quot; in A2
+  And the user enters &quot;APPLE&quot; in A3
+  And the user enters &quot;=&quot;&quot;apple&quot;&quot;&quot; in A4
+  And the user enters &quot;é&quot; in A5
+  And the user enters &quot;É&quot; in A6
+  When the user fills find-input with &quot;apple&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 4&quot;
+  When the user checks find-case
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 2&quot;
+  When the user unchecks find-case
+  And the user checks find-whole
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 2&quot;
+  When the user checks find-case
+  And the user fills find-input with &quot;APPLE&quot;
+  And the user clicks cell A1
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 1&quot;
+  And the selection is &quot;A3&quot;
+  When the user unchecks find-case
+  And the user fills find-input with &quot;é&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 1&quot;
+  And the selection is &quot;A5&quot;
+  When the user fills find-input with &quot;=&quot;&quot;APPLE&quot;&quot;&quot;
+  And the user clicks button find-next
+  Then find-status reads &quot;Matches: 1&quot;
+  And the selection is &quot;A4&quot;
+</code></pre>
+<h3 id="FR-FND-03">FR-FND-03 Replace all</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>replace-all</code>, the system shall, for each matching cell of the active sheet (02, section 2.16), build the new string of that section and commit it to the cell under 02, section 2.2. The system shall then show TXT-10 in <code>find-status</code>, <code>{n}</code> being the number of cells that matched. The whole action is one history step, created when the raw content or the format of one cell at least has changed, and not otherwise. The selection, the other sheets and the targets of the defined names shall not change. Pressing Enter in <code>replace-input</code> shall start no action, and shall neither reload the page nor navigate.</li>
+<li><strong>Rationale:</strong> A text is corrected everywhere in a sheet in one action, and taken back in one.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Every occurrence, formulas included
+  Given the user enters &quot;cat&quot; in A1
+  And the user enters &quot;concat&quot; in A2
+  And the user enters &quot;Cat-cat&quot; in A3
+  And the user enters &quot;=A1&amp;&quot;&quot;cat&quot;&quot;&quot; in B1
+  And the user enters &quot;dog&quot; in C1
+  And the user clicks button add-sheet
+  And the user enters &quot;cat&quot; in A1
+  And the user clicks sheet tab 1
+  And the user clicks cell C1
+  When the user fills find-input with &quot;cat&quot;
+  And the user fills replace-input with &quot;Dog&quot;
+  And the user clicks button replace-all
+  Then find-status reads &quot;Replaced: 4&quot;
+  And cell-A1 reads &quot;Dog&quot;
+  And cell-A2 reads &quot;conDog&quot;
+  And cell-A3 reads &quot;Dog-Dog&quot;
+  And the raw content of B1 is &quot;=A1&amp;&quot;&quot;Dog&quot;&quot;&quot;
+  And cell-B1 reads &quot;DogDog&quot;
+  When the user clicks sheet tab 2
+  Then cell-A1 reads &quot;cat&quot;
+  When the user clicks button undo-button
+  Then the active sheet is &quot;Sheet1&quot;
+  And cell-A1 reads &quot;cat&quot;
+  And cell-A3 reads &quot;Cat-cat&quot;
+  And the selection is &quot;C1&quot;
+
+Scenario: No change, no step
+  Given the user enters &quot;dog&quot; in A1
+  When the user fills find-input with &quot;dog&quot;
+  And the user fills replace-input with &quot;dog&quot;
+  And the user clicks button replace-all
+  Then find-status reads &quot;Replaced: 1&quot;
+  When the user clicks button undo-button
+  Then cell-A1 shows nothing
+  And undo-button is disabled
+  When the user clicks button redo-button
+  And the user fills replace-input with &quot;&quot;
+  And the user clicks button replace-all
+  Then find-status reads &quot;Replaced: 1&quot;
+  And cell-A1 has data-kind &quot;empty&quot;
+  When the user fills find-input with &quot;zzz&quot;
+  And the user clicks button replace-all
+  Then find-status reads &quot;Replaced: 0&quot;
+</code></pre>
+<h3 id="FR-FND-04">FR-FND-04 Replaced contents</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall treat each new string built by <code>replace-all</code> exactly as a string typed and committed (02, section 2.2): its kind is decided again; a valid formula is stored in canonical form; <strong>a formula that is no longer valid is stored as it is and reads <code>#SYNTAX!</code></strong>; a string that becomes a date entry gives the format <code>date</code> to a cell whose format is <code>general</code>; an empty string makes the cell empty. The replacement string is inserted as typed, whatever the letter case of the text it replaces.</li>
+<li><strong>Rationale:</strong> After a replacement the sheet holds what the user would have typed by hand.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Kinds decided again
+  Given the user enters &quot;=A2+1&quot; in A1
+  And the user enters &quot;x5&quot; in A2
+  And the user enters &quot;=SUM(B1:B2)&quot; in A3
+  And the user enters &quot;2024-02-2x&quot; in A4
+  And the user enters &quot;&#39;x&quot; in A5
+  And the user enters &quot;=1+x&quot; in A6
+  And the user enters &quot;trux&quot; in A7
+  When the user fills find-input with &quot;X&quot;
+  And the user fills replace-input with &quot;9&quot;
+  And the user clicks button replace-all
+  Then find-status reads &quot;Replaced: 5&quot;
+  And cell-A2 reads &quot;95&quot; and has data-kind &quot;number&quot;
+  And cell-A1 reads &quot;96&quot;
+  And cell-A4 reads &quot;2024-02-29&quot; and has data-kind &quot;number&quot;
+  And cell-A5 reads &quot;9&quot; and has data-kind &quot;text&quot;
+  And cell-A6 reads &quot;10&quot;
+  And cell-A7 reads &quot;tru9&quot;
+  When the user fills find-input with &quot;)&quot;
+  And the user fills replace-input with &quot;&quot;
+  And the user clicks button replace-all
+  Then the raw content of A3 is &quot;=SUM(B1:B2&quot;
+  And cell-A3 reads &quot;#SYNTAX!&quot;
+  When the user fills find-input with &quot;a2&quot;
+  And the user fills replace-input with &quot;sheet1!c7&quot;
+  And the user clicks button replace-all
+  Then the raw content of A1 is &quot;=Sheet1!C7+1&quot;
+  And cell-A1 reads &quot;1&quot;
+  When the user checks find-whole
+  And the user fills find-input with &quot;tru9&quot;
+  And the user fills replace-input with &quot;true&quot;
+  And the user clicks button replace-all
+  Then cell-A7 reads &quot;TRUE&quot; and has data-kind &quot;logical&quot;
+  And the raw content of A7 is &quot;true&quot;
+  When the user clicks cell A4
+  Then format-select has the value &quot;date&quot;
+</code></pre>
+<h2 id="114-csv">11.4 CSV</h2>
+<p>The rules on writing and reading a CSV text are in 02, section 2.17. The CSV controls are in <code>csv-panel</code> (03, section 3.2). The text is exchanged through <code>csv-text</code> only: no file is read or written.</p>
+<h3 id="FR-CSV-01">FR-CSV-01 Export of shown values</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>csv-export</code> while <code>csv-raw</code> is not checked, the system shall set the value of <code>csv-text</code> to the CSV text of the active sheet, written as 02, section 2.17.1 states. With <em>R</em> the last row that holds a cell that is not empty and <em>C</em> the last column that holds a cell that is not empty, the text has one record per row from 1 to <em>R</em>, each with one field per column from <code>A</code> to <em>C</em>: the text shown by the cell, with its format, and the empty field for a cell that shows nothing. The rows after <em>R</em> and the columns after <em>C</em> are left out; a format alone does not make a cell count. When every cell of the sheet is empty, the text is the empty string. The export shall change nothing in the workbook and create no history step.</li>
+<li><strong>Rationale:</strong> What the user sees goes out as it is seen.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: A small table
+  Given the user enters &quot;Item&quot; in A1
+  And the user enters &quot;Price&quot; in B1
+  And the user enters &quot;Due&quot; in C1
+  And the user enters &quot;Pen&quot; in A2
+  And the user enters &quot;1234.5&quot; in B2
+  And the user enters &quot;2024-01-31&quot; in C2
+  And the user enters &quot;Ink&quot; in A3
+  And the user enters &quot;=B2*2&quot; in B3
+  And the user enters &quot;=EDATE(C2,1)&quot; in C3
+  And the user enters &quot;total&quot; in A5
+  And the user enters &quot;=SUM(B2:B3)&quot; in B5
+  And the user clicks cell B2
+  And the user sets the format to &quot;fixed2&quot;
+  And the user clicks cell C3
+  And the user sets the format to &quot;date&quot;
+  And the user clicks cell H12
+  And the user sets the format to &quot;percent1&quot;
+  When the user clicks button csv-export
+  Then csv-text has the value
+    &quot;&quot;&quot;
+    Item,Price,Due
+    Pen,&quot;1,234.50&quot;,2024-01-31
+    Ink,2469,2024-02-29
+    ,,
+    total,3703.5,
+    &quot;&quot;&quot;
+  And csv-message is not visible
+  And undo-button is enabled
+
+Scenario: Empty sheet
+  Given the user fills csv-text with &quot;left over&quot;
+  When the user clicks button csv-export
+  Then csv-text has the value &quot;&quot;
+</code></pre>
+<h3 id="FR-CSV-02">FR-CSV-02 Export of raw contents</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>csv-export</code> while <code>csv-raw</code> is checked, the system shall write the same records and fields as FR-CSV-01, each field being the raw content of its cell instead of the text it shows. A cell counts as not empty by its raw content in both cases: a cell that holds the empty text is not empty.</li>
+<li><strong>Rationale:</strong> A sheet goes out with its formulas, so that it can come back.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: The same table, raw
+  Given the user enters &quot;Item&quot; in A1
+  And the user enters &quot;Price&quot; in B1
+  And the user enters &quot;Due&quot; in C1
+  And the user enters &quot;Pen&quot; in A2
+  And the user enters &quot;1234.5&quot; in B2
+  And the user enters &quot;2024-01-31&quot; in C2
+  And the user enters &quot;Ink&quot; in A3
+  And the user enters &quot;=B2*2&quot; in B3
+  And the user enters &quot;=EDATE(C2,1)&quot; in C3
+  And the user enters &quot;total&quot; in A5
+  And the user enters &quot;=SUM(B2:B3)&quot; in B5
+  And the user clicks cell B2
+  And the user sets the format to &quot;fixed2&quot;
+  When the user checks csv-raw
+  And the user clicks button csv-export
+  Then csv-text has the value
+    &quot;&quot;&quot;
+    Item,Price,Due
+    Pen,1234.5,2024-01-31
+    Ink,=B2*2,&quot;=EDATE(C2,1)&quot;
+    ,,
+    total,=SUM(B2:B3),
+    &quot;&quot;&quot;
+
+Scenario: A cell that holds the empty text
+  Given the user enters &quot;&#39;&quot; in C2
+  When the user clicks button csv-export
+  Then csv-text has the value
+    &quot;&quot;&quot;
+    ,,
+    ,,
+    &quot;&quot;&quot;
+  When the user checks csv-raw
+  And the user clicks button csv-export
+  Then csv-text has the value
+    &quot;&quot;&quot;
+    ,,
+    ,,&#39;
+    &quot;&quot;&quot;
+</code></pre>
+<h3 id="FR-CSV-03">FR-CSV-03 CSV quoting</h3>
+<ul>
+<li><strong>Statement:</strong> When a CSV text is written, the system shall put between <code>&quot;</code> every field that contains <code>&quot;</code>, <code>,</code>, CR or LF, doubling each <code>&quot;</code> of the field, and shall write every other field as it is, the empty field and the fields with leading or trailing spaces included. The records shall be separated by one LF, with nothing after the last record.</li>
+<li><strong>Rationale:</strong> The text can be read back without ambiguity by any CSV reader.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Quotes, commas and spaces
+  Given the user enters &quot;say &quot;&quot;hi&quot;&quot;&quot; in A1
+  And the user enters &quot;a,b&quot; in B1
+  And the user enters &quot; padded &quot; in C1
+  And the user enters &quot;&quot;&quot;&quot; in A2
+  And the user enters &quot;plain&quot; in B2
+  And the user enters &quot;&#39;=x&quot; in A3
+  And the user enters &quot;=&quot;&quot;a&quot;&quot;&amp;&quot;&quot;,&quot;&quot;&quot; in B3
+  When the user clicks button csv-export
+  Then csv-text has the value
+    &quot;&quot;&quot;
+    &quot;say &quot;&quot;hi&quot;&quot;&quot;,&quot;a,b&quot;, padded 
+    &quot;&quot;&quot;&quot;,plain,
+    =x,&quot;a,&quot;,
+    &quot;&quot;&quot;
+  When the user checks csv-raw
+  And the user clicks button csv-export
+  Then csv-text has the value
+    &quot;&quot;&quot;
+    &quot;say &quot;&quot;hi&quot;&quot;&quot;,&quot;a,b&quot;, padded 
+    &quot;&quot;&quot;&quot;,plain,
+    &#39;=x,&quot;=&quot;&quot;a&quot;&quot;&amp;&quot;&quot;,&quot;&quot;&quot;,
+    &quot;&quot;&quot;
+</code></pre>
+<p>In this scenario the first record ends with the field <code>padded</code>, whose last character is a space.</p>
+<h3 id="FR-CSV-04">FR-CSV-04 CSV reading</h3>
+<ul>
+<li><strong>Statement:</strong> When the user clicks <code>csv-import</code>, the system shall read the value of <code>csv-text</code> as 02, section 2.17.2 states: quoted fields with <code>&quot;&quot;</code> for one <code>&quot;</code>, commas inside quoted fields, each line break inside a quoted field replaced by one space, bare fields kept with their spaces, an empty line as a record of one empty field, and no record started by a final line break. If the value is the empty string, then the system shall change nothing in the workbook and show TXT-11 in <code>csv-message</code>. If the text is malformed, then the system shall change nothing in the workbook and show TXT-12 in <code>csv-message</code>. In both cases no history step is created. The value of <code>csv-text</code> shall not be changed by the import.</li>
+<li><strong>Rationale:</strong> A text that cannot be read as CSV is refused as a whole; nothing is half imported.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Fields of every kind
+  When the user fills csv-text with
+    &quot;&quot;&quot;
+    a,&quot;b &quot;&quot;c&quot;&quot;, d&quot;,
+    &quot;x
+    y&quot;,2
+
+    last&quot;q
+    
+    &quot;&quot;&quot;
+  And the user clicks button csv-import
+  Then cell-A1 reads &quot;a&quot;
+  And cell-B1 reads &quot;b &quot;&quot;c&quot;&quot;, d&quot;
+  And cell-C1 has data-kind &quot;empty&quot;
+  And cell-A2 reads &quot;x y&quot;
+  And cell-B2 reads &quot;2&quot; and has data-kind &quot;number&quot;
+  And cell-A3 has data-kind &quot;empty&quot;
+  And cell-A4 reads &quot;last&quot;&quot;q&quot;
+  And cell-A5 has data-kind &quot;empty&quot;
+  And csv-message reads &quot;Imported: 5 | Dropped: 0&quot;
+
+Scenario: Refused texts
+  Given the user enters &quot;keep&quot; in A1
+  When the user clicks button csv-import
+  Then csv-message reads &quot;Nothing to import&quot;
+  When the user fills csv-text with &quot;a,&quot;&quot;b&quot;
+  And the user clicks button csv-import
+  Then csv-message reads &quot;Invalid CSV&quot;
+  And cell-A1 reads &quot;keep&quot;
+  When the user fills csv-text with &quot;&quot;&quot;a&quot;&quot;b,c&quot;
+  And the user clicks button csv-import
+  Then csv-message reads &quot;Invalid CSV&quot;
+  And csv-text has the value &quot;&quot;&quot;a&quot;&quot;b,c&quot;
+  When the user clicks button undo-button
+  Then cell-A1 shows nothing
+  And undo-button is disabled
+  When the user fills csv-text with &quot;a&quot;&quot;b,&quot;&quot;c&quot;&quot; &quot;
+  And the user clicks button csv-import
+  Then csv-message reads &quot;Invalid CSV&quot;
+  When the user fills csv-text with &quot;a&quot;&quot;b, &quot;&quot;c&quot;&quot;&quot;
+  And the user clicks button csv-import
+  Then csv-message reads &quot;Imported: 2 | Dropped: 0&quot;
+  And cell-A1 reads &quot;a&quot;&quot;b&quot;
+  And cell-B1 reads &quot;&quot;&quot;c&quot;&quot;&quot;
+</code></pre>
+<p>In the first scenario the text has six lines and ends with a line break: the fourth line is empty and gives a record of one empty field; the line break after <code>last&quot;q</code> starts no record. In the second scenario the last text is read: a field that starts with a space is a bare field, in which <code>&quot;</code> is an ordinary character; the text before it is malformed because its second field is a quoted field whose closing <code>&quot;</code> is followed by a space.</p>
+<h3 id="FR-CSV-05">FR-CSV-05 Import into the sheet</h3>
+<ul>
+<li><strong>Statement:</strong> When a CSV text is read without error, the system shall, in this order: (1) make every cell of the active sheet empty, the formats being kept; (2) commit each field that is not empty, of record number <em>i</em> and field number <em>j</em>, to the cell of row <em>i</em> and column number <em>j</em> of the active sheet, under 02, section 2.2, when <em>i</em> is at most 12 and <em>j</em> at most 8, and drop it otherwise; (3) show TXT-13 in <code>csv-message</code>, <code>{k}</code> being the number of fields committed and <code>{d}</code> the number of fields that are not empty and were dropped. The whole import is one history step, always created. The selection, the other sheets, the formulas of the other sheets and the targets of the defined names shall not change. Pressing Enter in <code>csv-text</code> shall start no action, and shall neither reload the page nor navigate.</li>
+<li><strong>Rationale:</strong> A sheet is replaced by a table typed or pasted as text; what does not fit is counted, not hidden.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Kinds, formats and a text larger than the grid
+  Given the user enters &quot;old&quot; in H12
+  And the user enters &quot;0.5&quot; in B1
+  And the user clicks cell B1
+  And the user sets the format to &quot;fixed2&quot;
+  And the user clicks cell C3
+  When the user fills csv-text with
+    &quot;&quot;&quot;
+    Qty,1234.5,=B1*2,2024-02-29,&#39;=x,=1+,TRUE, 7 ,dropped
+    r2
+    r3
+    r4
+    r5
+    r6
+    r7
+    r8
+    r9
+    r10
+    r11
+    r12
+    r13,also dropped
+    &quot;&quot;&quot;
+  And the user clicks button csv-import
+  Then csv-message reads &quot;Imported: 19 | Dropped: 3&quot;
+  And cell-A1 reads &quot;Qty&quot;
+  And cell-B1 reads &quot;1,234.50&quot;
+  And cell-C1 reads &quot;2469&quot;
+  And cell-D1 reads &quot;2024-02-29&quot; and has data-kind &quot;number&quot;
+  And cell-E1 reads &quot;=x&quot; and has data-kind &quot;text&quot;
+  And cell-F1 reads &quot;#SYNTAX!&quot;
+  And cell-G1 reads &quot;TRUE&quot; and has data-kind &quot;logical&quot;
+  And cell-H1 reads &quot;7&quot; and has data-kind &quot;number&quot;
+  And cell-A12 reads &quot;r12&quot;
+  And cell-H12 shows nothing
+  And the selection is &quot;C3&quot;
+  And the raw content of H1 is &quot; 7 &quot;
+  When the user clicks button undo-button
+  Then cell-H12 reads &quot;old&quot;
+  And cell-B1 reads &quot;0.50&quot;
+  And cell-A1 shows nothing
+
+Scenario: Out as shown, back as typed
+  Given the user enters &quot;1234.5&quot; in A1
+  And the user enters &quot;2024-01-31&quot; in B1
+  And the user enters &quot;=EDATE(B1,1)&quot; in C1
+  And the user enters &quot;=A1*2&quot; in D1
+  And the user clicks cell A1
+  And the user sets the format to &quot;fixed2&quot;
+  And the user clicks cell C1
+  And the user sets the format to &quot;date&quot;
+  And the user clicks button csv-export
+  And the user clicks button add-sheet
+  When the user clicks button csv-import
+  Then csv-message reads &quot;Imported: 4 | Dropped: 0&quot;
+  And cell-A1 reads &quot;1,234.50&quot; and has data-kind &quot;text&quot;
+  And cell-B1 reads &quot;2024-01-31&quot; and has data-kind &quot;number&quot;
+  And cell-C1 reads &quot;2024-02-29&quot; and has data-kind &quot;number&quot;
+  And the raw content of C1 is &quot;2024-02-29&quot;
+  And format-select has the value &quot;date&quot;
+  And cell-D1 reads &quot;2469&quot; and has data-kind &quot;number&quot;
+  When the user clicks sheet tab 1
+  And the user checks csv-raw
+  And the user clicks button csv-export
+  And the user clicks sheet tab 2
+  And the user clicks button csv-import
+  Then the raw content of C1 is &quot;=EDATE(B1,1)&quot;
+  And cell-C1 reads &quot;2024-02-29&quot;
+  And cell-A1 reads &quot;1234.5&quot; and has data-kind &quot;number&quot;
+  And the raw content of D1 is &quot;=A1*2&quot;
+</code></pre>
+<p>In the second scenario the first import reads the texts that were shown: <code>1,234.50</code> is not an entry number and becomes a text, while the two dates are date entries and give the format <code>date</code> to their cells. The second import reads the raw contents: the formulas come back, and <code>C1</code>, which kept the format <code>date</code> from the first import, still shows a day.</p>
+
+</main>
+</body>
+</html>

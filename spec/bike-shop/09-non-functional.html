@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bike Shop — 09-non-functional</title>
+<style>
+:root { --fond: #fbfbfa; --texte: #1d1d1b; --doux: #6b6b66; --bord: #deded8; --accent: #2f5bd3; --code: #f0f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #151515; --texte: #e8e8e4; --doux: #9a9a94; --bord: #34342f; --accent: #8aa8ff; --code: #22221f; }
+}
+body { margin: 0; background: var(--fond); color: var(--texte); font: 16px/1.55 system-ui, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+nav { font-size: 14px; color: var(--doux); border-bottom: 1px solid var(--bord); padding-bottom: 12px; margin-bottom: 24px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; display: block; overflow-x: auto; margin: 16px 0; }
+th, td { border: 1px solid var(--bord); padding: 6px 10px; text-align: left; vertical-align: top; }
+code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+pre { background: var(--code); padding: 12px; overflow-x: auto; border-radius: 6px; }
+pre code { padding: 0; }
+h3[id] { scroll-margin-top: 16px; }
+:target { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="../../#/epreuve/bike-shop">← Résultats</a> · <a href="README.html">README</a> · <a href="01-product-overview.html">01-product-overview</a> · <a href="02-catalog-and-rules.html">02-catalog-and-rules</a> · <a href="03-ui-contract.html">03-ui-contract</a> · <a href="04-fr-configurator.html">04-fr-configurator</a> · <a href="05-fr-order-lines.html">05-fr-order-lines</a> · <a href="06-fr-pricing.html">06-fr-pricing</a> · <a href="07-fr-checkout.html">07-fr-checkout</a> · <a href="08-rendering.html">08-rendering</a> · <strong>09-non-functional</strong></nav>
+<h1 id="9-non-functional-requirements">9. Non-functional requirements</h1>
+<h3 id="NFR-PKG-01">NFR-PKG-01 Single file delivery</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall be delivered as one file named <code>index.html</code>, starting with <code>&lt;!DOCTYPE html&gt;</code>, containing all of its HTML, CSS, JavaScript and SVG inline.</li>
+<li><strong>Rationale:</strong> The page opens directly from the file system with no installation.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Opened from disk
+  When index.html is opened through a file:// URL
+  Then the configurator is usable
+</code></pre>
+<h3 id="NFR-NET-01">NFR-NET-01 No network access</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall not issue any network request (scripts, stylesheets, fonts, images, data) other than loading <code>index.html</code> itself.</li>
+<li><strong>Rationale:</strong> The page works offline and loads instantly.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: No request
+  When the page loads and the user builds and places an order
+  Then no request other than the page itself was made
+</code></pre>
+<h3 id="NFR-DLG-01">NFR-DLG-01 No native dialogs</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall not call <code>window.alert</code>, <code>window.confirm</code> or <code>window.prompt</code>.</li>
+<li><strong>Rationale:</strong> Every message has its place in the UI contract.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: No dialog in any flow
+  When the user performs every flow of this specification
+  Then no native dialog is opened
+</code></pre>
+<h3 id="NFR-ERR-01">NFR-ERR-01 No script errors</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall not throw any uncaught exception nor leave any rejected promise unhandled, from page load and during every flow of this specification. Every test of this specification fails when the page throws such an error during that test.</li>
+<li><strong>Rationale:</strong> A script error stops the page halfway; what still works afterwards is not a working page.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Clean run
+  When the page loads and the user performs every flow of this specification
+  Then the page threw no uncaught error
+</code></pre>
+<h3 id="NFR-A11Y-01">NFR-A11Y-01 Native controls and accessible names</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall use native <code>&lt;input&gt;</code> and <code>&lt;button&gt;</code> elements for every control of 03-ui-contract, with the accessible names given there, so that each control can be found by its role and exact accessible name. Disabled controls shall use the <code>disabled</code> attribute.</li>
+<li><strong>Rationale:</strong> Controls work with assistive technologies and the keyboard.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Roles and names
+  When the page loads
+  Then there is exactly one radio named &quot;Frame M&quot;
+  And there is exactly one checkbox named &quot;Rear rack&quot;
+  And there is exactly one textbox named &quot;Rider height (cm)&quot;
+  And there is exactly one button named &quot;Increase quantity&quot;
+</code></pre>
+<h3 id="NFR-A11Y-02">NFR-A11Y-02 Live announcements and field errors</h3>
+<ul>
+<li><strong>Statement:</strong> The system shall place <code>notice</code> inside a distinct element with <code>role=&quot;status&quot;</code> that is in the DOM from page load and never hidden with <code>display: none</code>, <code>visibility: hidden</code> or the <code>hidden</code> attribute, and shall write cascade messages into that element. While <code>height-error</code> or <code>promo-error</code> is visible, the system shall set <code>aria-invalid=&quot;true&quot;</code> on its field and reference the error element from the field&#39;s <code>aria-describedby</code>; while the error is not visible, <code>aria-invalid</code> shall be absent or <code>&quot;false&quot;</code>.</li>
+<li><strong>Rationale:</strong> Screen readers announce automatic changes and which field is wrong.</li>
+<li><strong>Verification:</strong> Test</li>
+<li><strong>Acceptance criteria:</strong></li>
+</ul>
+<pre><code class="language-gherkin">Scenario: Height error association
+  When the user fills height-input with &quot;140&quot;
+  Then height-input has aria-invalid &quot;true&quot;
+  And the aria-describedby of height-input contains the id of height-error
+  When the user fills height-input with &quot;170&quot;
+  Then height-input has no aria-invalid &quot;true&quot;
+</code></pre>
+
+</main>
+</body>
+</html>
